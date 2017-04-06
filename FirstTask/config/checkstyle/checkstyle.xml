@@ -140,7 +140,7 @@ Severity: HARD
         <module name="InnerAssignment" />
         <module name="MagicNumber">
             <property name="severity" value="info" />
-            <property name="ignoreNumbers" value="-1, 0, 1, 2, 3, 4, 5, 8, 10, 12, 16, 24, 30, 32, 60, 64, 100, 120, 128, 180, 256, 360, 1000" />
+            <property name="ignoreNumbers" value="-1, 0, 1, 2, 3, 4, 5, 8, 10, 12, 16, 24, 30, 31, 32, 60, 64, 100, 120, 128, 180, 256, 360, 1000" />
         </module>
         <module name="MissingSwitchDefault">
             <property name="severity" value="ignore" />

@@ -2,43 +2,52 @@ package com.awesoon.firsttask;
 
 import android.app.Application;
 import android.content.res.Configuration;
-import android.util.Log;
+
+import com.awesoon.firsttask.util.Log;
 
 public class AwesomeApplication extends Application {
-  private static final String TAG = AwesomeApplication.class.getSimpleName();
+  public static final String TAG = "AwesomeApplication";
+  public static final int LOG_LEVEL = 0;
+
+  private Log log = new Log();
 
   @Override
   public void onCreate() {
-    Log.w(TAG, "Before on create");
     super.onCreate();
-    Log.w(TAG, "After on create");
+    log.addEntry(LOG_LEVEL, TAG, "On create");
   }
 
+  /**
+   * This method is for use in emulated process environments.  It will
+   * never be called on a production Android device, where processes are
+   * removed by simply killing them; no user code (including this callback)
+   * is executed when doing so.
+   */
   @Override
   public void onTerminate() {
-    Log.i(TAG, "Before on terminate");
     super.onTerminate();
-    Log.i(TAG, "Before on terminate");
+    log.addEntry(LOG_LEVEL, TAG, "On terminate (tests only)");
   }
 
   @Override
   public void onConfigurationChanged(Configuration newConfig) {
-    Log.i(TAG, "Before on configuration changed");
     super.onConfigurationChanged(newConfig);
-    Log.i(TAG, "After on configuration changed");
+    log.addEntry(LOG_LEVEL, TAG, "On configuration changed");
   }
 
   @Override
   public void onLowMemory() {
-    Log.i(TAG, "Before on low memory");
     super.onLowMemory();
-    Log.i(TAG, "After on low memory");
+    log.addEntry(LOG_LEVEL, TAG, "On low memory");
   }
 
   @Override
   public void onTrimMemory(int level) {
-    Log.d(TAG, "Before on trim memory, level = " + level);
     super.onTrimMemory(level);
-    Log.d(TAG, "After on trim memory, level = " + level);
+    log.addEntry(LOG_LEVEL, TAG, "On trim memory");
+  }
+
+  public Log getLog() {
+    return log;
   }
 }

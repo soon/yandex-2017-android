@@ -19,9 +19,34 @@ public class AwesomeActivityTest {
       new ActivityTestRule<>(AwesomeActivity.class);
 
   @Test
+  public void testLifecycleRestart() throws Exception {
+    // given
+    AwesomeActivity activity = activityRule.getActivity();
+    boolean wasVisible = activity.isActivityVisible();
+
+    // when
+    getInstrumentation().callActivityOnRestart(activity);
+
+    // then
+    Log log = activity.getLog();
+    LogMatcher logMatcher = new LogMatcher(log);
+    logMatcher
+        .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "On create")
+        .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "On start")
+        .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "On resume")
+        .disableWhen(wasVisible)
+        .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "On pause")
+        .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "On stop")
+        .enable()
+        .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "On restart")
+        .assertAllMessagesChecked();
+  }
+
+  @Test
   public void testLifecycleResumePauseMultipleTimes() throws Exception {
     // given
     AwesomeActivity activity = activityRule.getActivity();
+    boolean wasVisible = activity.isActivityVisible();
 
     // when
     getInstrumentation().callActivityOnPause(activity);
@@ -33,14 +58,17 @@ public class AwesomeActivityTest {
     Log log = activity.getLog();
     LogMatcher logMatcher = new LogMatcher(log);
     logMatcher
-        .assertMatches(Log.Severity.INFO, AwesomeActivity.TAG, "On create")
-        .assertMatches(Log.Severity.INFO, AwesomeActivity.TAG, "On start")
-        .assertMatches(Log.Severity.INFO, AwesomeActivity.TAG, "On resume")
-        .assertMatches(Log.Severity.INFO, AwesomeActivity.TAG, "On pause")
-        .assertMatches(Log.Severity.INFO, AwesomeActivity.TAG, "On resume")
-        .assertMatches(Log.Severity.INFO, AwesomeActivity.TAG, "On pause")
-        .assertMatches(Log.Severity.INFO, AwesomeActivity.TAG, "On resume")
-        .assertMatches(Log.Severity.INFO, AwesomeActivity.TAG, "On pause")
+        .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "On create")
+        .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "On start")
+        .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "On resume")
+        .disableWhen(wasVisible)
+        .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "On pause")
+        .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "On stop")
+        .enable()
+        .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "On pause")
+        .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "On resume")
+        .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "On pause")
+        .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "On resume")
         .assertAllMessagesChecked();
   }
 
@@ -48,6 +76,7 @@ public class AwesomeActivityTest {
   public void testLifecyclePause() throws Exception {
     // given
     AwesomeActivity activity = activityRule.getActivity();
+    boolean wasVisible = activity.isActivityVisible();
 
     // when
     getInstrumentation().callActivityOnPause(activity);
@@ -56,10 +85,14 @@ public class AwesomeActivityTest {
     Log log = activity.getLog();
     LogMatcher logMatcher = new LogMatcher(log);
     logMatcher
-        .assertMatches(Log.Severity.INFO, AwesomeActivity.TAG, "On create")
-        .assertMatches(Log.Severity.INFO, AwesomeActivity.TAG, "On start")
-        .assertMatches(Log.Severity.INFO, AwesomeActivity.TAG, "On resume")
-        .assertMatches(Log.Severity.INFO, AwesomeActivity.TAG, "On pause")
+        .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "On create")
+        .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "On start")
+        .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "On resume")
+        .disableWhen(wasVisible)
+        .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "On pause")
+        .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "On stop")
+        .enable()
+        .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "On pause")
         .assertAllMessagesChecked();
   }
 
@@ -74,9 +107,13 @@ public class AwesomeActivityTest {
     Log log = activity.getLog();
     LogMatcher logMatcher = new LogMatcher(log);
     logMatcher
-        .assertMatches(Log.Severity.INFO, AwesomeActivity.TAG, "On create")
-        .assertMatches(Log.Severity.INFO, AwesomeActivity.TAG, "On start")
-        .assertMatches(Log.Severity.INFO, AwesomeActivity.TAG, "On resume")
+        .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "On create")
+        .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "On start")
+        .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "On resume")
+        .disableWhen(activity.isActivityVisible())
+        .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "On pause")
+        .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "On stop")
+        .enable()
         .assertAllMessagesChecked();
   }
 }

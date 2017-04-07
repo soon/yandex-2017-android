@@ -20,6 +20,7 @@ public class AwesomeView extends View {
   public static final int LOG_TEXT_SIZE = 25;
 
   private Log log = new Log();
+  private Paint defaultPaint;
   private Paint applicationPaint;
   private Paint activityPaint;
   private Paint viewGroupPaint;
@@ -47,6 +48,7 @@ public class AwesomeView extends View {
 
   private void init() {
     setWillNotDraw(false);
+    defaultPaint = createPaint(Color.BLACK, LOG_TEXT_SIZE);
     applicationPaint = createPaint(Color.BLACK, LOG_TEXT_SIZE);
     activityPaint = createPaint(Color.MAGENTA, LOG_TEXT_SIZE);
     viewGroupPaint = createPaint(Color.BLUE, LOG_TEXT_SIZE);
@@ -90,14 +92,26 @@ public class AwesomeView extends View {
     canvas.drawColor(Color.WHITE);
     Log mergedLogs = Log.getGlobalLog();
 
-    int x = 100;
-    int y = 100;
+    final int topOffset = 100;
+    final int bottomOffset = 100;
+    final int x = 100;
+    int y = topOffset;
     final int levelMultiplier = 25;
     final int newEntryOffset = 25;
 
     List<List<Log.Message>> collapsedMessages = mergedLogs.collapseMessages();
+    final int maxEntriesNum = (canvas.getHeight() - topOffset - bottomOffset) / newEntryOffset;
+    final boolean isOverflow = maxEntriesNum < collapsedMessages.size();
+    final int startIndex = isOverflow ? collapsedMessages.size() - maxEntriesNum : 0;
+
+    if (isOverflow) {
+      canvas.drawText("[Previous entries are hidden]", x , y, defaultPaint);
+      y += newEntryOffset;
+    }
+
     Log.Message lastMessageFromPreviousBlock = null;
-    for (List<Log.Message> block : collapsedMessages) {
+    for (int i = startIndex; i < collapsedMessages.size(); i++) {
+      List<Log.Message> block = collapsedMessages.get(i);
       Log.Message lastEntry = block.get(block.size() - 1);
 
       Paint paint = getLogEntryPaint(lastEntry);

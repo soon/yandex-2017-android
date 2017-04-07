@@ -88,7 +88,7 @@ public class AwesomeView extends View {
 
   private void drawLog(Canvas canvas) {
     canvas.drawColor(Color.WHITE);
-    Log mergedLogs = Log.getAllLogsMerged();
+    Log mergedLogs = Log.getGlobalLog();
 
     int x = 100;
     int y = 100;
@@ -96,34 +96,42 @@ public class AwesomeView extends View {
     final int newEntryOffset = 25;
 
     List<List<Log.Message>> collapsedMessages = mergedLogs.collapseMessages();
+    Log.Message lastMessageFromPreviousBlock = null;
     for (List<Log.Message> block : collapsedMessages) {
-      Log.Message entry = block.get(0);
-      String displayMessage = entry.getTag() + " " + entry.getMessage();
+      Log.Message lastEntry = block.get(block.size() - 1);
+
+      Paint paint = getLogEntryPaint(lastEntry);
+
+      long deltaTime = 0;
+      if (lastMessageFromPreviousBlock != null) {
+        deltaTime = lastEntry.getTimeMillis() - lastMessageFromPreviousBlock.getTimeMillis();
+      }
+
+      String displayMessage = String.format(Locale.ROOT,
+          "%s %s (+%d ms)", lastEntry.getTag(), lastEntry.getMessage(), deltaTime);
 
       if (block.size() > 1) {
         displayMessage = String.format(Locale.ROOT, "[%d]: %s", block.size(), displayMessage);
       }
 
-      Paint paint;
-      switch (entry.getTag()) {
-        case AwesomeApplication.TAG:
-          paint = applicationPaint;
-          break;
-        case AwesomeActivity.TAG:
-          paint = activityPaint;
-          break;
-        case AwesomeViewGroup.TAG:
-          paint = viewGroupPaint;
-          break;
-        case AwesomeView.TAG:
-          paint = viewPaint;
-          break;
-        default:
-          throw new UnsupportedOperationException("Unknown tag: " + entry.getTag());
-      }
-
-      canvas.drawText(displayMessage, x + entry.getLevel() * levelMultiplier, y, paint);
+      canvas.drawText(displayMessage, x + lastEntry.getLevel() * levelMultiplier, y, paint);
       y += newEntryOffset;
+      lastMessageFromPreviousBlock = lastEntry;
+    }
+  }
+
+  private Paint getLogEntryPaint(Log.Message lastEntry) {
+    switch (lastEntry.getTag()) {
+      case AwesomeApplication.TAG:
+        return applicationPaint;
+      case AwesomeActivity.TAG:
+        return activityPaint;
+      case AwesomeViewGroup.TAG:
+        return viewGroupPaint;
+      case AwesomeView.TAG:
+        return viewPaint;
+      default:
+        throw new UnsupportedOperationException("Unknown tag: " + lastEntry.getTag());
     }
   }
 

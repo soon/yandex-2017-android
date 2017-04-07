@@ -1,27 +1,33 @@
 package com.awesoon.firsttask.util;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
 public class Log {
   private List<Message> messages = new ArrayList<>();
-  private static List<Log> allLogs = new ArrayList<>();
+  private boolean addToGlobalLog = false;
+
+  private static Log globalLog = new Log(false);
 
   public Log() {
     this(true);
   }
 
-  private Log(boolean registerLog) {
-    if (registerLog) {
-      allLogs.add(this);
-    }
+  private Log(boolean addToGlobalLog) {
+    this.addToGlobalLog = addToGlobalLog;
   }
 
   public void addEntry(int level, String tag, String message) {
-    messages.add(new Message(level, tag, message));
+    Message entry = new Message(level, tag, message);
+    addEntry(entry);
+    if (addToGlobalLog) {
+      globalLog.addEntry(entry);
+    }
+  }
+
+  private void addEntry(Message entry) {
+    messages.add(entry);
   }
 
   public int size() {
@@ -32,24 +38,12 @@ public class Log {
     return messages.get(index);
   }
 
-  private void addAll(List<Message> newMessages) {
-    this.messages.addAll(newMessages);
-  }
-
-  private static Log merge(List<Log> logs) {
-    final Log result = new Log(false);
-    for (Log l : logs) {
-      result.addAll(l.messages);
-    }
-    Collections.sort(result.messages, new Comparator<Message>() {
-      @Override
-      public int compare(Message lhs, Message rhs) {
-        return Long.compare(lhs.millsTime, rhs.millsTime);
-      }
-    });
-    return result;
-  }
-
+  /**
+   * Collapses all log messages into a list of blocks.
+   * Each block contains log entries with same level, tag, and message (see {@link Message#equalsUpToTime(Message)}
+   *
+   * @return A list of collapsed log entries.
+   */
   public List<List<Log.Message>> collapseMessages() {
     List<List<Log.Message>> result = new ArrayList<>();
     if (size() == 0) {
@@ -75,15 +69,15 @@ public class Log {
     return result;
   }
 
-  public static Log getAllLogsMerged() {
-    return merge(allLogs);
+  public static Log getGlobalLog() {
+    return globalLog;
   }
 
   public static class Message {
     private int level;
     private String tag;
     private String message;
-    private long millsTime;
+    private long timeMillis;
 
     public Message(int level, String tag, String message) {
       Assert.notNull(tag, "tag must not be null");
@@ -92,7 +86,7 @@ public class Log {
       this.level = level;
       this.tag = tag;
       this.message = message;
-      this.millsTime = System.currentTimeMillis();
+      this.timeMillis = System.currentTimeMillis();
     }
 
     public int getLevel() {
@@ -127,7 +121,7 @@ public class Log {
       if (level != message1.level) {
         return false;
       }
-      if (millsTime != message1.millsTime) {
+      if (timeMillis != message1.timeMillis) {
         return false;
       }
       if (!tag.equals(message1.tag)) {
@@ -142,7 +136,7 @@ public class Log {
       int result = level;
       result = 31 * result + tag.hashCode();
       result = 31 * result + message.hashCode();
-      result = 31 * result + (int) (millsTime ^ (millsTime >>> 32));
+      result = 31 * result + (int) (timeMillis ^ (timeMillis >>> 32));
       return result;
     }
 
@@ -152,8 +146,12 @@ public class Log {
           + "level=" + level
           + ", tag='" + tag + '\''
           + ", message='" + message + '\''
-          + ", millsTime=" + millsTime
+          + ", timeMillis=" + timeMillis
           + '}';
+    }
+
+    public long getTimeMillis() {
+      return timeMillis;
     }
   }
 }

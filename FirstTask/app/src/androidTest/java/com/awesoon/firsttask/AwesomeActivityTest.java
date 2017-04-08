@@ -31,6 +31,7 @@ public class AwesomeActivityTest {
     Log log = activity.getLog();
     LogMatcher logMatcher = new LogMatcher(log);
     logMatcher
+        .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "constructor")
         .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "On create")
         .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "On start")
         .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "On resume")
@@ -58,6 +59,7 @@ public class AwesomeActivityTest {
     Log log = activity.getLog();
     LogMatcher logMatcher = new LogMatcher(log);
     logMatcher
+        .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "constructor")
         .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "On create")
         .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "On start")
         .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "On resume")
@@ -85,6 +87,7 @@ public class AwesomeActivityTest {
     Log log = activity.getLog();
     LogMatcher logMatcher = new LogMatcher(log);
     logMatcher
+        .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "constructor")
         .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "On create")
         .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "On start")
         .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "On resume")
@@ -107,6 +110,7 @@ public class AwesomeActivityTest {
     Log log = activity.getLog();
     LogMatcher logMatcher = new LogMatcher(log);
     logMatcher
+        .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "constructor")
         .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "On create")
         .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "On start")
         .assertMatches(AwesomeActivity.LOG_LEVEL, AwesomeActivity.TAG, "On resume")

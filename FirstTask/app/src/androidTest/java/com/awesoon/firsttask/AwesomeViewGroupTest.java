@@ -27,6 +27,8 @@ public class AwesomeViewGroupTest {
     Log log = viewGroup.getLog();
     LogMatcher logMatcher = new LogMatcher(log);
     logMatcher
+        .assertMatches(AwesomeViewGroup.LOG_LEVEL, AwesomeViewGroup.TAG, "constructor")
+        .assertMatches(AwesomeViewGroup.LOG_LEVEL, AwesomeViewGroup.TAG, "On view added")
         .assertMatches(AwesomeViewGroup.LOG_LEVEL, AwesomeViewGroup.TAG, "On finish inflate")
         .assertMatches(AwesomeViewGroup.LOG_LEVEL, AwesomeViewGroup.TAG, "On attached to window")
         .startRepeatingAction()

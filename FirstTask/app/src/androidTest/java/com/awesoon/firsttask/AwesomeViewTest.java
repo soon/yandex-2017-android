@@ -28,6 +28,7 @@ public class AwesomeViewTest {
     Log log = awesomeView.getLog();
     LogMatcher logMatcher = new LogMatcher(log);
     logMatcher
+        .assertMatches(AwesomeView.LOG_LEVEL, AwesomeView.TAG, "constructor")
         .assertMatches(AwesomeView.LOG_LEVEL, AwesomeView.TAG, "On attached to window")
         .startRepeatingAction()
         .assertMatches(AwesomeView.LOG_LEVEL, AwesomeView.TAG, "On measure")

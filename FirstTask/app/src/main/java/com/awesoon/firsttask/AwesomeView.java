@@ -53,6 +53,7 @@ public class AwesomeView extends View {
     activityPaint = createPaint(Color.MAGENTA, LOG_TEXT_SIZE);
     viewGroupPaint = createPaint(Color.BLUE, LOG_TEXT_SIZE);
     viewPaint = createPaint(Color.RED, LOG_TEXT_SIZE);
+    addLogEntry("constructor");
   }
 
   private Paint createPaint(int color, int size) {
@@ -65,26 +66,26 @@ public class AwesomeView extends View {
   @Override
   protected void onAttachedToWindow() {
     super.onAttachedToWindow();
-    log.addEntry(LOG_LEVEL, TAG, "On attached to window");
+    addLogEntry("On attached to window");
   }
 
   @Override
   protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
     super.onMeasure(widthMeasureSpec, heightMeasureSpec);
     setMeasuredDimension(widthMeasureSpec, heightMeasureSpec);
-    log.addEntry(LOG_LEVEL, TAG, "On measure");
+    addLogEntry("On measure");
   }
 
   @Override
   protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
     super.onLayout(changed, left, top, right, bottom);
-    log.addEntry(LOG_LEVEL, TAG, "On layout");
+    addLogEntry("On layout");
   }
 
   @Override
   protected void onDraw(Canvas canvas) {
     super.onDraw(canvas);
-    log.addEntry(LOG_LEVEL, TAG, "On draw");
+    addLogEntry("On draw");
     drawLog(canvas);
   }
 
@@ -157,5 +158,9 @@ public class AwesomeView extends View {
 
   public Log getLog() {
     return log;
+  }
+
+  private void addLogEntry(String message) {
+    log.addEntry(LOG_LEVEL, TAG, message);
   }
 }

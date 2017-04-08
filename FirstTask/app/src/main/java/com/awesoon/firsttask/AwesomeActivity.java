@@ -13,49 +13,53 @@ public class AwesomeActivity extends Activity {
   private boolean isActivityVisible = false;
   private Log log = new Log();
 
+  public AwesomeActivity() {
+    addLogEntry("constructor");
+  }
+
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-    log.addEntry(LOG_LEVEL, TAG, "On create");
+    addLogEntry("On create");
     setContentView(R.layout.awesome_activity);
   }
 
   @Override
   protected void onStart() {
     super.onStart();
-    log.addEntry(LOG_LEVEL, TAG, "On start");
+    addLogEntry("On start");
   }
 
   @Override
   protected void onRestart() {
     super.onRestart();
-    log.addEntry(LOG_LEVEL, TAG, "On restart");
+    addLogEntry("On restart");
   }
 
   @Override
   protected void onResume() {
     super.onResume();
-    log.addEntry(LOG_LEVEL, TAG, "On resume");
+    addLogEntry("On resume");
     isActivityVisible = true;
   }
 
   @Override
   protected void onPause() {
     super.onPause();
-    log.addEntry(LOG_LEVEL, TAG, "On pause");
+    addLogEntry("On pause");
     isActivityVisible = false;
   }
 
   @Override
   protected void onStop() {
     super.onStop();
-    log.addEntry(LOG_LEVEL, TAG, "On stop");
+    addLogEntry("On stop");
   }
 
   @Override
   protected void onDestroy() {
     super.onDestroy();
-    log.addEntry(LOG_LEVEL, TAG, "On destroy");
+    addLogEntry("On destroy");
   }
 
   public Log getLog() {
@@ -69,5 +73,9 @@ public class AwesomeActivity extends Activity {
   public AwesomeViewGroup getViewGroup() {
     FrameLayout layout = ((FrameLayout) findViewById(android.R.id.content));
     return (AwesomeViewGroup) layout.getChildAt(0);
+  }
+
+  private void addLogEntry(String message) {
+    log.addEntry(LOG_LEVEL, TAG, message);
   }
 }

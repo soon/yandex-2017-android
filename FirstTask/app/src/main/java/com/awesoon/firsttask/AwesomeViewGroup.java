@@ -3,6 +3,7 @@ package com.awesoon.firsttask;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.util.AttributeSet;
+import android.view.View;
 import android.widget.FrameLayout;
 
 import com.awesoon.firsttask.util.Log;
@@ -35,44 +36,56 @@ public class AwesomeViewGroup extends FrameLayout {
 
   private void init() {
     setWillNotDraw(false);
+    addLogEntry("constructor");
   }
-
 
   @Override
   protected void onAttachedToWindow() {
     super.onAttachedToWindow();
-    log.addEntry(LOG_LEVEL, TAG, "On attached to window");
+    addLogEntry("On attached to window");
   }
 
   @Override
   protected void onFinishInflate() {
     super.onFinishInflate();
-    log.addEntry(LOG_LEVEL, TAG, "On finish inflate");
+    addLogEntry("On finish inflate");
   }
 
   @Override
   protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
     super.onMeasure(widthMeasureSpec, heightMeasureSpec);
     setMeasuredDimension(widthMeasureSpec, heightMeasureSpec);
-    log.addEntry(LOG_LEVEL, TAG, "On measure");
+    addLogEntry("On measure");
   }
 
   @Override
   protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
     super.onLayout(changed, left, top, right, bottom);
-    log.addEntry(LOG_LEVEL, TAG, "On layout");
+    addLogEntry("On layout");
   }
 
   @Override
   protected void onDraw(Canvas canvas) {
     super.onDraw(canvas);
-    log.addEntry(LOG_LEVEL, TAG, "On draw");
+    addLogEntry("On draw");
   }
 
   @Override
   protected void onDetachedFromWindow() {
     super.onDetachedFromWindow();
-    log.addEntry(LOG_LEVEL, TAG, "On detached from window");
+    addLogEntry("On detached from window");
+  }
+
+  @Override
+  public void onViewAdded(View child) {
+    super.onViewAdded(child);
+    addLogEntry("On view added");
+  }
+
+  @Override
+  public void onViewRemoved(View child) {
+    super.onViewRemoved(child);
+    addLogEntry("On view removed");
   }
 
   public AwesomeView getInnerView() {
@@ -81,5 +94,9 @@ public class AwesomeViewGroup extends FrameLayout {
 
   public Log getLog() {
     return log;
+  }
+
+  private void addLogEntry(String ctor) {
+    log.addEntry(LOG_LEVEL, TAG, ctor);
   }
 }

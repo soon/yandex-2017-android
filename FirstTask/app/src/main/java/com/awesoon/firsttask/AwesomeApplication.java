@@ -11,10 +11,14 @@ public class AwesomeApplication extends Application {
 
   private Log log = new Log();
 
+  public AwesomeApplication() {
+    addLogEntry("constructor");
+  }
+
   @Override
   public void onCreate() {
     super.onCreate();
-    log.addEntry(LOG_LEVEL, TAG, "On create");
+    addLogEntry("On create");
   }
 
   /**
@@ -26,28 +30,32 @@ public class AwesomeApplication extends Application {
   @Override
   public void onTerminate() {
     super.onTerminate();
-    log.addEntry(LOG_LEVEL, TAG, "On terminate (tests only)");
+    addLogEntry("On terminate (tests only)");
   }
 
   @Override
   public void onConfigurationChanged(Configuration newConfig) {
     super.onConfigurationChanged(newConfig);
-    log.addEntry(LOG_LEVEL, TAG, "On configuration changed");
+    addLogEntry("On configuration changed");
   }
 
   @Override
   public void onLowMemory() {
     super.onLowMemory();
-    log.addEntry(LOG_LEVEL, TAG, "On low memory");
+    addLogEntry("On low memory");
   }
 
   @Override
   public void onTrimMemory(int level) {
     super.onTrimMemory(level);
-    log.addEntry(LOG_LEVEL, TAG, "On trim memory");
+    addLogEntry("On trim memory");
   }
 
   public Log getLog() {
     return log;
+  }
+
+  private void addLogEntry(String message) {
+    log.addEntry(LOG_LEVEL, TAG, message);
   }
 }

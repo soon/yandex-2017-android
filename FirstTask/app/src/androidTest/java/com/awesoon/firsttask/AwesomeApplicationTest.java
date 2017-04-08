@@ -29,6 +29,7 @@ public class AwesomeApplicationTest {
     LogMatcher logMatcher = new LogMatcher(log);
 
     logMatcher
+        .assertMatches(AwesomeApplication.LOG_LEVEL, AwesomeApplication.TAG, "constructor")
         .assertMatches(AwesomeApplication.LOG_LEVEL, AwesomeApplication.TAG, "On create")
         .assertAllMessagesChecked();
   }

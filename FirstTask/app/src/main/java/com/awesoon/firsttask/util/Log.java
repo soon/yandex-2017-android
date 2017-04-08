@@ -26,6 +26,10 @@ public class Log {
     }
   }
 
+  public void clear() {
+    messages.clear();
+  }
+
   private void addEntry(Message entry) {
     messages.add(entry);
   }

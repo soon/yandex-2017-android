@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+  xmlns:android="http://schemas.android.com/apk/res/android"
+  xmlns:app="http://schemas.android.com/apk/res-auto"
+  xmlns:tools="http://schemas.android.com/tools"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  android:orientation="vertical"
+  tools:context="com.awesoon.secondtask.MainActivity">
+
+  <com.awesoon.secondtask.view.ColorPickerView
+    android:id="@+id/colorPickerView"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content">
+
+    <HorizontalScrollView
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content">
+
+      <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <com.awesoon.secondtask.view.ColorPickerButton
+          style="@style/ColorPickerButtonTheme"/>
+
+        <com.awesoon.secondtask.view.ColorPickerButton
+          style="@style/ColorPickerButtonTheme"/>
+
+        <com.awesoon.secondtask.view.ColorPickerButton
+          style="@style/ColorPickerButtonTheme"/>
+
+        <com.awesoon.secondtask.view.ColorPickerButton
+          style="@style/ColorPickerButtonTheme"/>
+
+
+        <com.awesoon.secondtask.view.ColorPickerButton
+          style="@style/ColorPickerButtonTheme"/>
+
+        <com.awesoon.secondtask.view.ColorPickerButton
+          style="@style/ColorPickerButtonTheme"/>
+
+        <com.awesoon.secondtask.view.ColorPickerButton
+          style="@style/ColorPickerButtonTheme"/>
+
+        <com.awesoon.secondtask.view.ColorPickerButton
+          style="@style/ColorPickerButtonTheme"/>
+
+
+        <com.awesoon.secondtask.view.ColorPickerButton
+          style="@style/ColorPickerButtonTheme"/>
+
+        <com.awesoon.secondtask.view.ColorPickerButton
+          style="@style/ColorPickerButtonTheme"/>
+
+        <com.awesoon.secondtask.view.ColorPickerButton
+          style="@style/ColorPickerButtonTheme"/>
+
+        <com.awesoon.secondtask.view.ColorPickerButton
+          style="@style/ColorPickerButtonTheme"/>
+
+
+        <com.awesoon.secondtask.view.ColorPickerButton
+          style="@style/ColorPickerButtonTheme"/>
+
+        <com.awesoon.secondtask.view.ColorPickerButton
+          style="@style/ColorPickerButtonTheme"/>
+
+        <com.awesoon.secondtask.view.ColorPickerButton
+          style="@style/ColorPickerButtonTheme"/>
+
+        <com.awesoon.secondtask.view.ColorPickerButton
+          style="@style/ColorPickerButtonTheme"/>
+
+      </LinearLayout>
+    </HorizontalScrollView>
+  </com.awesoon.secondtask.view.ColorPickerView>
+
+  <com.awesoon.secondtask.view.ColorPickerInfo
+    android:id="@+id/colorPickerInfo"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center"
+    android:orientation="vertical">
+
+    <View
+      android:id="@+id/currentColorBlock"
+      android:layout_width="300dp"
+      android:layout_height="300dp"
+      android:background="#00000000"/>
+
+    <TextView
+      android:id="@+id/currentColorRgbText"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content">
+    </TextView>
+
+    <TextView
+      android:id="@+id/currentColorHsvText"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content">
+    </TextView>
+
+  </com.awesoon.secondtask.view.ColorPickerInfo>
+</LinearLayout>

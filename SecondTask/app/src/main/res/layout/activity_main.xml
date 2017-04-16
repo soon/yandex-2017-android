@@ -18,61 +18,10 @@
       android:layout_height="wrap_content">
 
       <LinearLayout
+        android:id="@+id/buttonsContainer"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal">
-
-        <com.awesoon.secondtask.view.ColorPickerButton
-          style="@style/ColorPickerButtonTheme"/>
-
-        <com.awesoon.secondtask.view.ColorPickerButton
-          style="@style/ColorPickerButtonTheme"/>
-
-        <com.awesoon.secondtask.view.ColorPickerButton
-          style="@style/ColorPickerButtonTheme"/>
-
-        <com.awesoon.secondtask.view.ColorPickerButton
-          style="@style/ColorPickerButtonTheme"/>
-
-
-        <com.awesoon.secondtask.view.ColorPickerButton
-          style="@style/ColorPickerButtonTheme"/>
-
-        <com.awesoon.secondtask.view.ColorPickerButton
-          style="@style/ColorPickerButtonTheme"/>
-
-        <com.awesoon.secondtask.view.ColorPickerButton
-          style="@style/ColorPickerButtonTheme"/>
-
-        <com.awesoon.secondtask.view.ColorPickerButton
-          style="@style/ColorPickerButtonTheme"/>
-
-
-        <com.awesoon.secondtask.view.ColorPickerButton
-          style="@style/ColorPickerButtonTheme"/>
-
-        <com.awesoon.secondtask.view.ColorPickerButton
-          style="@style/ColorPickerButtonTheme"/>
-
-        <com.awesoon.secondtask.view.ColorPickerButton
-          style="@style/ColorPickerButtonTheme"/>
-
-        <com.awesoon.secondtask.view.ColorPickerButton
-          style="@style/ColorPickerButtonTheme"/>
-
-
-        <com.awesoon.secondtask.view.ColorPickerButton
-          style="@style/ColorPickerButtonTheme"/>
-
-        <com.awesoon.secondtask.view.ColorPickerButton
-          style="@style/ColorPickerButtonTheme"/>
-
-        <com.awesoon.secondtask.view.ColorPickerButton
-          style="@style/ColorPickerButtonTheme"/>
-
-        <com.awesoon.secondtask.view.ColorPickerButton
-          style="@style/ColorPickerButtonTheme"/>
-
       </LinearLayout>
     </HorizontalScrollView>
   </com.awesoon.secondtask.view.ColorPickerView>

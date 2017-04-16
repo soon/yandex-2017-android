@@ -10,16 +10,24 @@ import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.RectShape;
 import android.support.annotation.NonNull;
 import android.util.AttributeSet;
+import android.util.DisplayMetrics;
 import android.view.View;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 
+import com.awesoon.secondtask.R;
 import com.awesoon.secondtask.event.ColorChangeListener;
+import com.awesoon.secondtask.util.Assert;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class ColorPickerView extends LinearLayout {
+  public static final int TOTAL_BUTTONS_COUNT = 16;
+  public static final int BUTTON_WIDTH_DPI = 80;
+  public static final int BUTTON_HEIGHT_DPI = 80;
+  public static final int BUTTON_MARGIN_DPI = 20;
+
   private int color;
   private List<ColorChangeListener> colorChangeListeners = new ArrayList<>();
   private int prevButtonsContainerWidth = 0;
@@ -45,16 +53,12 @@ public class ColorPickerView extends LinearLayout {
   @Override
   protected void onFinishInflate() {
     super.onFinishInflate();
-    List<ColorPickerButton> allButtons = getAllButtons();
-    for (ColorPickerButton button : allButtons) {
-      button.setOnColorChangeListener(new ColorChangeListener() {
-        @Override
-        public void onColorChanged(int newColor) {
-          color = newColor;
-          notifyColorChanged();
-        }
-      });
+
+    LinearLayout buttonsContainer = getButtonsContainer();
+    for (int i = 0; i < TOTAL_BUTTONS_COUNT; i++) {
+      addNewColorPickerButton(buttonsContainer);
     }
+
     HorizontalScrollView scrollView = getScrollView();
     scrollView.setOnScrollChangeListener(new OnScrollChangeListener() {
       @Override
@@ -83,6 +87,35 @@ public class ColorPickerView extends LinearLayout {
 
       scrollView.scrollTo(currentScrollPosition, scrollView.getScrollY());
     }
+  }
+
+  /**
+   * Creates new button and adds it to the given container.
+   * @param buttonsContainer A buttons container.
+   * @return Created button.
+   */
+  @NonNull
+  private ColorPickerButton addNewColorPickerButton(LinearLayout buttonsContainer) {
+    ColorPickerButton button = new ColorPickerButton(getContext());
+    DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
+
+    int width = (int) (displayMetrics.density * BUTTON_WIDTH_DPI);
+    int height = (int) (displayMetrics.density * BUTTON_HEIGHT_DPI);
+    int margin = (int) (displayMetrics.density * BUTTON_MARGIN_DPI);
+
+    LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(width, height);
+    params.setMargins(margin, margin, margin, margin);
+    buttonsContainer.addView(button, params);
+
+    button.setOnColorChangeListener(new ColorChangeListener() {
+      @Override
+      public void onColorChanged(int newColor) {
+        color = newColor;
+        notifyColorChanged();
+      }
+    });
+
+    return button;
   }
 
   /**
@@ -232,8 +265,9 @@ public class ColorPickerView extends LinearLayout {
    * @return A view, contains all buttons.
    */
   private LinearLayout getButtonsContainer() {
-    HorizontalScrollView scrollView = getScrollView();
-    return (LinearLayout) scrollView.getChildAt(0);
+    LinearLayout container = (LinearLayout) findViewById(R.id.buttonsContainer);
+    Assert.notNull(container, "Unable to find R.id.buttonsContainer");
+    return container;
   }
 
   /**

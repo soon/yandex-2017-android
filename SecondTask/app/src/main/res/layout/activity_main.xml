@@ -13,7 +13,7 @@
     android:layout_width="wrap_content"
     android:layout_height="wrap_content">
 
-    <HorizontalScrollView
+    <com.awesoon.secondtask.view.LockableHorizontalScrollView
       android:layout_width="wrap_content"
       android:layout_height="wrap_content">
 
@@ -23,7 +23,7 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal">
       </LinearLayout>
-    </HorizontalScrollView>
+    </com.awesoon.secondtask.view.LockableHorizontalScrollView>
   </com.awesoon.secondtask.view.ColorPickerView>
 
   <com.awesoon.secondtask.view.ColorPickerInfo

@@ -9,4 +9,10 @@ public final class Assert {
       throw new NullPointerException(message);
     }
   }
+
+  public static void isTrue(boolean condition, String message) {
+    if (!condition) {
+      throw new AssertionError(message);
+    }
+  }
 }

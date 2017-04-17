@@ -33,7 +33,7 @@
     android:gravity="center"
     android:orientation="vertical">
 
-    <View
+    <com.awesoon.secondtask.view.CurrentColorView
       android:id="@+id/currentColorBlock"
       android:layout_width="300dp"
       android:layout_height="300dp"
@@ -51,5 +51,17 @@
       android:layout_height="wrap_content">
     </TextView>
 
+    <HorizontalScrollView
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:scrollbarStyle="insideOverlay">
+
+      <LinearLayout
+        android:id="@+id/favoriteColors"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+      </LinearLayout>
+    </HorizontalScrollView>
   </com.awesoon.secondtask.view.ColorPickerInfo>
 </LinearLayout>

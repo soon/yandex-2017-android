@@ -33,7 +33,7 @@
     android:gravity="center"
     android:orientation="vertical">
 
-    <View
+    <com.awesoon.secondtask.view.CurrentColorView
       android:id="@+id/currentColorBlock"
       android:layout_width="100dp"
       android:layout_height="100dp"

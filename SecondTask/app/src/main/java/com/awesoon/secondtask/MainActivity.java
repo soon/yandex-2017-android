@@ -4,7 +4,6 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
-import android.view.Menu;
 
 import com.awesoon.secondtask.db.FavoriteColorDbHelper;
 import com.awesoon.secondtask.domain.FavoriteColor;
@@ -95,12 +94,6 @@ public class MainActivity extends AppCompatActivity {
     final ColorPickerView colorPickerView = (ColorPickerView) findViewById(R.id.colorPickerView);
     Assert.notNull(colorPickerView, "colorPickerView must not be null");
     return colorPickerView;
-  }
-
-  @Override
-  public boolean onCreateOptionsMenu(Menu menu) {
-    getMenuInflater().inflate(R.menu.main, menu);
-    return true;
   }
 
   /**

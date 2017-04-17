@@ -4,6 +4,8 @@ import android.content.Context;
 import android.graphics.Color;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
+import android.util.DisplayMetrics;
+import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -19,6 +21,10 @@ import java.util.Locale;
 import java.util.Set;
 
 public class ColorPickerInfo extends LinearLayout {
+  public static final int FAVORITE_BUTTON_WIDTH_DPI = 40;
+  public static final int FAVORITE_BUTTON_HEIGHT_DPI = 40;
+  public static final int FAVORITE_BUTTON_MARGIN_DPI = 10;
+
   private Integer color;
   private Set<Integer> favoriteColors = new HashSet<>();
   private List<FavoriteColorListener> listeners = new ArrayList<>();
@@ -48,12 +54,14 @@ public class ColorPickerInfo extends LinearLayout {
       @Override
       public void addToFavorites(int color) {
         favoriteColors.add(color);
+        addFavoriteColorButton(color);
         notifyFavoriteChanged(color, true);
       }
 
       @Override
       public void removeFromFavorites(int color) {
         favoriteColors.remove(color);
+        removeFavoriteColorButton(color);
         notifyFavoriteChanged(color, false);
       }
     });
@@ -96,6 +104,90 @@ public class ColorPickerInfo extends LinearLayout {
     }
     this.favoriteColors = colors;
     updateCurrentColorViewFavorite();
+    updateFavoriteColorsView(favoriteColors);
+  }
+
+  /**
+   * Updates favorite colors view.
+   *
+   * @param favoriteColors A list of new favorite colors.
+   */
+  private void updateFavoriteColorsView(List<FavoriteColor> favoriteColors) {
+    LinearLayout favoriteColorsContainer = getFavoriteColorButtonsContainer();
+    favoriteColorsContainer.removeAllViews();
+
+    for (FavoriteColor favoriteColor : favoriteColors) {
+      addFavoriteColorButton(favoriteColor, favoriteColorsContainer);
+    }
+  }
+
+  /**
+   * Adds new favorite color button.
+   *
+   * @param color A button color.
+   * @return New favorite color button.
+   */
+  private FavoriteColorButton addFavoriteColorButton(int color) {
+    LinearLayout container = getFavoriteColorButtonsContainer();
+    return addFavoriteColorButton(color, container);
+  }
+
+  /**
+   * Adds new favorite color button.
+   *
+   * @param favoriteColor    A favorite color.
+   * @param buttonsContainer All favorite colors container.
+   * @return New favorite color button.
+   */
+  private FavoriteColorButton addFavoriteColorButton(FavoriteColor favoriteColor, LinearLayout buttonsContainer) {
+    return addFavoriteColorButton(favoriteColor.getColor(), buttonsContainer);
+  }
+
+  /**
+   * Adds new favorite color button.
+   *
+   * @param color            A favorite color.
+   * @param buttonsContainer All favorite colors container.
+   * @return New favorite color button.
+   */
+  private FavoriteColorButton addFavoriteColorButton(int color, LinearLayout buttonsContainer) {
+    final FavoriteColorButton button = new FavoriteColorButton(getContext());
+    button.setColor(color);
+
+    DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
+
+    int width = (int) (displayMetrics.density * FAVORITE_BUTTON_WIDTH_DPI);
+    int height = (int) (displayMetrics.density * FAVORITE_BUTTON_HEIGHT_DPI);
+    int margin = (int) (displayMetrics.density * FAVORITE_BUTTON_MARGIN_DPI);
+
+    LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(width, height);
+    params.setMargins(margin, margin, margin, margin);
+    buttonsContainer.addView(button, params);
+
+    button.setOnClickListener(new OnClickListener() {
+      @Override
+      public void onClick(View v) {
+        setColor(button.getColor());
+      }
+    });
+
+    return button;
+  }
+
+  /**
+   * Removes favorite color by color value.
+   *
+   * @param color Favorite color to remove.
+   */
+  private void removeFavoriteColorButton(int color) {
+    LinearLayout container = getFavoriteColorButtonsContainer();
+    for (int i = 0; i < container.getChildCount(); i++) {
+      FavoriteColorButton button = (FavoriteColorButton) container.getChildAt(i);
+      if (button.getColor() == color) {
+        container.removeViewAt(i);
+        return;
+      }
+    }
   }
 
   /**
@@ -153,6 +245,17 @@ public class ColorPickerInfo extends LinearLayout {
     CurrentColorView currentColorView = (CurrentColorView) findViewById(R.id.currentColorBlock);
     Assert.notNull(currentColorView, "currentColorView");
     return currentColorView;
+  }
+
+  /**
+   * Retrieves a favorite colors container.
+   *
+   * @return A favorite colors container.
+   */
+  private LinearLayout getFavoriteColorButtonsContainer() {
+    LinearLayout favoriteColors = (LinearLayout) findViewById(R.id.favoriteColors);
+    Assert.notNull(favoriteColors, "favoriteColors");
+    return favoriteColors;
   }
 
   /**

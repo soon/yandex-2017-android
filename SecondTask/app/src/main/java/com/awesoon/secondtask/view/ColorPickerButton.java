@@ -24,12 +24,6 @@ public class ColorPickerButton extends AppCompatButton {
   public static final int DOUBLE_TAP_MS_DELTA = 200;
   public static final int MIN_VIBRATION_DELTA_MS = 1000;
 
-  public static final int NO_BOUND = -1;
-  public static final int HUE_MIN_BOUND = 0;
-  public static final int HUE_MAX_BOUND = 1;
-  public static final int BRIGHTNESS_MIN_BOUND = 2;
-  public static final int BRIGHTNESS_MAX_BOUND = 3;
-
   private Integer color;
   private int defaultColor;
   private float hueMinValue;
@@ -41,7 +35,6 @@ public class ColorPickerButton extends AppCompatButton {
   private float prevMotionX = -1;
   private float prevMotionY = -1;
   private long lastTouchTime = -1;
-  private int lastOutOfBoundsVibrationBound = NO_BOUND;
   private long lastVibrationMills = -1;
 
   public ColorPickerButton(Context context) {
@@ -134,7 +127,6 @@ public class ColorPickerButton extends AppCompatButton {
         }
         prevMotionX = -1;
         prevMotionY = -1;
-        lastOutOfBoundsVibrationBound = NO_BOUND;
         return false;
     }
 

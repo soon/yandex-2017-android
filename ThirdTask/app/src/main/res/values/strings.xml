@@ -10,4 +10,7 @@
   <string name="body_edit_text_error">Введите описание</string>
   <string name="body_edit_color_error">Выберите цвет</string>
   <string name="save_element">Сохранить</string>
+
+  <string name="default_sys_item_title">Тут совсем пусто...</string>
+  <string name="default_sys_item_body">Коснись меня, чтобы добавить запись!</string>
 </resources>

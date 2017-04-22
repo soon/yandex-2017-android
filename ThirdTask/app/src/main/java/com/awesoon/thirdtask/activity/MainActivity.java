@@ -18,6 +18,7 @@ import com.awesoon.thirdtask.domain.SysItem;
 import com.awesoon.thirdtask.event.DbStateChangeListener;
 import com.awesoon.thirdtask.event.SysItemRemoveListener;
 import com.awesoon.thirdtask.util.Assert;
+import com.awesoon.thirdtask.util.BeautifulColors;
 import com.awesoon.thirdtask.view.SysItemsAdapter;
 
 import java.util.ArrayList;
@@ -108,7 +109,13 @@ public class MainActivity extends AppCompatActivity {
   private void updateListData(List<SysItem> sysItems) {
     SysItemsAdapter adapter = getElementsAdapter();
     adapter.clear();
-    adapter.addAll(sysItems);
+
+    if (sysItems.isEmpty()) {
+      List<SysItem> defaultItems = getDefaultSysItems();
+      adapter.addAll(defaultItems);
+    } else {
+      adapter.addAll(sysItems);
+    }
   }
 
   private SysItemsAdapter getElementsAdapter() {
@@ -142,6 +149,16 @@ public class MainActivity extends AppCompatActivity {
     View view = findViewById(id);
     Assert.notNull(view, "Unable to find view " + name);
     return (T) view;
+  }
+
+  public List<SysItem> getDefaultSysItems() {
+    List<SysItem> items = new ArrayList<>();
+    SysItem item = new SysItem()
+        .setTitle(getString(R.string.default_sys_item_title))
+        .setBody(getString(R.string.default_sys_item_body))
+        .setColor(BeautifulColors.getBeautifulColor());
+    items.add(item);
+    return items;
   }
 
   private static class RemoveSysItemTask extends AsyncTask<Long, Void, Void> {

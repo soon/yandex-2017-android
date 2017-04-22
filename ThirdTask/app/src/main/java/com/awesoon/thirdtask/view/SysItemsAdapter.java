@@ -51,16 +51,23 @@ public class SysItemsAdapter extends ArrayAdapter<SysItem> {
     holder.titleTextView.setText(sysItem.getTitle());
     holder.bodyTextView.setText(sysItem.getBody());
     holder.elementColorView.setColor(sysItem.getColor());
-    holder.removeElementButton.setOnClickListener(new View.OnClickListener() {
-      @Override
-      public void onClick(View v) {
-        data.remove(position);
-        notifyDataSetChanged();
-        for (SysItemRemoveListener listener : listeners) {
-          listener.onSysItemRemove(sysItem);
+
+    final SysItem item = data.get(position);
+    if (item.getId() == null) {
+      holder.removeElementButton.setVisibility(View.GONE);
+    } else {
+      holder.removeElementButton.setVisibility(View.VISIBLE);
+      holder.removeElementButton.setOnClickListener(new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+          data.remove(position);
+          notifyDataSetChanged();
+          for (SysItemRemoveListener listener : listeners) {
+            listener.onSysItemRemove(sysItem);
+          }
         }
-      }
-    });
+      });
+    }
 
     return convertView;
   }

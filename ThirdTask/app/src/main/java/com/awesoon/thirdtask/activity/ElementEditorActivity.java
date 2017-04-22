@@ -20,10 +20,9 @@ import com.awesoon.thirdtask.R;
 import com.awesoon.thirdtask.db.DbHelper;
 import com.awesoon.thirdtask.domain.SysItem;
 import com.awesoon.thirdtask.util.Assert;
+import com.awesoon.thirdtask.util.BeautifulColors;
 import com.awesoon.thirdtask.util.StringUtils;
 import com.awesoon.thirdtask.view.ElementColorView;
-
-import java.util.Random;
 
 public class ElementEditorActivity extends AppCompatActivity {
   private static final String TAG = "ElementEditorActivity";
@@ -31,24 +30,6 @@ public class ElementEditorActivity extends AppCompatActivity {
 
   public static final String EXTRA_SYS_ITEM_ID = makeExtraIdent("EXTRA_SYS_ITEM_ID");
   public static final String EXTRA_SAVED_SYS_ITEM = makeExtraIdent("SAVED_SYS_ITEM");
-  public static final int[] BEAUTIFUL_COLORS = new int[]{
-      0xFFF44336,
-      0xFFE91E63,
-      0xFF9C27B0,
-      0xFF673AB7,
-      0xFF3F51B5,
-      0xFF2196F3,
-      0xFF03A9F4,
-      0xFF00BCD4,
-      0xFF009688,
-      0xFF4CAF50,
-      0xFF8BC34A,
-      0xFFCDDC39,
-      0xFFFFEB3B,
-      0xFFFFC107,
-      0xFFFF9800,
-      0xFFFF5722
-  };
 
   private DbHelper dbHelper;
   private SysItem sysItem;
@@ -188,9 +169,7 @@ public class ElementEditorActivity extends AppCompatActivity {
   }
 
   private void setDefaultColor() {
-    Random rnd = new Random();
-    int idx = rnd.nextInt(BEAUTIFUL_COLORS.length);
-    int color = BEAUTIFUL_COLORS[idx];
+    int color = BeautifulColors.getBeautifulColor();
     ElementColorView elementColorView = getElementColorView();
     elementColorView.setColor(color);
   }

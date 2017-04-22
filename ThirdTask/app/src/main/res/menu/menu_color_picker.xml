@@ -2,9 +2,9 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
       xmlns:app="http://schemas.android.com/apk/res-auto"
       xmlns:tools="http://schemas.android.com/tools"
-      tools:context="com.awesoon.thirdtask.activity.ElementEditorActivity">
+      tools:context="com.awesoon.thirdtask.activity.ColorPickerActivity">
   <item
-    android:id="@+id/save_element"
+    android:id="@+id/save_color"
     android:title="@string/save_element"
     app:showAsAction="ifRoom"
     android:icon="@drawable/ic_done_white"/>

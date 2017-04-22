@@ -9,4 +9,69 @@
   tools:context="com.awesoon.thirdtask.activity.ColorPickerActivity"
   tools:showIn="@layout/activity_color_picker">
 
+  <LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context="com.awesoon.thirdtask.activity.ColorPickerActivity">
+
+    <com.awesoon.thirdtask.view.ColorPickerView
+      android:id="@+id/colorPickerView"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content">
+
+      <com.awesoon.thirdtask.view.LockableHorizontalScrollView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+
+        <LinearLayout
+          android:id="@+id/buttonsContainer"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:orientation="horizontal">
+        </LinearLayout>
+      </com.awesoon.thirdtask.view.LockableHorizontalScrollView>
+    </com.awesoon.thirdtask.view.ColorPickerView>
+
+    <com.awesoon.thirdtask.view.ColorPickerInfo
+      android:id="@+id/colorPickerInfo"
+      android:layout_width="match_parent"
+      android:layout_height="match_parent"
+      android:gravity="center"
+      android:orientation="vertical">
+
+      <com.awesoon.thirdtask.view.CurrentColorView
+        android:id="@+id/currentColorBlock"
+        android:layout_width="300dp"
+        android:layout_height="300dp"
+        android:background="#00000000"/>
+
+      <TextView
+        android:id="@+id/currentColorRgbText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+      </TextView>
+
+      <TextView
+        android:id="@+id/currentColorHsvText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+      </TextView>
+
+      <HorizontalScrollView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:scrollbarStyle="insideOverlay">
+
+        <LinearLayout
+          android:id="@+id/favoriteColors"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:orientation="horizontal">
+        </LinearLayout>
+      </HorizontalScrollView>
+    </com.awesoon.thirdtask.view.ColorPickerInfo>
+  </LinearLayout>
 </android.support.constraint.ConstraintLayout>

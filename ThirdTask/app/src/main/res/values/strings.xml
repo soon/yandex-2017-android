@@ -1,9 +1,8 @@
 <resources>
   <string name="app_name">Third Task</string>
-  <string name="action_settings">Settings</string>
   <string name="title_activity_element_editor">ElementEditorActivity</string>
   <string name="element_editor_default_title">Новый элемент</string>
-  <string name="title_activity_color_picker">ColorPickerActivity</string>
+  <string name="title_activity_color_picker">Выбор цвета</string>
 
   <string name="title_edit_text_hint">Название</string>
   <string name="title_edit_text_error">Введите название</string>

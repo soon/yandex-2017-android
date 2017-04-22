@@ -4,11 +4,13 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.v4.app.NavUtils;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -24,6 +26,9 @@ import com.awesoon.thirdtask.view.ElementColorView;
 import java.util.Random;
 
 public class ElementEditorActivity extends AppCompatActivity {
+  private static final String TAG = "ElementEditorActivity";
+  public static final int SELECT_ELEMENT_COLOR_REQUEST_CODE = 1;
+
   public static final String EXTRA_SYS_ITEM_ID = makeExtraIdent("EXTRA_SYS_ITEM_ID");
   public static final String EXTRA_SAVED_SYS_ITEM = makeExtraIdent("SAVED_SYS_ITEM");
   public static final int[] BEAUTIFUL_COLORS = new int[]{
@@ -56,6 +61,7 @@ public class ElementEditorActivity extends AppCompatActivity {
 
     Toolbar toolbar = findViewById(R.id.toolbar, "R.id.toolbar");
     setSupportActionBar(toolbar);
+    getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
     EditText titleEditText = getTitleEditText();
     titleEditText.addTextChangedListener(new TextWatcher() {
@@ -75,9 +81,50 @@ public class ElementEditorActivity extends AppCompatActivity {
       }
     });
 
+    final ElementColorView elementColorView = getElementColorView();
+    elementColorView.setOnClickListener(new View.OnClickListener() {
+      @Override
+      public void onClick(View v) {
+        openColorPickerActivity(elementColorView.getColor());
+      }
+    });
+
     this.dbHelper = new DbHelper(this);
 
     initializeEditorContent();
+  }
+
+  private void openColorPickerActivity(Integer color) {
+    Intent intent = new Intent(ElementEditorActivity.this, ColorPickerActivity.class);
+    if (color != null) {
+      intent.putExtra(ColorPickerActivity.EXTRA_CURRENT_COLOR, color.intValue());
+    }
+    startActivityForResult(intent, SELECT_ELEMENT_COLOR_REQUEST_CODE);
+  }
+
+  @Override
+  protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    switch (requestCode) {
+      case SELECT_ELEMENT_COLOR_REQUEST_CODE:
+        handleSelectElementColorResult(resultCode, data);
+        break;
+      default:
+        Log.w(TAG, "Received unknown request code " + requestCode);
+    }
+  }
+
+  private void handleSelectElementColorResult(int requestCode, Intent data) {
+    if (requestCode != Activity.RESULT_OK) {
+      return;
+    }
+
+    if (data == null || data.getExtras() == null ||
+        !data.getExtras().containsKey(ColorPickerActivity.EXTRA_CURRENT_COLOR)) {
+      return;
+    }
+
+    int color = data.getExtras().getInt(ColorPickerActivity.EXTRA_CURRENT_COLOR);
+    getElementColorView().setColor(color);
   }
 
   @Override
@@ -90,12 +137,16 @@ public class ElementEditorActivity extends AppCompatActivity {
   public boolean onOptionsItemSelected(MenuItem item) {
     int id = item.getItemId();
 
-    //noinspection SimplifiableIfStatement
-    if (id == R.id.save_element) {
-      if (validateInput()) {
-        saveSysItemAndFinish();
+    switch (id) {
+      case R.id.save_element:
+        if (validateInput()) {
+          saveSysItemAndFinish();
+        }
         return true;
-      }
+      case android.R.id.home:
+        NavUtils.navigateUpFromSameTask(this);
+        overridePendingTransition(R.anim.trans_right_in, R.anim.trans_right_out);
+        return true;
     }
 
     return super.onOptionsItemSelected(item);

@@ -83,7 +83,6 @@ public class ColorPickerActivity extends AppCompatActivity {
   public boolean onOptionsItemSelected(MenuItem item) {
     int id = item.getItemId();
 
-    //noinspection SimplifiableIfStatement
     switch (id) {
       case R.id.save_color:
         Intent resultIntent = new Intent();
@@ -137,6 +136,13 @@ public class ColorPickerActivity extends AppCompatActivity {
     return findViewById(R.id.colorPickerView, "R.id.colorPickerView");
   }
 
+  /**
+   * Restores previously saved instance.
+   *
+   * @param savedInstanceState Saved instance.
+   * @param colorPickerView    Color picker view.
+   * @param colorPickerInfo    Color picker info.
+   */
   private void restoreSavedInstance(Bundle savedInstanceState, ColorPickerView colorPickerView,
                                     ColorPickerInfo colorPickerInfo) {
     if (savedInstanceState == null) {
@@ -159,6 +165,12 @@ public class ColorPickerActivity extends AppCompatActivity {
     }
   }
 
+  /**
+   * Sets current color from the given intent. If the intent is null, does nothing.
+   *
+   * @param colorPickerInfo Color picker info.
+   * @return Whether the color was changed from the intent.
+   */
   private boolean setColorFromIntent(ColorPickerInfo colorPickerInfo) {
     Intent intent = getIntent();
     Bundle extras = intent == null ? null : intent.getExtras();
@@ -172,10 +184,25 @@ public class ColorPickerActivity extends AppCompatActivity {
     }
   }
 
+  /**
+   * Generates an ident.
+   *
+   * @param name Ident name.
+   * @return Full ident name.
+   */
   public static String makeExtraIdent(String name) {
     return "com.awesoon.thirdtask.activity.ColorPickerActivity." + name;
   }
 
+  /**
+   * Finds a view by the given id.
+   *
+   * @param id   View id.
+   * @param name View name.
+   * @param <T>  View type.
+   * @return Found id.
+   * @throws AssertionError if the view not found.
+   */
   private <T> T findViewById(int id, String name) {
     View view = findViewById(id);
     Assert.notNull(view, "Unable to find view " + name);

@@ -120,6 +120,11 @@ public class MainActivity extends AppCompatActivity {
     }
   }
 
+  /**
+   * Updates current list data.
+   *
+   * @param sysItems New list data.
+   */
   private void updateListData(List<SysItem> sysItems) {
     SysItemsAdapter adapter = getElementsAdapter();
     adapter.clear();
@@ -132,15 +137,28 @@ public class MainActivity extends AppCompatActivity {
     }
   }
 
+  /**
+   * Retrieves list view elements adapter.
+   *
+   * @return List view adapter.
+   */
   private SysItemsAdapter getElementsAdapter() {
     ListView elementsList = getElementsList();
     return (SysItemsAdapter) elementsList.getAdapter();
   }
 
+  /**
+   * Opens element editor without initial sys item.
+   */
   private void openNewElementEditorActivity() {
     openElementEditorActivity(null);
   }
 
+  /**
+   * Opens element editor with the given id as the initial state.
+   *
+   * @param sysItemId Sys item id. Nullable.
+   */
   private void openElementEditorActivity(Long sysItemId) {
     Intent intent = new Intent(MainActivity.this, ElementEditorActivity.class);
     if (sysItemId != null) {
@@ -151,6 +169,11 @@ public class MainActivity extends AppCompatActivity {
     }
   }
 
+  /**
+   * Sets new sys items to the list view.
+   *
+   * @param sysItems A new list view data.
+   */
   private void setSysItems(List<SysItem> sysItems) {
     updateListData(sysItems);
   }
@@ -159,16 +182,36 @@ public class MainActivity extends AppCompatActivity {
     return findViewById(R.id.elements_list, "R.id.elements_list");
   }
 
+  /**
+   * Finds a view by the given id.
+   *
+   * @param id   View id.
+   * @param name View name.
+   * @param <T>  View type.
+   * @return Found id.
+   * @throws AssertionError if the view not found.
+   */
   private <T> T findViewById(int id, String name) {
     View view = findViewById(id);
     Assert.notNull(view, "Unable to find view " + name);
     return (T) view;
   }
 
+  /**
+   * Generates an ident.
+   *
+   * @param name Ident name.
+   * @return Full ident name.
+   */
   public static String makeExtraIdent(String name) {
     return "com.awesoon.thirdtask.activity.MainActivity." + name;
   }
 
+  /**
+   * Retrieves a list of default sys items (when the list view is empty).
+   *
+   * @return A list of default sys items.
+   */
   public List<SysItem> getDefaultSysItems() {
     List<SysItem> items = new ArrayList<>();
     if (defaultItemColor == null) {
@@ -183,6 +226,9 @@ public class MainActivity extends AppCompatActivity {
     return items;
   }
 
+  /**
+   * Removes sys item from the database.
+   */
   private static class RemoveSysItemTask extends AsyncTask<Long, Void, Void> {
     private DbHelper dbHelper;
 
@@ -200,6 +246,9 @@ public class MainActivity extends AppCompatActivity {
     }
   }
 
+  /**
+   * Retrieves all sys items from the database. Calls setSysItems once finished.
+   */
   private static class GetAllSysItemsTask extends AsyncTask<Void, Void, List<SysItem>> {
     private MainActivity activity;
     private DbHelper dbHelper;

@@ -42,9 +42,7 @@ public class ElementEditorActivity extends AppCompatActivity {
     setContentView(R.layout.activity_element_editor);
     overridePendingTransition(R.anim.trans_left_in, R.anim.trans_left_out);
 
-    Toolbar toolbar = findViewById(R.id.toolbar, "R.id.toolbar");
-    setSupportActionBar(toolbar);
-    getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+    initToolbar();
 
     EditText titleEditText = getTitleEditText();
     titleEditText.addTextChangedListener(new TextWatcher() {
@@ -88,14 +86,6 @@ public class ElementEditorActivity extends AppCompatActivity {
     }
   }
 
-  private void openColorPickerActivity(Integer color) {
-    Intent intent = new Intent(ElementEditorActivity.this, ColorPickerActivity.class);
-    if (color != null) {
-      intent.putExtra(ColorPickerActivity.EXTRA_CURRENT_COLOR, color.intValue());
-    }
-    startActivityForResult(intent, SELECT_ELEMENT_COLOR_REQUEST_CODE);
-  }
-
   @Override
   protected void onActivityResult(int requestCode, int resultCode, Intent data) {
     switch (requestCode) {
@@ -105,20 +95,6 @@ public class ElementEditorActivity extends AppCompatActivity {
       default:
         Log.w(TAG, "Received unknown request code " + requestCode);
     }
-  }
-
-  private void handleSelectElementColorResult(int requestCode, Intent data) {
-    if (requestCode != Activity.RESULT_OK) {
-      return;
-    }
-
-    if (data == null || data.getExtras() == null ||
-        !data.getExtras().containsKey(ColorPickerActivity.EXTRA_CURRENT_COLOR)) {
-      return;
-    }
-
-    int color = data.getExtras().getInt(ColorPickerActivity.EXTRA_CURRENT_COLOR);
-    getElementColorView().setColor(color);
   }
 
   @Override
@@ -152,6 +128,51 @@ public class ElementEditorActivity extends AppCompatActivity {
     overridePendingTransition(R.anim.trans_right_in, R.anim.trans_right_out);
   }
 
+  /**
+   * Initializes toolbar.
+   */
+  private void initToolbar() {
+    Toolbar toolbar = findViewById(R.id.toolbar, "R.id.toolbar");
+    setSupportActionBar(toolbar);
+    getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+  }
+
+  /**
+   * Opens {@link ColorPickerActivity} with the given color.
+   *
+   * @param color A color to be passed to the activity.
+   */
+  private void openColorPickerActivity(Integer color) {
+    Intent intent = new Intent(ElementEditorActivity.this, ColorPickerActivity.class);
+    if (color != null) {
+      intent.putExtra(ColorPickerActivity.EXTRA_CURRENT_COLOR, color.intValue());
+    }
+    startActivityForResult(intent, SELECT_ELEMENT_COLOR_REQUEST_CODE);
+  }
+
+  /**
+   * Handles color changing.
+   *
+   * @param responseCode Status.
+   * @param data         Data.
+   */
+  private void handleSelectElementColorResult(int responseCode, Intent data) {
+    if (responseCode != Activity.RESULT_OK) {
+      return;
+    }
+
+    if (data == null || data.getExtras() == null ||
+        !data.getExtras().containsKey(ColorPickerActivity.EXTRA_CURRENT_COLOR)) {
+      return;
+    }
+
+    int color = data.getExtras().getInt(ColorPickerActivity.EXTRA_CURRENT_COLOR);
+    getElementColorView().setColor(color);
+  }
+
+  /**
+   * Writes current sys item to the DB and finishes the activity.
+   */
   private void saveSysItemAndFinish() {
     saveSysItem();
     Intent resultIntent = new Intent();
@@ -161,6 +182,11 @@ public class ElementEditorActivity extends AppCompatActivity {
     overridePendingTransition(R.anim.trans_right_in, R.anim.trans_right_out);
   }
 
+  /**
+   * Validates the current user input.
+   *
+   * @return Whether the user input is valid.
+   */
   private boolean validateInput() {
     boolean isValid = true;
 
@@ -181,12 +207,20 @@ public class ElementEditorActivity extends AppCompatActivity {
     return isValid;
   }
 
+  /**
+   * Sets default color to the element color view.
+   */
   private void setDefaultColor() {
     int color = BeautifulColors.getBeautifulColor();
     ElementColorView elementColorView = getElementColorView();
     elementColorView.setColor(color);
   }
 
+  /**
+   * Sets current sys item.
+   *
+   * @param sysItem Sys item. Nullable.
+   */
   private void setSysItem(SysItem sysItem) {
     this.sysItem = sysItem;
 
@@ -201,16 +235,29 @@ public class ElementEditorActivity extends AppCompatActivity {
     }
   }
 
+  /**
+   * Updates body edit text.
+   *
+   * @param sysItem Current sys item.
+   */
   private void setBodyEditText(SysItem sysItem) {
     EditText bodyEditText = getBodyEditText();
     bodyEditText.setText(sysItem.getBody());
   }
 
+  /**
+   * Updates title edit text.
+   *
+   * @param sysItem Current sys item.
+   */
   private void setTitleEditText(SysItem sysItem) {
     EditText titleEditText = getTitleEditText();
     titleEditText.setText(sysItem.getTitle());
   }
 
+  /**
+   * Saves current sys item to the DB.
+   */
   private void saveSysItem() {
     if (sysItem == null) {
       sysItem = new SysItem();
@@ -228,6 +275,11 @@ public class ElementEditorActivity extends AppCompatActivity {
     new SaveSysItemTask(dbHelper).execute(sysItem);
   }
 
+  /**
+   * Updates the action bar title.
+   *
+   * @param title A new action bar title. Nullable.
+   */
   private void setActionBarTitle(CharSequence title) {
     String resultTitle = StringUtils.makeEmptyIfNull(title).trim();
     if (resultTitle.isEmpty()) {
@@ -239,10 +291,19 @@ public class ElementEditorActivity extends AppCompatActivity {
     actionBar.setTitle(resultTitle);
   }
 
+  /**
+   * Generates an ident.
+   *
+   * @param name Ident name.
+   * @return Full ident name.
+   */
   public static String makeExtraIdent(String name) {
     return "com.awesoon.thirdtask.activity.ElementEditorActivity." + name;
   }
 
+  /**
+   * Initializes the editor content according to the passed intent.
+   */
   private void initializeEditorContent() {
     Long id = null;
     Intent intent = getIntent();
@@ -272,17 +333,34 @@ public class ElementEditorActivity extends AppCompatActivity {
     return findViewById(R.id.edit_color, "R.id.edit_color");
   }
 
+  /**
+   * Finds a view by the given id.
+   *
+   * @param id   View id.
+   * @param name View name.
+   * @param <T>  View type.
+   * @return Found id.
+   * @throws AssertionError if the view not found.
+   */
   private <T> T findViewById(int id, String name) {
     View view = findViewById(id);
     Assert.notNull(view, "Unable to find view " + name);
     return (T) view;
   }
 
+  /**
+   * Updates color edit color value.
+   *
+   * @param sysItem Current sys item.
+   */
   public void setColorEditColor(SysItem sysItem) {
     ElementColorView elementColorView = getElementColorView();
     elementColorView.setColor(sysItem.getColor());
   }
 
+  /**
+   * Saves sys item to the DB.
+   */
   private static class SaveSysItemTask extends AsyncTask<SysItem, Void, SysItem> {
     private DbHelper dbHelper;
 
@@ -300,6 +378,9 @@ public class ElementEditorActivity extends AppCompatActivity {
     }
   }
 
+  /**
+   * Retrieves sys item by the id. Calls setSysItem once finished.
+   */
   private static class GetSysItemByIdTask extends AsyncTask<Long, Void, SysItem> {
     private ElementEditorActivity activity;
     private DbHelper dbHelper;

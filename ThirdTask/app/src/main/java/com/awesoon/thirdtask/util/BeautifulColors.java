@@ -27,6 +27,11 @@ public final class BeautifulColors {
   private BeautifulColors() {
   }
 
+  /**
+   * Retrieves random color.
+   *
+   * @return A color.
+   */
   public static int getBeautifulColor() {
     int idx = rnd.nextInt(BEAUTIFUL_COLORS.length);
     return BEAUTIFUL_COLORS[idx];

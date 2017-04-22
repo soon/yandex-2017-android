@@ -7,11 +7,13 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
+import android.widget.ListView;
 
 import com.awesoon.thirdtask.R;
 import com.awesoon.thirdtask.db.DbHelper;
 import com.awesoon.thirdtask.domain.SysItem;
 import com.awesoon.thirdtask.util.Assert;
+import com.awesoon.thirdtask.view.SysItemsAdapter;
 
 import java.util.List;
 
@@ -50,7 +52,9 @@ public class MainActivity extends AppCompatActivity {
   }
 
   private void setSysItems(List<SysItem> sysItems) {
-    int a = 2;
+    ListView listView = findViewById(R.id.elements_list, "R.id.elements_list");
+    SysItemsAdapter adapter = new SysItemsAdapter(this, R.layout.element_view, sysItems);
+    listView.setAdapter(adapter);
   }
 
   private <T> T findViewById(int id, String name) {
@@ -81,7 +85,6 @@ public class MainActivity extends AppCompatActivity {
           activity.setSysItems(sysItems);
         }
       });
-
     }
   }
 }

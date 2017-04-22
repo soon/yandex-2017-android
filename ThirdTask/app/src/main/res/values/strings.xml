@@ -1,7 +1,7 @@
 <resources>
   <string name="app_name">Third Task</string>
   <string name="title_activity_element_editor">ElementEditorActivity</string>
-  <string name="element_editor_default_title">Новый элемент</string>
+  <string name="element_editor_default_title">Новая заметка</string>
   <string name="title_activity_color_picker">Выбор цвета</string>
 
   <string name="title_edit_text_hint">Название</string>
@@ -11,6 +11,6 @@
   <string name="body_edit_color_error">Выберите цвет</string>
   <string name="save_element">Сохранить</string>
 
-  <string name="default_sys_item_title">Тут совсем пусто...</string>
-  <string name="default_sys_item_body">Коснись меня, чтобы добавить запись!</string>
+  <string name="default_sys_item_title">Тут совсем пусто…</string>
+  <string name="default_sys_item_body">Коснись меня, чтобы добавить заметку!</string>
 </resources>

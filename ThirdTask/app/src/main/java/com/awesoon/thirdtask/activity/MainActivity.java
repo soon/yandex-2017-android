@@ -30,7 +30,10 @@ public class MainActivity extends AppCompatActivity {
   public static final int ADD_NEW_SYS_ITEM_REQUEST_CODE = 1;
   public static final int EDIT_EXISTING_SYS_ITEM_REQUEST_CODE = 2;
 
+  public static final String STATE_DEFAULT_ITEM_COLOR = makeExtraIdent("STATE_DEFAULT_ITEM_COLOR");
+
   private DbHelper dbHelper;
+  private Integer defaultItemColor;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -65,6 +68,10 @@ public class MainActivity extends AppCompatActivity {
       }
     });
 
+    if (savedInstanceState != null && savedInstanceState.containsKey(STATE_DEFAULT_ITEM_COLOR)) {
+      defaultItemColor = savedInstanceState.getInt(STATE_DEFAULT_ITEM_COLOR);
+    }
+
     this.dbHelper = new DbHelper(this);
     GlobalDbState.subscribe(this, new DbStateChangeListener() {
       @Override
@@ -84,6 +91,13 @@ public class MainActivity extends AppCompatActivity {
     });
 
     new GetAllSysItemsTask(MainActivity.this, dbHelper).execute();
+  }
+
+  @Override
+  protected void onSaveInstanceState(Bundle outState) {
+    if (defaultItemColor != null) {
+      outState.putInt(STATE_DEFAULT_ITEM_COLOR, defaultItemColor);
+    }
   }
 
   @Override
@@ -151,12 +165,20 @@ public class MainActivity extends AppCompatActivity {
     return (T) view;
   }
 
+  public static String makeExtraIdent(String name) {
+    return "com.awesoon.thirdtask.activity.MainActivity." + name;
+  }
+
   public List<SysItem> getDefaultSysItems() {
     List<SysItem> items = new ArrayList<>();
+    if (defaultItemColor == null) {
+      defaultItemColor = BeautifulColors.getBeautifulColor();
+    }
+
     SysItem item = new SysItem()
         .setTitle(getString(R.string.default_sys_item_title))
         .setBody(getString(R.string.default_sys_item_body))
-        .setColor(BeautifulColors.getBeautifulColor());
+        .setColor(defaultItemColor);
     items.add(item);
     return items;
   }

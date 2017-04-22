@@ -1,3 +1,8 @@
 <resources>
   <dimen name="fab_margin">16dp</dimen>
+  <dimen name="edit_body_padding">16dp</dimen>
+  <dimen name="edit_color_view_margin">16dp</dimen>
+  <dimen name="edit_color_view_height">40dp</dimen>
+  <dimen name="edit_color_view_width">40dp</dimen>
+  <dimen name="edit_title_padding">16dp</dimen>
 </resources>

@@ -31,6 +31,8 @@ public class ElementEditorActivity extends AppCompatActivity {
   public static final String EXTRA_SYS_ITEM_ID = makeExtraIdent("EXTRA_SYS_ITEM_ID");
   public static final String EXTRA_SAVED_SYS_ITEM = makeExtraIdent("SAVED_SYS_ITEM");
 
+  public static final String STATE_CURRENT_COLOR = makeExtraIdent("STATE_CURRENT_COLOR");
+
   private DbHelper dbHelper;
   private SysItem sysItem;
 
@@ -63,6 +65,9 @@ public class ElementEditorActivity extends AppCompatActivity {
     });
 
     final ElementColorView elementColorView = getElementColorView();
+    if (savedInstanceState != null && savedInstanceState.containsKey(STATE_CURRENT_COLOR)) {
+      elementColorView.setColor(savedInstanceState.getInt(STATE_CURRENT_COLOR));
+    }
     elementColorView.setOnClickListener(new View.OnClickListener() {
       @Override
       public void onClick(View v) {
@@ -73,6 +78,14 @@ public class ElementEditorActivity extends AppCompatActivity {
     this.dbHelper = new DbHelper(this);
 
     initializeEditorContent();
+  }
+
+  @Override
+  protected void onSaveInstanceState(Bundle outState) {
+    ElementColorView elementColorView = getElementColorView();
+    if (elementColorView.getColor() != null) {
+      outState.putInt(STATE_CURRENT_COLOR, elementColorView.getColor());
+    }
   }
 
   private void openColorPickerActivity(Integer color) {

@@ -34,16 +34,16 @@
         android:layout_weight="1"
         android:hint="@string/title_edit_text_hint"
         android:inputType="text"
-        android:paddingBottom="16dp"
-        android:paddingLeft="16dp"
-        android:paddingRight="16dp"
-        android:paddingTop="16dp"/>
+        android:paddingBottom="@dimen/edit_title_padding"
+        android:paddingLeft="@dimen/edit_title_padding"
+        android:paddingRight="@dimen/edit_title_padding"
+        android:paddingTop="@dimen/edit_title_padding"/>
 
       <com.awesoon.thirdtask.view.ElementColorView
         android:id="@+id/edit_color"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
-        android:layout_margin="16dp"
+        android:layout_width="@dimen/edit_color_view_width"
+        android:layout_height="@dimen/edit_color_view_height"
+        android:layout_margin="@dimen/edit_color_view_margin"
         android:background="@drawable/oval">
       </com.awesoon.thirdtask.view.ElementColorView>
     </LinearLayout>
@@ -55,9 +55,9 @@
       android:layout_weight="1"
       android:hint="@string/body_edit_text_hint"
       android:inputType="text|textMultiLine"
-      android:paddingBottom="16dp"
-      android:paddingLeft="16dp"
-      android:paddingRight="16dp"
-      android:paddingTop="16dp"/>
+      android:paddingBottom="@dimen/edit_body_padding"
+      android:paddingLeft="@dimen/edit_body_padding"
+      android:paddingRight="@dimen/edit_body_padding"
+      android:paddingTop="@dimen/edit_body_padding"/>
   </LinearLayout>
 </android.support.constraint.ConstraintLayout>

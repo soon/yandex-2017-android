@@ -32,6 +32,7 @@ public class SysItemsAdapter extends ArrayAdapter<SysItem> {
       holder = new ViewHolder();
       holder.titleTextView = (TextView) convertView.findViewById(R.id.element_title);
       holder.bodyTextView = (TextView) convertView.findViewById(R.id.element_body);
+      holder.elementColorView = (ElementColorView)  convertView.findViewById(R.id.element_color);
       convertView.setTag(holder);
     } else {
       holder = (ViewHolder) convertView.getTag();
@@ -42,12 +43,19 @@ public class SysItemsAdapter extends ArrayAdapter<SysItem> {
 
     holder.titleTextView.setText(sysItem.getTitle());
     holder.bodyTextView.setText(sysItem.getBody());
+    holder.elementColorView.setColor(sysItem.getColor());
 
     return convertView;
+  }
+
+  @Override
+  public long getItemId(int position) {
+    return super.getItemId(position);
   }
 
   private static class ViewHolder {
     private TextView titleTextView;
     private TextView bodyTextView;
+    private ElementColorView elementColorView;
   }
 }

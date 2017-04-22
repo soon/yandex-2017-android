@@ -147,7 +147,7 @@ public class DbHelper extends SQLiteOpenHelper {
     SQLiteDatabase db = getReadableDatabase();
     String sql = String.format("SELECT * FROM %s a ORDER BY a.%s",
         SysItem.SysItemEntry.TABLE_NAME,
-        SysItem.SysItemEntry.COLUMN_NAME_ID);
+        SysItem.SysItemEntry.COLUMN_NAME_TITLE);
 
     return SqlUtils.queryForList(db, sql, SysItemMapper.INSTANCE);
   }

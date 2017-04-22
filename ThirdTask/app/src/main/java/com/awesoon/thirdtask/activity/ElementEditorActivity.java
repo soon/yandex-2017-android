@@ -19,10 +19,31 @@ import com.awesoon.thirdtask.db.DbHelper;
 import com.awesoon.thirdtask.domain.SysItem;
 import com.awesoon.thirdtask.util.Assert;
 import com.awesoon.thirdtask.util.StringUtils;
+import com.awesoon.thirdtask.view.ElementColorView;
+
+import java.util.Random;
 
 public class ElementEditorActivity extends AppCompatActivity {
   public static final String EXTRA_SYS_ITEM_ID = makeExtraIdent("EXTRA_SYS_ITEM_ID");
   public static final String EXTRA_SAVED_SYS_ITEM = makeExtraIdent("SAVED_SYS_ITEM");
+  public static final int[] BEAUTIFUL_COLORS = new int[]{
+      0xFFF44336,
+      0xFFE91E63,
+      0xFF9C27B0,
+      0xFF673AB7,
+      0xFF3F51B5,
+      0xFF2196F3,
+      0xFF03A9F4,
+      0xFF00BCD4,
+      0xFF009688,
+      0xFF4CAF50,
+      0xFF8BC34A,
+      0xFFCDDC39,
+      0xFFFFEB3B,
+      0xFFFFC107,
+      0xFFFF9800,
+      0xFFFF5722
+  };
 
   private DbHelper dbHelper;
   private SysItem sysItem;
@@ -31,6 +52,8 @@ public class ElementEditorActivity extends AppCompatActivity {
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_element_editor);
+    overridePendingTransition(R.anim.trans_left_in, R.anim.trans_left_out);
+
     Toolbar toolbar = findViewById(R.id.toolbar, "R.id.toolbar");
     setSupportActionBar(toolbar);
 
@@ -78,11 +101,18 @@ public class ElementEditorActivity extends AppCompatActivity {
     return super.onOptionsItemSelected(item);
   }
 
+  @Override
+  public void onBackPressed() {
+    super.onBackPressed();
+    overridePendingTransition(R.anim.trans_right_in, R.anim.trans_right_out);
+  }
+
   private void saveSysItemAndFinish() {
     saveSysItem();
     Intent resultIntent = new Intent();
     resultIntent.putExtra(EXTRA_SAVED_SYS_ITEM, sysItem);
     setResult(Activity.RESULT_OK, resultIntent);
+    overridePendingTransition(R.anim.trans_right_in, R.anim.trans_right_out);
     finish();
   }
 
@@ -106,15 +136,25 @@ public class ElementEditorActivity extends AppCompatActivity {
     return isValid;
   }
 
+  private void setDefaultColor() {
+    Random rnd = new Random();
+    int idx = rnd.nextInt(BEAUTIFUL_COLORS.length);
+    int color = BEAUTIFUL_COLORS[idx];
+    ElementColorView elementColorView = getElementColorView();
+    elementColorView.setColor(color);
+  }
+
   private void setSysItem(SysItem sysItem) {
     this.sysItem = sysItem;
 
     if (sysItem == null) {
       setActionBarTitle(getString(R.string.element_editor_default_title));
+      setDefaultColor();
     } else {
       setActionBarTitle(sysItem.getTitle());
       setTitleEditText(sysItem);
       setBodyEditText(sysItem);
+      setColorEditColor(sysItem);
     }
   }
 
@@ -139,7 +179,8 @@ public class ElementEditorActivity extends AppCompatActivity {
     EditText bodyEditText = getBodyEditText();
     sysItem.setBody(bodyEditText.getText().toString().trim());
 
-    sysItem.setColor(42); // todo
+    ElementColorView elementColorView = getElementColorView();
+    sysItem.setColor(elementColorView.getColor());
 
     new SaveSysItemTask(dbHelper).execute(sysItem);
   }
@@ -160,13 +201,19 @@ public class ElementEditorActivity extends AppCompatActivity {
   }
 
   private void initializeEditorContent() {
+    Long id = null;
     Intent intent = getIntent();
     if (intent != null) {
       Bundle extras = intent.getExtras();
       if (extras != null && extras.containsKey(EXTRA_SYS_ITEM_ID)) {
-        long id = extras.getLong(EXTRA_SYS_ITEM_ID);
-        new GetSysItemByIdTask(this, dbHelper).execute(id);
+        id = extras.getLong(EXTRA_SYS_ITEM_ID);
       }
+    }
+
+    if (id != null) {
+      new GetSysItemByIdTask(this, dbHelper).execute(id);
+    } else {
+      setSysItem(null);
     }
   }
 
@@ -178,10 +225,19 @@ public class ElementEditorActivity extends AppCompatActivity {
     return findViewById(R.id.edit_body, "R.id.edit_body");
   }
 
+  private ElementColorView getElementColorView() {
+    return findViewById(R.id.edit_color, "R.id.edit_color");
+  }
+
   private <T> T findViewById(int id, String name) {
     View view = findViewById(id);
     Assert.notNull(view, "Unable to find view " + name);
     return (T) view;
+  }
+
+  public void setColorEditColor(SysItem sysItem) {
+    ElementColorView elementColorView = getElementColorView();
+    elementColorView.setColor(sysItem.getColor());
   }
 
   private static class SaveSysItemTask extends AsyncTask<SysItem, Void, SysItem> {

@@ -17,6 +17,7 @@ import com.awesoon.thirdtask.domain.SysItem;
 import com.awesoon.thirdtask.util.Assert;
 import com.awesoon.thirdtask.view.SysItemsAdapter;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
@@ -26,6 +27,7 @@ public class MainActivity extends AppCompatActivity {
   public static final int EDIT_EXISTING_SYS_ITEM_REQUEST_CODE = 2;
 
   private DbHelper dbHelper;
+  private int lastEditedElementPosition = -1;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -43,9 +45,12 @@ public class MainActivity extends AppCompatActivity {
     });
 
     ListView elementsList = getElementsList();
+    SysItemsAdapter adapter = new SysItemsAdapter(this, R.layout.element_view, new ArrayList<SysItem>());
+    elementsList.setAdapter(adapter);
     elementsList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
       @Override
       public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+        lastEditedElementPosition = position;
         SysItem sysItem = (SysItem) parent.getItemAtPosition(position);
         openElementEditorActivity(sysItem.getId());
       }
@@ -74,7 +79,35 @@ public class MainActivity extends AppCompatActivity {
       return;
     }
 
-    new GetAllSysItemsTask(this, dbHelper).execute();
+    Bundle extras = data.getExtras();
+    SysItem updatedSysItem = extras.getParcelable(ElementEditorActivity.EXTRA_SAVED_SYS_ITEM);
+    Assert.notNull(updatedSysItem,
+        "Element by key " + ElementEditorActivity.EXTRA_SAVED_SYS_ITEM + " must not be null");
+
+    updateLastEditedElement(updatedSysItem);
+  }
+
+  private void updateListData(List<SysItem> sysItems) {
+    SysItemsAdapter adapter = getElementsAdapter();
+    adapter.clear();
+    adapter.addAll(sysItems);
+  }
+
+  private void updateLastEditedElement(SysItem updatedSysItem) {
+    SysItemsAdapter adapter = getElementsAdapter();
+    SysItem item = adapter.getItem(lastEditedElementPosition);
+    Assert.notNull(item, "Item at position " + lastEditedElementPosition + " must not be null");
+
+    item.setTitle(updatedSysItem.getTitle());
+    item.setBody(updatedSysItem.getBody());
+    item.setColor(updatedSysItem.getColor());
+
+    adapter.notifyDataSetInvalidated();
+  }
+
+  private SysItemsAdapter getElementsAdapter() {
+    ListView elementsList = getElementsList();
+    return (SysItemsAdapter) elementsList.getAdapter();
   }
 
   private void handleAddNewSysItemResult(int resultCode, Intent data) {
@@ -100,9 +133,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   private void setSysItems(List<SysItem> sysItems) {
-    ListView listView = getElementsList();
-    SysItemsAdapter adapter = new SysItemsAdapter(this, R.layout.element_view, sysItems);
-    listView.setAdapter(adapter);
+    updateListData(sysItems);
   }
 
   private ListView getElementsList() {

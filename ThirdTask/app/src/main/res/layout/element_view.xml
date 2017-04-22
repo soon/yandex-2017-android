@@ -38,4 +38,11 @@
       android:maxLines="1"
       android:textSize="14sp"/>
   </LinearLayout>
+  <View
+    android:id="@+id/remove_element"
+    android:layout_width="20dp"
+    android:layout_height="20dp"
+    android:background="@drawable/ic_close_circle_grey"
+    android:layout_alignParentRight="true"
+    android:layout_centerVertical="true"/>
 </RelativeLayout>

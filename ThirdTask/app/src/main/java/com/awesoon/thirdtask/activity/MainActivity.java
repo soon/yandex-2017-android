@@ -16,6 +16,7 @@ import com.awesoon.thirdtask.db.DbHelper;
 import com.awesoon.thirdtask.db.GlobalDbState;
 import com.awesoon.thirdtask.domain.SysItem;
 import com.awesoon.thirdtask.event.DbStateChangeListener;
+import com.awesoon.thirdtask.event.SysItemRemoveListener;
 import com.awesoon.thirdtask.util.Assert;
 import com.awesoon.thirdtask.view.SysItemsAdapter;
 
@@ -47,6 +48,13 @@ public class MainActivity extends AppCompatActivity {
 
     ListView elementsList = getElementsList();
     SysItemsAdapter adapter = new SysItemsAdapter(this, R.layout.element_view, new ArrayList<SysItem>());
+    adapter.addOnSysItemRemoveListener(new SysItemRemoveListener() {
+      @Override
+      public void onSysItemRemove(SysItem sysItem) {
+        new RemoveSysItemTask(dbHelper).execute(sysItem.getId());
+      }
+    });
+
     elementsList.setAdapter(adapter);
     elementsList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
       @Override
@@ -134,6 +142,23 @@ public class MainActivity extends AppCompatActivity {
     View view = findViewById(id);
     Assert.notNull(view, "Unable to find view " + name);
     return (T) view;
+  }
+
+  private static class RemoveSysItemTask extends AsyncTask<Long, Void, Void> {
+    private DbHelper dbHelper;
+
+    public RemoveSysItemTask(DbHelper dbHelper) {
+      this.dbHelper = dbHelper;
+    }
+
+    @Override
+    protected Void doInBackground(Long... params) {
+      Assert.notEmpty(params, "Should pass at least one id");
+      Long id = params[0];
+      Assert.notNull(id, "Id must not be null");
+      dbHelper.removeSysItemById(id);
+      return null;
+    }
   }
 
   private static class GetAllSysItemsTask extends AsyncTask<Void, Void, List<SysItem>> {

@@ -112,8 +112,8 @@ public class ElementEditorActivity extends AppCompatActivity {
     Intent resultIntent = new Intent();
     resultIntent.putExtra(EXTRA_SAVED_SYS_ITEM, sysItem);
     setResult(Activity.RESULT_OK, resultIntent);
-    overridePendingTransition(R.anim.trans_right_in, R.anim.trans_right_out);
     finish();
+    overridePendingTransition(R.anim.trans_right_in, R.anim.trans_right_out);
   }
 
   private boolean validateInput() {

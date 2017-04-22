@@ -169,6 +169,23 @@ public class DbHelper extends SQLiteOpenHelper {
     return SqlUtils.queryForObject(db, sql, SysItemMapper.INSTANCE, id);
   }
 
+  /**
+   * Removes sys item by the id.
+   *
+   * @param id Sys item id.
+   */
+  public void removeSysItemById(Long id) {
+    SQLiteDatabase db = getWritableDatabase();
+
+    int deletedEntries = db.delete(SysItem.SysItemEntry.TABLE_NAME,
+        SysItem.SysItemEntry.COLUMN_NAME_ID + " = ?",
+        new String[]{String.valueOf(id)});
+
+    if (deletedEntries > 0) {
+      GlobalDbState.notifySysItemDeleted(id);
+    }
+  }
+
   private static class FavoriteColorMapper extends RowMapperAdapter<FavoriteColor> {
     public static final FavoriteColorMapper INSTANCE = new FavoriteColorMapper();
 

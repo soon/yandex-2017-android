@@ -63,6 +63,7 @@ public class SysItem {
   public String toString() {
     return "SysItem{" +
         "id=" + id +
+        ", title='" + title + '\'' +
         '}';
   }
 

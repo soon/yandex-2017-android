@@ -152,6 +152,21 @@ public class DbHelper extends SQLiteOpenHelper {
     return SqlUtils.queryForList(db, sql, SysItemMapper.INSTANCE);
   }
 
+  /**
+   * Finds a sys item by the id.
+   *
+   * @param id SysItem id.
+   * @return SysItem with the given id. If not found, returns null.
+   */
+  public SysItem findSysItemById(Long id) {
+    SQLiteDatabase db = getReadableDatabase();
+    String sql = String.format("SELECT * FROM %s a WHERE a.%s = ?",
+        SysItem.SysItemEntry.TABLE_NAME,
+        SysItem.SysItemEntry.COLUMN_NAME_ID);
+
+    return SqlUtils.queryForObject(db, sql, SysItemMapper.INSTANCE, id);
+  }
+
   private static class FavoriteColorMapper extends RowMapperAdapter<FavoriteColor> {
     public static final FavoriteColorMapper INSTANCE = new FavoriteColorMapper();
 

@@ -99,6 +99,45 @@ public class SqlUtils {
   }
 
   /**
+   * Executes given sql and retrieves the first result.
+   *
+   * @param db            Db connection.
+   * @param sql           Sql to execute.
+   * @param rowMapper     Row mapper.
+   * @param selectionArgs Selection arguments. Nullable.
+   * @param <T>           A row type.
+   * @return The first retrieved result. null, if the query returns an empty set.
+   */
+  public static <T> T queryForObject(SQLiteDatabase db, String sql, RowMapper<T> rowMapper,
+                                     Object... selectionArgs) {
+    List<T> data = queryForList(db, sql, rowMapper, selectionArgs);
+    return data.isEmpty() ? null : data.get(0);
+  }
+
+  /**
+   * Executes given sql and retrieves data using the given row mapper.
+   *
+   * @param db            Db connection.
+   * @param sql           Sql to execute.
+   * @param rowMapper     Row mapper.
+   * @param selectionArgs Selection arguments. Nullable.
+   * @param <T>           A row type.
+   * @return A list of selected rows.
+   */
+  public static <T> List<T> queryForList(SQLiteDatabase db, String sql, RowMapper<T> rowMapper,
+                                         Object... selectionArgs) {
+    if (selectionArgs == null) {
+      return queryForList(db, sql, rowMapper, (String[]) null);
+    }
+    String[] args = new String[selectionArgs.length];
+    for (int i = 0; i < args.length; i++) {
+      args[i] = selectionArgs[i] == null ? null : selectionArgs[i].toString();
+    }
+
+    return queryForList(db, sql, rowMapper, args);
+  }
+
+  /**
    * Executes given sql and retrieves data using the given row mapper.
    *
    * @param db            Db connection.

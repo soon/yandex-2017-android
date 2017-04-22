@@ -16,6 +16,7 @@ import java.util.List;
 import static android.os.Build.VERSION_CODES.LOLLIPOP;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 
@@ -80,5 +81,34 @@ public class DbHelperTest {
 
     // then
     assertThat(allItems.size(), is(3));
+  }
+
+  @Test
+  public void testFindSysItemById() throws Exception {
+    // given
+    dbHelper.addSysItem(new SysItem().setTitle("title 1").setBody("body 1").setColor(1234));
+    SysItem sysItem = dbHelper.addSysItem(new SysItem().setTitle("title 2").setBody("body 2").setColor(5678));
+    dbHelper.addSysItem(new SysItem().setTitle("title 3").setBody("body 3").setColor(9012));
+
+    // when
+    SysItem foundSysItem = dbHelper.findSysItemById(sysItem.getId());
+
+    // then
+    assertThat(foundSysItem, is(notNullValue()));
+    assertThat(foundSysItem.getId(), is(sysItem.getId()));
+    assertThat(foundSysItem.getTitle(), is("title 2"));
+    assertThat(foundSysItem.getBody(), is("body 2"));
+    assertThat(foundSysItem.getColor(), is(5678));
+  }
+
+  @Test
+  public void testFindSysItemById__notFound() throws Exception {
+    // given
+
+    // when
+    SysItem foundSysItem = dbHelper.findSysItemById(42L);
+
+    // then
+    assertThat(foundSysItem, is(nullValue()));
   }
 }

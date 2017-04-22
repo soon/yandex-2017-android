@@ -34,6 +34,11 @@
       android:label="@string/title_activity_element_editor"
       android:theme="@style/AppTheme.NoActionBar">
     </activity>
+    <activity
+      android:name=".activity.ColorPickerActivity"
+      android:label="@string/title_activity_color_picker"
+      android:theme="@style/AppTheme.NoActionBar">
+    </activity>
   </application>
 
 </manifest>

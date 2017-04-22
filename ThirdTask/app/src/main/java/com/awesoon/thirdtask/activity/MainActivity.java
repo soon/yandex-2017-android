@@ -13,7 +13,9 @@ import android.widget.ListView;
 
 import com.awesoon.thirdtask.R;
 import com.awesoon.thirdtask.db.DbHelper;
+import com.awesoon.thirdtask.db.GlobalDbState;
 import com.awesoon.thirdtask.domain.SysItem;
+import com.awesoon.thirdtask.event.DbStateChangeListener;
 import com.awesoon.thirdtask.util.Assert;
 import com.awesoon.thirdtask.view.SysItemsAdapter;
 
@@ -27,7 +29,6 @@ public class MainActivity extends AppCompatActivity {
   public static final int EDIT_EXISTING_SYS_ITEM_REQUEST_CODE = 2;
 
   private DbHelper dbHelper;
-  private int lastEditedElementPosition = -1;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -50,41 +51,50 @@ public class MainActivity extends AppCompatActivity {
     elementsList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
       @Override
       public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-        lastEditedElementPosition = position;
         SysItem sysItem = (SysItem) parent.getItemAtPosition(position);
         openElementEditorActivity(sysItem.getId());
       }
     });
 
     this.dbHelper = new DbHelper(this);
-    new GetAllSysItemsTask(this, dbHelper).execute();
+    GlobalDbState.subscribe(this, new DbStateChangeListener() {
+      @Override
+      public void onSysItemAdded(SysItem sysItem) {
+        new GetAllSysItemsTask(MainActivity.this, dbHelper).execute();
+      }
+
+      @Override
+      public void onSysItemUpdated(SysItem sysItem) {
+        new GetAllSysItemsTask(MainActivity.this, dbHelper).execute();
+      }
+
+      @Override
+      public void onSysItemDeleted(Long id) {
+        new GetAllSysItemsTask(MainActivity.this, dbHelper).execute();
+      }
+    });
+
+    new GetAllSysItemsTask(MainActivity.this, dbHelper).execute();
+  }
+
+  @Override
+  protected void onDestroy() {
+    super.onDestroy();
+    GlobalDbState.unsubscribe(this);
   }
 
   @Override
   protected void onActivityResult(int requestCode, int resultCode, Intent data) {
     switch (requestCode) {
       case ADD_NEW_SYS_ITEM_REQUEST_CODE:
-        handleAddNewSysItemResult(resultCode, data);
+        // the data updated via GlobalDbState
         break;
       case EDIT_EXISTING_SYS_ITEM_REQUEST_CODE:
-        handleEditExistingSysItemResult(resultCode, data);
+        // the data updated via GlobalDbState
         break;
       default:
         Log.w(TAG, "Received unknown request code " + requestCode);
     }
-  }
-
-  private void handleEditExistingSysItemResult(int resultCode, Intent data) {
-    if (resultCode != RESULT_OK) {
-      return;
-    }
-
-    Bundle extras = data.getExtras();
-    SysItem updatedSysItem = extras.getParcelable(ElementEditorActivity.EXTRA_SAVED_SYS_ITEM);
-    Assert.notNull(updatedSysItem,
-        "Element by key " + ElementEditorActivity.EXTRA_SAVED_SYS_ITEM + " must not be null");
-
-    updateLastEditedElement(updatedSysItem);
   }
 
   private void updateListData(List<SysItem> sysItems) {
@@ -93,29 +103,9 @@ public class MainActivity extends AppCompatActivity {
     adapter.addAll(sysItems);
   }
 
-  private void updateLastEditedElement(SysItem updatedSysItem) {
-    SysItemsAdapter adapter = getElementsAdapter();
-    SysItem item = adapter.getItem(lastEditedElementPosition);
-    Assert.notNull(item, "Item at position " + lastEditedElementPosition + " must not be null");
-
-    item.setTitle(updatedSysItem.getTitle());
-    item.setBody(updatedSysItem.getBody());
-    item.setColor(updatedSysItem.getColor());
-
-    adapter.notifyDataSetInvalidated();
-  }
-
   private SysItemsAdapter getElementsAdapter() {
     ListView elementsList = getElementsList();
     return (SysItemsAdapter) elementsList.getAdapter();
-  }
-
-  private void handleAddNewSysItemResult(int resultCode, Intent data) {
-    if (resultCode != RESULT_OK) {
-      return;
-    }
-
-    new GetAllSysItemsTask(this, dbHelper).execute();
   }
 
   private void openNewElementEditorActivity() {

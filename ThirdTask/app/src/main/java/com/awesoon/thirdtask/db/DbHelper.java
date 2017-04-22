@@ -124,9 +124,11 @@ public class DbHelper extends SQLiteOpenHelper {
       long id = db.insertOrThrow(SysItem.SysItemEntry.TABLE_NAME, null, values);
       validateIdThrowing(id, item);
       item.setId(id);
+      GlobalDbState.notifySysItemAdded(item);
     } else {
       db.update(SysItem.SysItemEntry.TABLE_NAME, values, SysItem.SysItemEntry.COLUMN_NAME_ID + " = ?",
           new String[]{String.valueOf(item.getId())});
+      GlobalDbState.notifySysItemUpdated(item);
     }
 
     return item;

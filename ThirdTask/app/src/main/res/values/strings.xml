@@ -6,6 +6,8 @@
   <string name="title_activity_color_picker">ColorPickerActivity</string>
 
   <string name="title_edit_text_hint">Название</string>
+  <string name="title_edit_text_error">Введите название</string>
   <string name="body_edit_text_hint">Описание</string>
+  <string name="body_edit_text_error">Введите описание</string>
   <string name="save_element">Сохранить</string>
 </resources>

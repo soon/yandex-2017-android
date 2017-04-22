@@ -1,5 +1,7 @@
 package com.awesoon.thirdtask.activity;
 
+import android.app.Activity;
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.ActionBar;
@@ -20,6 +22,7 @@ import com.awesoon.thirdtask.util.StringUtils;
 
 public class ElementEditorActivity extends AppCompatActivity {
   public static final String EXTRA_SYS_ITEM_ID = makeExtraIdent("EXTRA_SYS_ITEM_ID");
+  public static final String EXTRA_SAVED_SYS_ITEM = makeExtraIdent("SAVED_SYS_ITEM");
 
   private DbHelper dbHelper;
   private SysItem sysItem;
@@ -50,20 +53,12 @@ public class ElementEditorActivity extends AppCompatActivity {
     });
 
     this.dbHelper = new DbHelper(this);
-    new GetSysItemByIdTask(this, dbHelper).execute(42L);
-  }
 
-  private EditText getTitleEditText() {
-    return findViewById(R.id.edit_title, "R.id.edit_title");
-  }
-
-  private EditText getBodyEditText() {
-    return findViewById(R.id.edit_body, "R.id.edit_body");
+    initializeEditorContent();
   }
 
   @Override
   public boolean onCreateOptionsMenu(Menu menu) {
-    // Inflate the menu; this adds items to the action bar if it is present.
     getMenuInflater().inflate(R.menu.menu_element_editor, menu);
     return true;
   }
@@ -74,12 +69,41 @@ public class ElementEditorActivity extends AppCompatActivity {
 
     //noinspection SimplifiableIfStatement
     if (id == R.id.save_element) {
-      saveSysItem();
-      finish();
-      return true;
+      if (validateInput()) {
+        saveSysItemAndFinish();
+        return true;
+      }
     }
 
     return super.onOptionsItemSelected(item);
+  }
+
+  private void saveSysItemAndFinish() {
+    saveSysItem();
+    Intent resultIntent = new Intent();
+    resultIntent.putExtra(EXTRA_SAVED_SYS_ITEM, sysItem);
+    setResult(Activity.RESULT_OK, resultIntent);
+    finish();
+  }
+
+  private boolean validateInput() {
+    boolean isValid = true;
+
+    EditText titleEditText = getTitleEditText();
+    String title = titleEditText.getText().toString().trim();
+    if (title.isEmpty()) {
+      titleEditText.setError(getString(R.string.title_edit_text_error));
+      isValid = false;
+    }
+
+    EditText bodyEditText = getBodyEditText();
+    String body = bodyEditText.getText().toString().trim();
+    if (body.isEmpty()) {
+      bodyEditText.setError(getString(R.string.body_edit_text_error));
+      isValid = false;
+    }
+
+    return isValid;
   }
 
   private void setSysItem(SysItem sysItem) {
@@ -89,7 +113,19 @@ public class ElementEditorActivity extends AppCompatActivity {
       setActionBarTitle(getString(R.string.element_editor_default_title));
     } else {
       setActionBarTitle(sysItem.getTitle());
+      setTitleEditText(sysItem);
+      setBodyEditText(sysItem);
     }
+  }
+
+  private void setBodyEditText(SysItem sysItem) {
+    EditText bodyEditText = getBodyEditText();
+    bodyEditText.setText(sysItem.getBody());
+  }
+
+  private void setTitleEditText(SysItem sysItem) {
+    EditText titleEditText = getTitleEditText();
+    titleEditText.setText(sysItem.getTitle());
   }
 
   private void saveSysItem() {
@@ -98,10 +134,10 @@ public class ElementEditorActivity extends AppCompatActivity {
     }
 
     EditText titleEditText = getTitleEditText();
-    sysItem.setTitle(titleEditText.getText().toString());
+    sysItem.setTitle(titleEditText.getText().toString().trim());
 
     EditText bodyEditText = getBodyEditText();
-    sysItem.setBody(bodyEditText.getText().toString());
+    sysItem.setBody(bodyEditText.getText().toString().trim());
 
     sysItem.setColor(42); // todo
 
@@ -109,7 +145,7 @@ public class ElementEditorActivity extends AppCompatActivity {
   }
 
   private void setActionBarTitle(CharSequence title) {
-    String resultTitle = StringUtils.makeEmptyIfNull(title);
+    String resultTitle = StringUtils.makeEmptyIfNull(title).trim();
     if (resultTitle.isEmpty()) {
       resultTitle = getString(R.string.element_editor_default_title);
     }
@@ -121,6 +157,25 @@ public class ElementEditorActivity extends AppCompatActivity {
 
   public static String makeExtraIdent(String name) {
     return "com.awesoon.thirdtask.activity.ElementEditorActivity." + name;
+  }
+
+  private void initializeEditorContent() {
+    Intent intent = getIntent();
+    if (intent != null) {
+      Bundle extras = intent.getExtras();
+      if (extras != null && extras.containsKey(EXTRA_SYS_ITEM_ID)) {
+        long id = extras.getLong(EXTRA_SYS_ITEM_ID);
+        new GetSysItemByIdTask(this, dbHelper).execute(id);
+      }
+    }
+  }
+
+  private EditText getTitleEditText() {
+    return findViewById(R.id.edit_title, "R.id.edit_title");
+  }
+
+  private EditText getBodyEditText() {
+    return findViewById(R.id.edit_body, "R.id.edit_body");
   }
 
   private <T> T findViewById(int id, String name) {

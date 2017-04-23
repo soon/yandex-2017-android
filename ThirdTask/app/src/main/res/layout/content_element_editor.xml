@@ -14,6 +14,10 @@
     android:layout_width="fill_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
+    android:paddingBottom="@dimen/form_margin"
+    android:paddingLeft="@dimen/form_margin"
+    android:paddingRight="@dimen/form_margin"
+    android:paddingTop="@dimen/form_margin"
     app:layout_constraintBottom_toBottomOf="parent"
     app:layout_constraintHorizontal_bias="0.0"
     app:layout_constraintLeft_toLeftOf="parent"
@@ -33,11 +37,7 @@
         android:layout_height="match_parent"
         android:layout_weight="1"
         android:hint="@string/title_edit_text_hint"
-        android:inputType="text"
-        android:paddingBottom="@dimen/edit_title_padding"
-        android:paddingLeft="@dimen/edit_title_padding"
-        android:paddingRight="@dimen/edit_title_padding"
-        android:paddingTop="@dimen/edit_title_padding"/>
+        android:inputType="text"/>
 
       <com.awesoon.thirdtask.view.ElementColorView
         android:id="@+id/edit_color"
@@ -54,10 +54,6 @@
       android:layout_height="0dp"
       android:layout_weight="1"
       android:hint="@string/body_edit_text_hint"
-      android:inputType="text|textMultiLine"
-      android:paddingBottom="@dimen/edit_body_padding"
-      android:paddingLeft="@dimen/edit_body_padding"
-      android:paddingRight="@dimen/edit_body_padding"
-      android:paddingTop="@dimen/edit_body_padding"/>
+      android:inputType="text|textMultiLine"/>
   </LinearLayout>
 </android.support.constraint.ConstraintLayout>

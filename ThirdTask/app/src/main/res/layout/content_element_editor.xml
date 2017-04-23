@@ -43,7 +43,8 @@
         android:id="@+id/edit_color"
         android:layout_width="@dimen/edit_color_view_width"
         android:layout_height="@dimen/edit_color_view_height"
-        android:layout_margin="@dimen/edit_color_view_margin"
+        android:layout_marginTop="@dimen/edit_color_view_margin"
+        android:layout_marginBottom="@dimen/edit_color_view_margin"
         android:background="@drawable/oval">
       </com.awesoon.thirdtask.view.ElementColorView>
     </LinearLayout>

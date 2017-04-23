@@ -32,6 +32,8 @@ public class ElementEditorActivity extends AppCompatActivity {
   public static final String EXTRA_SAVED_SYS_ITEM = makeExtraIdent("SAVED_SYS_ITEM");
 
   public static final String STATE_CURRENT_COLOR = makeExtraIdent("STATE_CURRENT_COLOR");
+  public static final String STATE_CURRENT_TITLE = makeExtraIdent("STATE_CURRENT_TITLE");
+  public static final String STATE_CURRENT_BODY = makeExtraIdent("STATE_CURRENT_BODY");
 
   private DbHelper dbHelper;
   private SysItem sysItem;
@@ -63,9 +65,6 @@ public class ElementEditorActivity extends AppCompatActivity {
     });
 
     final ElementColorView elementColorView = getElementColorView();
-    if (savedInstanceState != null && savedInstanceState.containsKey(STATE_CURRENT_COLOR)) {
-      elementColorView.setColor(savedInstanceState.getInt(STATE_CURRENT_COLOR));
-    }
     elementColorView.setOnClickListener(new View.OnClickListener() {
       @Override
       public void onClick(View v) {
@@ -74,12 +73,17 @@ public class ElementEditorActivity extends AppCompatActivity {
     });
 
     this.dbHelper = new DbHelper(this);
-
-    initializeEditorContent();
+    initializeEditorContent(savedInstanceState);
   }
 
   @Override
   protected void onSaveInstanceState(Bundle outState) {
+    EditText titleEditText = getTitleEditText();
+    outState.putString(STATE_CURRENT_TITLE, titleEditText.getText().toString());
+
+    EditText bodyEditText = getBodyEditText();
+    outState.putString(STATE_CURRENT_BODY, bodyEditText.getText().toString());
+
     ElementColorView elementColorView = getElementColorView();
     if (elementColorView.getColor() != null) {
       outState.putInt(STATE_CURRENT_COLOR, elementColorView.getColor());
@@ -219,40 +223,45 @@ public class ElementEditorActivity extends AppCompatActivity {
   /**
    * Sets current sys item.
    *
-   * @param sysItem Sys item. Nullable.
+   * @param sysItem      Sys item. Nullable.
+   * @param updateFields Whether to update fields data.
    */
-  private void setSysItem(SysItem sysItem) {
+  private void setSysItem(SysItem sysItem, boolean updateFields) {
     this.sysItem = sysItem;
+
+    if (!updateFields) {
+      return;
+    }
 
     if (sysItem == null) {
       setActionBarTitle(getString(R.string.element_editor_default_title));
       setDefaultColor();
     } else {
       setActionBarTitle(sysItem.getTitle());
-      setTitleEditText(sysItem);
-      setBodyEditText(sysItem);
-      setColorEditColor(sysItem);
+      setTitleEditText(sysItem.getTitle());
+      setBodyEditText(sysItem.getBody());
+      setColorEditColor(sysItem.getColor());
     }
   }
 
   /**
    * Updates body edit text.
    *
-   * @param sysItem Current sys item.
+   * @param body Body text.
    */
-  private void setBodyEditText(SysItem sysItem) {
+  private void setBodyEditText(String body) {
     EditText bodyEditText = getBodyEditText();
-    bodyEditText.setText(sysItem.getBody());
+    bodyEditText.setText(body);
   }
 
   /**
    * Updates title edit text.
    *
-   * @param sysItem Current sys item.
+   * @param text Title text.
    */
-  private void setTitleEditText(SysItem sysItem) {
+  private void setTitleEditText(String text) {
     EditText titleEditText = getTitleEditText();
-    titleEditText.setText(sysItem.getTitle());
+    titleEditText.setText(text);
   }
 
   /**
@@ -303,8 +312,30 @@ public class ElementEditorActivity extends AppCompatActivity {
 
   /**
    * Initializes the editor content according to the passed intent.
+   *
+   * @param savedInstanceState Sated instance state.
    */
-  private void initializeEditorContent() {
+  private void initializeEditorContent(Bundle savedInstanceState) {
+    boolean updateFields = true;
+
+    if (savedInstanceState != null) {
+      if (savedInstanceState.containsKey(STATE_CURRENT_TITLE)) {
+        String title = savedInstanceState.getString(STATE_CURRENT_TITLE);
+        setActionBarTitle(title);
+        setTitleEditText(title);
+        updateFields = false;
+      }
+      if (savedInstanceState.containsKey(STATE_CURRENT_BODY)) {
+        String body = savedInstanceState.getString(STATE_CURRENT_BODY);
+        setBodyEditText(body);
+        updateFields = false;
+      }
+      if (savedInstanceState.containsKey(STATE_CURRENT_COLOR)) {
+        setColorEditColor(savedInstanceState.getInt(STATE_CURRENT_COLOR));
+        updateFields = false;
+      }
+    }
+
     Long id = null;
     Intent intent = getIntent();
     if (intent != null) {
@@ -315,9 +346,9 @@ public class ElementEditorActivity extends AppCompatActivity {
     }
 
     if (id != null) {
-      new GetSysItemByIdTask(this, dbHelper).execute(id);
+      new GetSysItemByIdTask(this, dbHelper, updateFields).execute(id);
     } else {
-      setSysItem(null);
+      setSysItem(null, updateFields);
     }
   }
 
@@ -351,11 +382,11 @@ public class ElementEditorActivity extends AppCompatActivity {
   /**
    * Updates color edit color value.
    *
-   * @param sysItem Current sys item.
+   * @param color New color.
    */
-  public void setColorEditColor(SysItem sysItem) {
+  private void setColorEditColor(int color) {
     ElementColorView elementColorView = getElementColorView();
-    elementColorView.setColor(sysItem.getColor());
+    elementColorView.setColor(color);
   }
 
   /**
@@ -384,10 +415,12 @@ public class ElementEditorActivity extends AppCompatActivity {
   private static class GetSysItemByIdTask extends AsyncTask<Long, Void, SysItem> {
     private ElementEditorActivity activity;
     private DbHelper dbHelper;
+    private boolean updateFields;
 
-    public GetSysItemByIdTask(ElementEditorActivity activity, DbHelper dbHelper) {
+    public GetSysItemByIdTask(ElementEditorActivity activity, DbHelper dbHelper, boolean updateFields) {
       this.activity = activity;
       this.dbHelper = dbHelper;
+      this.updateFields = updateFields;
     }
 
     @Override
@@ -403,7 +436,7 @@ public class ElementEditorActivity extends AppCompatActivity {
       activity.runOnUiThread(new Runnable() {
         @Override
         public void run() {
-          activity.setSysItem(sysItem);
+          activity.setSysItem(sysItem, updateFields);
         }
       });
     }

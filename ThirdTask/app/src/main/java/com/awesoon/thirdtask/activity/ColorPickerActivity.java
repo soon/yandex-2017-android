@@ -13,11 +13,12 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
 
 import com.awesoon.thirdtask.R;
 import com.awesoon.thirdtask.event.ColorChangeListener;
 import com.awesoon.thirdtask.util.Assert;
+import com.awesoon.thirdtask.event.FavoriteColorListener;
+import com.awesoon.thirdtask.util.ActivityUtils;
 import com.awesoon.thirdtask.view.ColorPickerInfo;
 import com.awesoon.thirdtask.view.ColorPickerView;
 
@@ -56,8 +57,8 @@ public class ColorPickerActivity extends AppCompatActivity {
     setContentView(R.layout.activity_color_picker);
     overridePendingTransition(R.anim.trans_left_in, R.anim.trans_left_out);
 
-    colorPickerInfo = findViewById(R.id.colorPickerInfo, "R.id.colorPickerInfo");
-    colorPickerView = findViewById(R.id.colorPickerView, "R.id.colorPickerView");
+    colorPickerInfo = ActivityUtils.findViewById(this, R.id.colorPickerInfo, "R.id.colorPickerInfo");
+    colorPickerView = ActivityUtils.findViewById(this, R.id.colorPickerView, "R.id.colorPickerView");
 
     Toolbar toolbar = findViewById(R.id.toolbar, "R.id.toolbar");
     setSupportActionBar(toolbar);
@@ -223,20 +224,5 @@ public class ColorPickerActivity extends AppCompatActivity {
    */
   public static String makeExtraIdent(String name) {
     return "com.awesoon.thirdtask.activity.ColorPickerActivity." + name;
-  }
-
-  /**
-   * Finds a view by the given id.
-   *
-   * @param id   View id.
-   * @param name View name.
-   * @param <T>  View type.
-   * @return Found id.
-   * @throws AssertionError if the view not found.
-   */
-  private <T> T findViewById(int id, String name) {
-    View view = findViewById(id);
-    Assert.notNull(view, "Unable to find view " + name);
-    return (T) view;
   }
 }

@@ -14,7 +14,6 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.text.Editable;
-import android.text.TextWatcher;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -22,8 +21,10 @@ import android.view.View;
 import android.widget.EditText;
 
 import com.awesoon.thirdtask.R;
+import com.awesoon.thirdtask.adapter.text.TextWatcherAdapter;
 import com.awesoon.thirdtask.db.DbHelper;
 import com.awesoon.thirdtask.domain.SysItem;
+import com.awesoon.thirdtask.util.ActivityUtils;
 import com.awesoon.thirdtask.util.Assert;
 import com.awesoon.thirdtask.util.BeautifulColors;
 import com.awesoon.thirdtask.util.StringUtils;
@@ -69,23 +70,14 @@ public class ElementEditorActivity extends AppCompatActivity {
     setContentView(R.layout.activity_element_editor);
     overridePendingTransition(R.anim.trans_left_in, R.anim.trans_left_out);
 
-    titleEditText = findViewById(R.id.edit_title, "R.id.edit_title");
-    bodyEditText = findViewById(R.id.edit_body, "R.id.edit_body");
-    elementColorView = findViewById(R.id.edit_color, "R.id.edit_color");
+    titleEditText = ActivityUtils.findViewById(this, R.id.edit_title, "R.id.edit_title");
+    bodyEditText = ActivityUtils.findViewById(this, R.id.edit_body, "R.id.edit_body");
+    elementColorView = ActivityUtils.findViewById(this, R.id.edit_color, "R.id.edit_color");
 
     initToolbar();
 
-    titleEditText.addTextChangedListener(new TextWatcher() {
-      @Override
-      public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-
-      }
-
-      @Override
-      public void onTextChanged(CharSequence s, int start, int before, int count) {
-
-      }
-
+    EditText titleEditText = getTitleEditText();
+    titleEditText.addTextChangedListener(new TextWatcherAdapter() {
       @Override
       public void afterTextChanged(Editable s) {
         setActionBarTitle(s);
@@ -217,7 +209,7 @@ public class ElementEditorActivity extends AppCompatActivity {
    * Initializes toolbar.
    */
   private void initToolbar() {
-    Toolbar toolbar = findViewById(R.id.toolbar, "R.id.toolbar");
+    Toolbar toolbar = ActivityUtils.findViewById(this, R.id.toolbar, "R.id.toolbar");
     setSupportActionBar(toolbar);
     getSupportActionBar().setDisplayHomeAsUpEnabled(true);
   }
@@ -438,21 +430,6 @@ public class ElementEditorActivity extends AppCompatActivity {
     } else {
       setSysItem(null, updateFields);
     }
-  }
-
-  /**
-   * Finds a view by the given id.
-   *
-   * @param id   View id.
-   * @param name View name.
-   * @param <T>  View type.
-   * @return Found id.
-   * @throws AssertionError if the view not found.
-   */
-  private <T> T findViewById(int id, String name) {
-    View view = findViewById(id);
-    Assert.notNull(view, "Unable to find view " + name);
-    return (T) view;
   }
 
   /**

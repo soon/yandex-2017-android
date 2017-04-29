@@ -107,6 +107,8 @@ public class ColorPickerActivity extends AppCompatActivity {
 
   @Override
   protected void onSaveInstanceState(Bundle outState) {
+    super.onSaveInstanceState(outState);
+
     final ColorPickerView colorPickerView = getColorPickerView();
     final ColorPickerInfo colorPickerInfo = getColorPickerInfo();
 

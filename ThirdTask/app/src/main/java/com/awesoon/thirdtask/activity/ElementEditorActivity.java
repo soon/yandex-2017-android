@@ -78,6 +78,8 @@ public class ElementEditorActivity extends AppCompatActivity {
 
   @Override
   protected void onSaveInstanceState(Bundle outState) {
+    super.onSaveInstanceState(outState);
+
     EditText titleEditText = getTitleEditText();
     outState.putString(STATE_CURRENT_TITLE, titleEditText.getText().toString());
 

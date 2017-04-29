@@ -95,6 +95,8 @@ public class MainActivity extends AppCompatActivity {
 
   @Override
   protected void onSaveInstanceState(Bundle outState) {
+    super.onSaveInstanceState(outState);
+
     if (defaultItemColor != null) {
       outState.putInt(STATE_DEFAULT_ITEM_COLOR, defaultItemColor);
     }

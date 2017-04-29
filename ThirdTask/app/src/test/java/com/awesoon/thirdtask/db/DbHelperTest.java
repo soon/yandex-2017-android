@@ -3,6 +3,7 @@ package com.awesoon.thirdtask.db;
 import com.awesoon.thirdtask.BuildConfig;
 import com.awesoon.thirdtask.domain.SysItem;
 
+import org.joda.time.DateTime;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -53,9 +54,50 @@ public class DbHelperTest {
     assertThat(item.getTitle(), is("title"));
     assertThat(item.getBody(), is("body"));
     assertThat(item.getColor(), is(1234));
+    assertThat(item.getCreatedTime(), is(notNullValue()));
+    assertThat(item.getLastEditedTime(), is(notNullValue()));
+    assertThat(item.getCreatedTime(), is(notNullValue()));
 
     assertThat(allItems.size(), is(1));
     assertThat(allItems.get(0).getId(), is(item.getId()));
+  }
+
+  @Test
+  public void testUpdateExistingItem() throws Exception {
+    // given
+    SysItem item = new SysItem()
+        .setTitle("title")
+        .setBody("body")
+        .setColor(1234);
+
+    dbHelper.addSysItem(item);
+
+    Long id = item.getId();
+    DateTime createdTime = new DateTime(2016, 1, 1, 2, 3, 4);
+    item.setCreatedTime(createdTime);
+    DateTime lastEditedTime = new DateTime(2016, 1, 2, 2, 3, 4);
+    item.setLastEditedTime(lastEditedTime);
+    DateTime lastViewedTime = new DateTime(2016, 1, 3, 2, 3, 4);
+    item.setLastViewedTime(lastViewedTime);
+    item.setTitle("title2");
+    item.setBody("body2");
+    item.setColor(4321);
+
+    // when
+    dbHelper.saveSysItem(item);
+
+    // then
+    assertThat(item.getId(), is(id));
+    assertThat(item.getTitle(), is("title2"));
+    assertThat(item.getBody(), is("body2"));
+    assertThat(item.getColor(), is(4321));
+    assertThat(item.getCreatedTime(), is(createdTime));
+    assertThat(item.getLastEditedTime().isAfter(lastEditedTime), is(true));
+    assertThat(item.getLastViewedTime().isAfter(lastViewedTime), is(true));
+
+    List<SysItem> allSysItems = dbHelper.findAllSysItems();
+    assertThat(allSysItems.size(), is(1));
+    assertThat(allSysItems.get(0).getId(), is(id));
   }
 
   @Test

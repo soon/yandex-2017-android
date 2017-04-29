@@ -19,6 +19,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.TextView;
 
 import com.awesoon.thirdtask.R;
 import com.awesoon.thirdtask.adapter.text.TextWatcherAdapter;
@@ -308,6 +309,15 @@ public class ElementEditorActivity extends AppCompatActivity {
       setTitleEditText(sysItem.getTitle());
       setBodyEditText(sysItem.getBody());
       setColorEditColor(sysItem.getColor());
+
+      TextView createdTime = ActivityUtils.findViewById(this, R.id.created_time, "R.id.created_time");
+      createdTime.setText(String.valueOf(sysItem.getCreatedTime()));
+
+      TextView lastUpdatedTime = ActivityUtils.findViewById(this, R.id.last_updated_time, "R.id.last_updated_time");
+      lastUpdatedTime.setText(String.valueOf(sysItem.getLastEditedTime()));
+
+      TextView lastViewedTime = ActivityUtils.findViewById(this, R.id.last_viewed_time, "R.id.last_viewed_time");
+      lastViewedTime.setText(String.valueOf(sysItem.getLastViewedTime()));
     }
   }
 

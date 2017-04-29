@@ -6,6 +6,9 @@ import android.provider.BaseColumns;
 
 import com.awesoon.thirdtask.util.SqlUtils;
 
+import org.joda.time.DateTime;
+
+import static com.awesoon.thirdtask.util.SqlUtils.dateTimeField;
 import static com.awesoon.thirdtask.util.SqlUtils.intField;
 import static com.awesoon.thirdtask.util.SqlUtils.pkIntAutoincrement;
 import static com.awesoon.thirdtask.util.SqlUtils.textField;
@@ -15,7 +18,10 @@ public class SysItem implements Parcelable {
       pkIntAutoincrement(SysItemEntry.COLUMN_NAME_ID),
       textField(SysItemEntry.COLUMN_NAME_TITLE).setNull(false),
       textField(SysItemEntry.COLUMN_NAME_BODY).setNull(false),
-      intField(SysItemEntry.COLUMN_NAME_COLOR).setNull(false)
+      intField(SysItemEntry.COLUMN_NAME_COLOR).setNull(false),
+      dateTimeField(SysItemEntry.COLUMN_CREATED_TIME).setNull(false),
+      dateTimeField(SysItemEntry.COLUMN_LAST_EDITED_TIME).setNull(false),
+      dateTimeField(SysItemEntry.COLUMN_LAST_VIEWED_TIME).setNull(false)
   );
 
   public static final String SQL_DROP_TABLE = SqlUtils.makeDropTableIfExistsSql(SysItemEntry.TABLE_NAME);
@@ -24,6 +30,9 @@ public class SysItem implements Parcelable {
   private String title;
   private String body;
   private int color;
+  private DateTime createdTime;
+  private DateTime lastEditedTime;
+  private DateTime lastViewedTime;
 
   public SysItem() {
   }
@@ -70,6 +79,33 @@ public class SysItem implements Parcelable {
     return this;
   }
 
+  public DateTime getCreatedTime() {
+    return createdTime;
+  }
+
+  public SysItem setCreatedTime(DateTime createdTime) {
+    this.createdTime = createdTime;
+    return this;
+  }
+
+  public DateTime getLastEditedTime() {
+    return lastEditedTime;
+  }
+
+  public SysItem setLastEditedTime(DateTime lastEditedTime) {
+    this.lastEditedTime = lastEditedTime;
+    return this;
+  }
+
+  public DateTime getLastViewedTime() {
+    return lastViewedTime;
+  }
+
+  public SysItem setLastViewedTime(DateTime lastViewedTime) {
+    this.lastViewedTime = lastViewedTime;
+    return this;
+  }
+
   @Override
   public String toString() {
     return "SysItem{" +
@@ -109,5 +145,8 @@ public class SysItem implements Parcelable {
     public static final String COLUMN_NAME_TITLE = "title";
     public static final String COLUMN_NAME_BODY = "body";
     public static final String COLUMN_NAME_COLOR = "color";
+    public static final String COLUMN_CREATED_TIME = "created_time";
+    public static final String COLUMN_LAST_EDITED_TIME = "last_edited_time";
+    public static final String COLUMN_LAST_VIEWED_TIME = "last_viewed_time";
   }
 }

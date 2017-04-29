@@ -8,13 +8,25 @@ import android.database.sqlite.SQLiteOpenHelper;
 
 import com.awesoon.thirdtask.domain.FavoriteColor;
 import com.awesoon.thirdtask.domain.SysItem;
+import com.awesoon.thirdtask.util.ContentValuesBuilder;
 import com.awesoon.thirdtask.util.RowMapperAdapter;
 import com.awesoon.thirdtask.util.SqlUtils;
 
+import org.joda.time.DateTime;
+
 import java.util.List;
 
+import static com.awesoon.thirdtask.util.SqlUtils.dateTimeField;
+import static com.awesoon.thirdtask.util.SqlUtils.intField;
+import static com.awesoon.thirdtask.util.SqlUtils.pkIntAutoincrement;
+import static com.awesoon.thirdtask.util.SqlUtils.textField;
+
 public class DbHelper extends SQLiteOpenHelper {
-  public static final int DATABASE_VERSION = 1;
+  public static final int DATABASE_INITIAL_VERSION = 0;
+  public static final int DATABASE_VERSION_1 = 1;
+  public static final int DATABASE_VERSION_2 = 2;
+
+  public static final int DATABASE_VERSION = DATABASE_VERSION_2;
   public static final String DATABASE_NAME = "ThirdTask.db";
 
   public DbHelper(Context context) {
@@ -33,6 +45,68 @@ public class DbHelper extends SQLiteOpenHelper {
 
   @Override
   public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+    doOnUpgrade(db, oldVersion, newVersion);
+  }
+
+  void installSpecificDbVersionInternal(int newVersion) {
+    performUpgradeInternal(DATABASE_INITIAL_VERSION, newVersion);
+  }
+
+  void performUpgradeInternal(int oldVersion, int newVersion) {
+    SQLiteDatabase db = getWritableDatabase();
+    doOnUpgrade(db, oldVersion, newVersion);
+  }
+
+  private void doOnUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+    switch (oldVersion) {
+      case DATABASE_INITIAL_VERSION:
+        doUpgrade0To1(db);
+        if (newVersion == DATABASE_VERSION_1) {
+          break;
+        }
+      case DATABASE_VERSION_1:
+        doUpgrade1To2(db);
+        if (newVersion == DATABASE_VERSION_2) {
+          break;
+        }
+      case DATABASE_VERSION_2:
+        doUpgrade2To3(db);
+        break;
+      default:
+        throw new IllegalArgumentException(
+            "Unknown old DB version " + oldVersion + ", max DB version is " + DATABASE_VERSION);
+    }
+  }
+
+  private void doUpgrade0To1(SQLiteDatabase db) {
+    String sysItemSql = SqlUtils.makeCreateTableSql(SysItem.SysItemEntry.TABLE_NAME,
+        pkIntAutoincrement(SysItem.SysItemEntry.COLUMN_NAME_ID),
+        textField(SysItem.SysItemEntry.COLUMN_NAME_TITLE).setNull(false),
+        textField(SysItem.SysItemEntry.COLUMN_NAME_BODY).setNull(false),
+        intField(SysItem.SysItemEntry.COLUMN_NAME_COLOR).setNull(false)
+    );
+
+    String favoriteColorSql = SqlUtils.makeCreateTableSql(FavoriteColor.FavoriteColorEntry.TABLE_NAME,
+        pkIntAutoincrement(FavoriteColor.FavoriteColorEntry.COLUMN_NAME_ID),
+        intField(FavoriteColor.FavoriteColorEntry.COLUMN_NAME_COLOR).setNull(false).setUnique(true)
+    );
+
+    db.execSQL(sysItemSql);
+    db.execSQL(favoriteColorSql);
+  }
+
+  private void doUpgrade1To2(SQLiteDatabase db) {
+    List<String> sqlQueries = SqlUtils.makeAlterTableBuilder(SysItem.SysItemEntry.TABLE_NAME)
+        .addColumn(dateTimeField(SysItem.SysItemEntry.COLUMN_CREATED_TIME))
+        .addColumn(dateTimeField(SysItem.SysItemEntry.COLUMN_LAST_EDITED_TIME))
+        .addColumn(dateTimeField(SysItem.SysItemEntry.COLUMN_LAST_VIEWED_TIME))
+        .build();
+    for (String sql : sqlQueries) {
+      db.execSQL(sql);
+    }
+  }
+
+  private void doUpgrade2To3(SQLiteDatabase db) {
 
   }
 
@@ -46,7 +120,15 @@ public class DbHelper extends SQLiteOpenHelper {
   }
 
   /**
-   * Dtops all tables from the database.
+   * Drops all tables from the database.
+   */
+  void dropAllTables() {
+    SQLiteDatabase db = getWritableDatabase();
+    dropAllTables(db);
+  }
+
+  /**
+   * Drops all tables from the database.
    */
   private void dropAllTables(SQLiteDatabase db) {
     db.execSQL(SysItem.SQL_DROP_TABLE);
@@ -115,10 +197,20 @@ public class DbHelper extends SQLiteOpenHelper {
   public SysItem saveSysItem(SysItem item) {
     SQLiteDatabase db = getWritableDatabase();
 
-    ContentValues values = new ContentValues();
-    values.put(SysItem.SysItemEntry.COLUMN_NAME_TITLE, item.getTitle());
-    values.put(SysItem.SysItemEntry.COLUMN_NAME_BODY, item.getBody());
-    values.put(SysItem.SysItemEntry.COLUMN_NAME_COLOR, item.getColor());
+    if (item.getCreatedTime() == null || item.getId() == null) {
+      item.setCreatedTime(DateTime.now());
+    }
+    item.setLastEditedTime(DateTime.now());
+    item.setLastViewedTime(DateTime.now());
+
+    ContentValues values = new ContentValuesBuilder()
+        .put(SysItem.SysItemEntry.COLUMN_NAME_TITLE, item.getTitle())
+        .put(SysItem.SysItemEntry.COLUMN_NAME_BODY, item.getBody())
+        .put(SysItem.SysItemEntry.COLUMN_NAME_COLOR, item.getColor())
+        .put(SysItem.SysItemEntry.COLUMN_CREATED_TIME, item.getCreatedTime())
+        .put(SysItem.SysItemEntry.COLUMN_LAST_EDITED_TIME, item.getLastEditedTime())
+        .put(SysItem.SysItemEntry.COLUMN_LAST_VIEWED_TIME, item.getLastViewedTime())
+        .build();
 
     if (item.getId() == null) {
       long id = db.insertOrThrow(SysItem.SysItemEntry.TABLE_NAME, null, values);
@@ -214,6 +306,9 @@ public class DbHelper extends SQLiteOpenHelper {
       sysItem.setTitle(getString(cursor, SysItem.SysItemEntry.COLUMN_NAME_TITLE));
       sysItem.setBody(getString(cursor, SysItem.SysItemEntry.COLUMN_NAME_BODY));
       sysItem.setColor(getInt(cursor, SysItem.SysItemEntry.COLUMN_NAME_COLOR));
+      sysItem.setCreatedTime(getDateTime(cursor, SysItem.SysItemEntry.COLUMN_CREATED_TIME));
+      sysItem.setLastEditedTime(getDateTime(cursor, SysItem.SysItemEntry.COLUMN_LAST_EDITED_TIME));
+      sysItem.setLastViewedTime(getDateTime(cursor, SysItem.SysItemEntry.COLUMN_LAST_VIEWED_TIME));
       return sysItem;
     }
   }

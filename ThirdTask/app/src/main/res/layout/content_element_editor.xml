@@ -56,5 +56,21 @@
       android:layout_weight="1"
       android:hint="@string/body_edit_text_hint"
       android:inputType="text|textMultiLine"/>
+
+    <TextView
+      android:id="@+id/created_time"
+      android:layout_width="match_parent"
+      android:layout_height="0dp"
+      android:layout_weight="1"/>
+    <TextView
+      android:id="@+id/last_updated_time"
+      android:layout_width="match_parent"
+      android:layout_height="0dp"
+      android:layout_weight="1"/>
+    <TextView
+      android:id="@+id/last_viewed_time"
+      android:layout_width="match_parent"
+      android:layout_height="0dp"
+      android:layout_weight="1"/>
   </LinearLayout>
 </android.support.constraint.ConstraintLayout>

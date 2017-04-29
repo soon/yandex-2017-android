@@ -13,7 +13,7 @@ public final class ActivityUtils {
    * @return Found id.
    * @throws AssertionError if the view not found.
    */
-  public static <T> T findViewById(Activity activity, int id) {
+  public static <T extends View> T findViewById(Activity activity, int id) {
     return findViewById(activity, id, String.valueOf(id));
   }
 
@@ -27,7 +27,7 @@ public final class ActivityUtils {
    * @return Found id.
    * @throws AssertionError if the view not found.
    */
-  public static <T> T findViewById(Activity activity, int id, String name) {
+  public static <T extends View> T findViewById(Activity activity, int id, String name) {
     View view = activity.findViewById(id);
     Assert.notNull(view, "Unable to find view " + name + " in the activity " + activity);
     return (T) view;

@@ -25,30 +25,7 @@ public class SqlUtils {
 
     String separator = "";
     for (TableFieldDescription field : fields) {
-      sqlBuilder
-          .append(separator)
-          .append(field.getName())
-          .append(" ")
-          .append(field.getType());
-
-      if (field.isPk) {
-        sqlBuilder.append(" PRIMARY KEY");
-      } else {
-        if (field.isNull) {
-          sqlBuilder.append(" NULL");
-        } else {
-          sqlBuilder.append(" NOT NULL");
-        }
-      }
-
-      if (field.isAutoincrement) {
-        sqlBuilder.append(" AUTOINCREMENT");
-      }
-
-      if (field.isUnique) {
-        sqlBuilder.append(" UNIQUE");
-      }
-
+      sqlBuilder.append(separator).append(field.render());
       separator = ", ";
     }
 
@@ -57,6 +34,9 @@ public class SqlUtils {
     return sqlBuilder.toString();
   }
 
+  public static AlterTableBuilder makeAlterTableBuilder(String tableName) {
+    return new AlterTableBuilder(tableName);
+  }
 
   /**
    * Creates int field.
@@ -75,6 +55,16 @@ public class SqlUtils {
    * @return Table field.
    */
   public static TableFieldDescription textField(String name) {
+    return new TableFieldDescription().setName(name).setType(TEXT_TYPE);
+  }
+
+  /**
+   * Creates a field for storing datetime values. This is actually just a text field.
+   *
+   * @param name Field name.
+   * @return Table field.
+   */
+  public static TableFieldDescription dateTimeField(String name) {
     return new TableFieldDescription().setName(name).setType(TEXT_TYPE);
   }
 
@@ -177,6 +167,29 @@ public class SqlUtils {
     return queryForList(db, sql, rowMapper, (String[]) null);
   }
 
+  public static class AlterTableBuilder {
+    private String tableName;
+    private List<TableFieldDescription> newColumns = new ArrayList<>();
+
+    public AlterTableBuilder(String tableName) {
+      this.tableName = tableName;
+    }
+
+    public AlterTableBuilder addColumn(TableFieldDescription description) {
+      newColumns.add(description);
+      return this;
+    }
+
+    public List<String> build() {
+      List<String> sql = new ArrayList<>();
+      for (TableFieldDescription newColumn : newColumns) {
+        sql.add(String.format("ALTER TABLE %s ADD COLUMN %s", tableName, newColumn.render()));
+      }
+
+      return sql;
+    }
+  }
+
   public static class TableFieldDescription {
     private String name;
     private String type;
@@ -241,6 +254,40 @@ public class SqlUtils {
     public TableFieldDescription setAutoincrement(boolean autoincrement) {
       isAutoincrement = autoincrement;
       return this;
+    }
+
+    public String renderName() {
+      return getName();
+    }
+
+    public String render() {
+      StringBuilder sb = new StringBuilder();
+      render(sb);
+      return sb.toString();
+    }
+
+    public void render(StringBuilder sqlBuilder) {
+      sqlBuilder.append(renderName())
+          .append(" ")
+          .append(getType());
+
+      if (isPk) {
+        sqlBuilder.append(" PRIMARY KEY");
+      } else {
+        if (isNull) {
+          sqlBuilder.append(" NULL");
+        } else {
+          sqlBuilder.append(" NOT NULL");
+        }
+      }
+
+      if (isAutoincrement) {
+        sqlBuilder.append(" AUTOINCREMENT");
+      }
+
+      if (isUnique) {
+        sqlBuilder.append(" UNIQUE");
+      }
     }
   }
 }

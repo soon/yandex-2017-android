@@ -17,6 +17,7 @@ import com.awesoon.thirdtask.db.GlobalDbState;
 import com.awesoon.thirdtask.domain.SysItem;
 import com.awesoon.thirdtask.event.DbStateChangeListener;
 import com.awesoon.thirdtask.event.SysItemRemoveListener;
+import com.awesoon.thirdtask.util.ActivityUtils;
 import com.awesoon.thirdtask.util.Assert;
 import com.awesoon.thirdtask.util.BeautifulColors;
 import com.awesoon.thirdtask.view.SysItemsAdapter;
@@ -40,10 +41,10 @@ public class MainActivity extends AppCompatActivity {
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_main);
-    Toolbar toolbar = findViewById(R.id.toolbar, "R.id.toolbar");
+    Toolbar toolbar = ActivityUtils.findViewById(this, R.id.toolbar, "R.id.toolbar");
     setSupportActionBar(toolbar);
 
-    FloatingActionButton fab = findViewById(R.id.fab, "R.id.fab");
+    FloatingActionButton fab = ActivityUtils.findViewById(this, R.id.fab, "R.id.fab");
     fab.setOnClickListener(new View.OnClickListener() {
       @Override
       public void onClick(View view) {
@@ -51,7 +52,7 @@ public class MainActivity extends AppCompatActivity {
       }
     });
 
-    elementsList = findViewById(R.id.elements_list, "R.id.elements_list");
+    elementsList = ActivityUtils.findViewById(this, R.id.elements_list, "R.id.elements_list");
     SysItemsAdapter adapter = new SysItemsAdapter(this, R.layout.element_view, new ArrayList<SysItem>(),
         R.string.remove_sys_item_dialog_message, R.string.yes, R.string.no);
     adapter.addOnSysItemRemoveListener(new SysItemRemoveListener() {
@@ -178,21 +179,6 @@ public class MainActivity extends AppCompatActivity {
    */
   private void setSysItems(List<SysItem> sysItems) {
     updateListData(sysItems);
-  }
-
-  /**
-   * Finds a view by the given id.
-   *
-   * @param id   View id.
-   * @param name View name.
-   * @param <T>  View type.
-   * @return Found id.
-   * @throws AssertionError if the view not found.
-   */
-  private <T> T findViewById(int id, String name) {
-    View view = findViewById(id);
-    Assert.notNull(view, "Unable to find view " + name);
-    return (T) view;
   }
 
   /**

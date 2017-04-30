@@ -1,42 +1,20 @@
 package com.awesoon.thirdtask.db;
 
-import com.awesoon.thirdtask.BuildConfig;
 import com.awesoon.thirdtask.domain.SysItem;
 
 import org.joda.time.DateTime;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.robolectric.RobolectricTestRunner;
-import org.robolectric.RuntimeEnvironment;
-import org.robolectric.annotation.Config;
 
 import java.util.List;
 
-import static android.os.Build.VERSION_CODES.LOLLIPOP;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 
-@RunWith(RobolectricTestRunner.class)
-@Config(constants = BuildConfig.class, sdk = LOLLIPOP, packageName = "com.awesoon.thirdtask")
-public class DbHelperTest {
-  private DbHelper dbHelper;
 
-  @Before
-  public void setUp() throws Exception {
-    dbHelper = new DbHelper(RuntimeEnvironment.application);
-    dbHelper.clearDbAndRecreate();
-  }
-
-  @After
-  public void tearDown() throws Exception {
-    dbHelper.clearDbAndRecreate();
-  }
-
+public class DbHelperTest extends BaseDbHelperTest {
   @Test
   public void testAddSysItem() throws Exception {
     // given

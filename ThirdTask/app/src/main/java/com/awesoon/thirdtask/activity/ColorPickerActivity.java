@@ -14,6 +14,7 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import com.awesoon.thirdtask.NotesApplication;
 import com.awesoon.thirdtask.R;
 import com.awesoon.thirdtask.event.ColorChangeListener;
 import com.awesoon.thirdtask.util.Assert;

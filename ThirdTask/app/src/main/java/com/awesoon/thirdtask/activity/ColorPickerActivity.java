@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Color;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.NavUtils;
@@ -17,15 +16,11 @@ import android.view.MenuItem;
 import android.view.View;
 
 import com.awesoon.thirdtask.R;
-import com.awesoon.thirdtask.db.DbHelper;
-import com.awesoon.thirdtask.domain.FavoriteColor;
 import com.awesoon.thirdtask.event.ColorChangeListener;
-import com.awesoon.thirdtask.event.FavoriteColorListener;
 import com.awesoon.thirdtask.util.Assert;
 import com.awesoon.thirdtask.view.ColorPickerInfo;
 import com.awesoon.thirdtask.view.ColorPickerView;
 
-import java.util.List;
 import java.util.Objects;
 
 public class ColorPickerActivity extends AppCompatActivity {
@@ -36,7 +31,6 @@ public class ColorPickerActivity extends AppCompatActivity {
   public static final String STATE_PREV_SCROLL_VIEW_WIDTH_IDENT = makeExtraIdent("STATE_PREV_SCROLL_VIEW");
   public static final String STATE_BUTTON_COLORS_IDENT = makeExtraIdent("STATE_BUTTON_COLORS");
 
-  private DbHelper dbHelper;
   private ColorPickerInfo colorPickerInfo;
   private ColorPickerView colorPickerView;
   private Integer initialColor;
@@ -64,7 +58,6 @@ public class ColorPickerActivity extends AppCompatActivity {
 
     colorPickerInfo = findViewById(R.id.colorPickerInfo, "R.id.colorPickerInfo");
     colorPickerView = findViewById(R.id.colorPickerView, "R.id.colorPickerView");
-    dbHelper = new DbHelper(this);
 
     Toolbar toolbar = findViewById(R.id.toolbar, "R.id.toolbar");
     setSupportActionBar(toolbar);
@@ -78,20 +71,6 @@ public class ColorPickerActivity extends AppCompatActivity {
     });
 
     restoreSavedInstance(savedInstanceState, colorPickerView, colorPickerInfo);
-
-    colorPickerInfo.setOnFavoriteColorListener(new FavoriteColorListener() {
-      @Override
-      public void addToFavorites(int color) {
-        new ChangeColorFavoriteStatusTask(dbHelper, true).execute(color);
-      }
-
-      @Override
-      public void removeFromFavorites(int color) {
-        new ChangeColorFavoriteStatusTask(dbHelper, false).execute(color);
-      }
-    });
-
-    new GetAllFavoriteColorsTask(this, dbHelper).execute();
   }
 
   @Override
@@ -263,60 +242,5 @@ public class ColorPickerActivity extends AppCompatActivity {
     View view = findViewById(id);
     Assert.notNull(view, "Unable to find view " + name);
     return (T) view;
-  }
-
-  /**
-   * A task for changing color favorite status.
-   */
-  private static class ChangeColorFavoriteStatusTask extends AsyncTask<Integer, Void, Void> {
-    private DbHelper dbHelper;
-    private boolean isFavorite;
-
-    public ChangeColorFavoriteStatusTask(DbHelper dbHelper, boolean isFavorite) {
-      this.dbHelper = dbHelper;
-      this.isFavorite = isFavorite;
-    }
-
-    @Override
-    protected Void doInBackground(Integer... colors) {
-      for (Integer color : colors) {
-        if (isFavorite) {
-          dbHelper.addFavoriteColor(color);
-        } else {
-          dbHelper.removeFavoriteColor(color);
-        }
-      }
-
-      return null;
-    }
-  }
-
-  /**
-   * A task for retrieving all favorite colors.
-   */
-  private static class GetAllFavoriteColorsTask extends AsyncTask<Void, Void, List<FavoriteColor>> {
-    private ColorPickerActivity activity;
-    private DbHelper dbHelper;
-
-    private GetAllFavoriteColorsTask(ColorPickerActivity activity, DbHelper dbHelper) {
-      this.activity = activity;
-      this.dbHelper = dbHelper;
-    }
-
-    @Override
-    protected List<FavoriteColor> doInBackground(Void... params) {
-      return dbHelper.findAllFavoriteColors();
-    }
-
-    @Override
-    protected void onPostExecute(final List<FavoriteColor> favoriteColors) {
-      activity.runOnUiThread(new Runnable() {
-        @Override
-        public void run() {
-          ColorPickerInfo colorPickerInfo = activity.colorPickerInfo;
-          colorPickerInfo.setFavoriteColors(favoriteColors);
-        }
-      });
-    }
   }
 }

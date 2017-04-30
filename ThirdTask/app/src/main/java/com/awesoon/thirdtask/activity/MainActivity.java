@@ -52,10 +52,11 @@ public class MainActivity extends AppCompatActivity {
     });
 
     elementsList = findViewById(R.id.elements_list, "R.id.elements_list");
-    SysItemsAdapter adapter = new SysItemsAdapter(this, R.layout.element_view, new ArrayList<SysItem>());
+    SysItemsAdapter adapter = new SysItemsAdapter(this, R.layout.element_view, new ArrayList<SysItem>(),
+        R.string.remove_sys_item_dialog_message, R.string.yes, R.string.no);
     adapter.addOnSysItemRemoveListener(new SysItemRemoveListener() {
       @Override
-      public void onSysItemRemove(SysItem sysItem) {
+      public void onSysItemRemove(SysItem sysItem, int position) {
         new RemoveSysItemTask(dbHelper).execute(sysItem.getId());
       }
     });

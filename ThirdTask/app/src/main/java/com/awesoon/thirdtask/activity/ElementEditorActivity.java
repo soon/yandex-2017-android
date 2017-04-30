@@ -2,12 +2,15 @@ package com.awesoon.thirdtask.activity;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.NavUtils;
 import android.support.v7.app.ActionBar;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.text.Editable;
@@ -25,6 +28,8 @@ import com.awesoon.thirdtask.util.Assert;
 import com.awesoon.thirdtask.util.BeautifulColors;
 import com.awesoon.thirdtask.util.StringUtils;
 import com.awesoon.thirdtask.view.ElementColorView;
+
+import java.util.Objects;
 
 public class ElementEditorActivity extends AppCompatActivity {
   private static final String TAG = "ElementEditorActivity";
@@ -138,8 +143,7 @@ public class ElementEditorActivity extends AppCompatActivity {
         }
         return true;
       case android.R.id.home:
-        NavUtils.navigateUpFromSameTask(this);
-        overridePendingTransition(R.anim.trans_right_in, R.anim.trans_right_out);
+        handleDiscardChangesAction();
         return true;
     }
 
@@ -149,6 +153,63 @@ public class ElementEditorActivity extends AppCompatActivity {
   @Override
   public void onBackPressed() {
     super.onBackPressed();
+    overridePendingTransition(R.anim.trans_right_in, R.anim.trans_right_out);
+  }
+
+  /**
+   * Handles discard changes action (e.g. android.R.id.home).
+   */
+  private void handleDiscardChangesAction() {
+    if (!wasElementChanged()) {
+      discardChangesAndNavigateUpFromTask();
+      return;
+    }
+
+    DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
+      @Override
+      public void onClick(DialogInterface dialog, int which) {
+        switch (which) {
+          case DialogInterface.BUTTON_POSITIVE:
+            discardChangesAndNavigateUpFromTask();
+            break;
+
+          case DialogInterface.BUTTON_NEGATIVE:
+            break;
+        }
+      }
+    };
+
+    AlertDialog.Builder builder = new AlertDialog.Builder(this);
+    builder.setMessage(R.string.move_back_dialog_message)
+        .setPositiveButton(R.string.yes, dialogClickListener)
+        .setNegativeButton(R.string.no, dialogClickListener)
+        .show();
+  }
+
+  /**
+   * Checks if a user made any change to the current sys item instance.
+   *
+   * @return true if a user changes current sys item, false otherwise.
+   */
+  private boolean wasElementChanged() {
+    String title = getNormalizedTitle();
+    String body = getNormalizedBody();
+    Integer color = elementColorView.getColor();
+
+    if (sysItem == null) {
+      return !title.isEmpty() || !body.isEmpty();
+    } else {
+      return !Objects.equals(title, sysItem.getTitle())
+          || !Objects.equals(body, sysItem.getBody())
+          || !Objects.equals(color, sysItem.getColor());
+    }
+  }
+
+  /**
+   * Discards current changes and moves back.
+   */
+  private void discardChangesAndNavigateUpFromTask() {
+    NavUtils.navigateUpFromSameTask(ElementEditorActivity.this);
     overridePendingTransition(R.anim.trans_right_in, R.anim.trans_right_out);
   }
 
@@ -211,13 +272,13 @@ public class ElementEditorActivity extends AppCompatActivity {
   private boolean validateInput() {
     boolean isValid = true;
 
-    String title = titleEditText.getText().toString().trim();
+    String title = getNormalizedTitle();
     if (title.isEmpty()) {
       titleEditText.setError(getString(R.string.title_edit_text_error));
       isValid = false;
     }
 
-    String body = bodyEditText.getText().toString().trim();
+    String body = getNormalizedBody();
     if (body.isEmpty()) {
       bodyEditText.setError(getString(R.string.body_edit_text_error));
       isValid = false;
@@ -284,11 +345,31 @@ public class ElementEditorActivity extends AppCompatActivity {
       sysItem = new SysItem();
     }
 
-    sysItem.setTitle(titleEditText.getText().toString().trim());
-    sysItem.setBody(bodyEditText.getText().toString().trim());
+    sysItem.setTitle(getNormalizedTitle());
+    sysItem.setBody(getNormalizedBody());
     sysItem.setColor(elementColorView.getColor());
 
     new SaveSysItemTask(dbHelper).execute(sysItem);
+  }
+
+  /**
+   * Retrieves current body editor text value and normalizes it.
+   *
+   * @return Normalized body text.
+   */
+  @NonNull
+  private String getNormalizedBody() {
+    return bodyEditText.getText().toString().trim();
+  }
+
+  /**
+   * Retrieves current title editor text value and normalizes it.
+   *
+   * @return Normalized title text.
+   */
+  @NonNull
+  private String getNormalizedTitle() {
+    return titleEditText.getText().toString().trim();
   }
 
   /**

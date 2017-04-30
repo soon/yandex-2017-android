@@ -2,12 +2,14 @@ package com.awesoon.thirdtask.activity;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.NavUtils;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
@@ -24,6 +26,7 @@ import com.awesoon.thirdtask.view.ColorPickerInfo;
 import com.awesoon.thirdtask.view.ColorPickerView;
 
 import java.util.List;
+import java.util.Objects;
 
 public class ColorPickerActivity extends AppCompatActivity {
   public static final String EXTRA_CURRENT_COLOR = makeExtraIdent("CURRENT_COLOR");
@@ -36,6 +39,7 @@ public class ColorPickerActivity extends AppCompatActivity {
   private DbHelper dbHelper;
   private ColorPickerInfo colorPickerInfo;
   private ColorPickerView colorPickerView;
+  private Integer initialColor;
 
   /**
    * Creates intent instance for starting this activity.
@@ -114,8 +118,7 @@ public class ColorPickerActivity extends AppCompatActivity {
         overridePendingTransition(R.anim.trans_right_in, R.anim.trans_right_out);
         return true;
       case android.R.id.home:
-        NavUtils.navigateUpFromSameTask(this);
-        overridePendingTransition(R.anim.trans_right_in, R.anim.trans_right_out);
+        handleDiscardChangesAction();
         return true;
     }
 
@@ -139,6 +142,53 @@ public class ColorPickerActivity extends AppCompatActivity {
   @Override
   public void onBackPressed() {
     super.onBackPressed();
+    overridePendingTransition(R.anim.trans_right_in, R.anim.trans_right_out);
+  }
+
+  /**
+   * Handles discard changes action (e.g. android.R.id.home).
+   */
+  private void handleDiscardChangesAction() {
+    if (!wasElementChanged()) {
+      discardChangesAndNavigateUpFromTask();
+      return;
+    }
+
+    DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
+      @Override
+      public void onClick(DialogInterface dialog, int which) {
+        switch (which) {
+          case DialogInterface.BUTTON_POSITIVE:
+            discardChangesAndNavigateUpFromTask();
+            break;
+
+          case DialogInterface.BUTTON_NEGATIVE:
+            break;
+        }
+      }
+    };
+
+    AlertDialog.Builder builder = new AlertDialog.Builder(this);
+    builder.setMessage(R.string.move_back_dialog_message)
+        .setPositiveButton(R.string.yes, dialogClickListener)
+        .setNegativeButton(R.string.no, dialogClickListener)
+        .show();
+  }
+
+  /**
+   * Checks if a user changes initial color.
+   *
+   * @return true if a user changes color, false otherwise.
+   */
+  private boolean wasElementChanged() {
+    return !Objects.equals(initialColor, colorPickerInfo.getColor());
+  }
+
+  /**
+   * Discards current changes and moves back.
+   */
+  private void discardChangesAndNavigateUpFromTask() {
+    NavUtils.navigateUpFromSameTask(ColorPickerActivity.this);
     overridePendingTransition(R.anim.trans_right_in, R.anim.trans_right_out);
   }
 
@@ -182,8 +232,8 @@ public class ColorPickerActivity extends AppCompatActivity {
     Bundle extras = intent == null ? null : intent.getExtras();
 
     if (extras != null && extras.containsKey(EXTRA_CURRENT_COLOR)) {
-      int currentColor = extras.getInt(EXTRA_CURRENT_COLOR);
-      colorPickerInfo.setColor(currentColor);
+      initialColor = extras.getInt(EXTRA_CURRENT_COLOR);
+      colorPickerInfo.setColor(initialColor);
       return true;
     } else {
       return false;

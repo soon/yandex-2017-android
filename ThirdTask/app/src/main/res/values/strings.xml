@@ -3,6 +3,7 @@
   <string name="title_activity_element_editor">ElementEditorActivity</string>
   <string name="element_editor_default_title">Новая заметка</string>
   <string name="title_activity_color_picker">Выбор цвета</string>
+  <string name="title_activity_filter_editor">Настройка фильтра</string>
 
   <string name="title_edit_text_hint">Название</string>
   <string name="title_edit_text_error">Введите название</string>
@@ -21,4 +22,9 @@
   <string name="move_back_dialog_message">
     Вы действительно хотите вернуться? Все изменения будут утеряны.
   </string>
+
+  <string name="edit_filter">Редакировать фильтр</string>
+  <string name="filter_name_hint">Название фильтра</string>
+  <string name="created_date_start_hint">Дата создания (начало)</string>
+  <string name="created_date_end_hint">Дата создания (конец)</string>
 </resources>

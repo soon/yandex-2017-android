@@ -4,9 +4,13 @@ import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.NavigationView;
+import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
@@ -31,50 +35,40 @@ public class MainActivity extends AppCompatActivity {
 
   public static final int ADD_NEW_SYS_ITEM_REQUEST_CODE = 1;
   public static final int EDIT_EXISTING_SYS_ITEM_REQUEST_CODE = 2;
+  public static final int EDIT_FILTER_ACTIVITY = 3;
 
   public static final String STATE_DEFAULT_ITEM_COLOR = makeExtraIdent("STATE_DEFAULT_ITEM_COLOR");
 
   private Integer defaultItemColor;
   private ListView elementsList;
+  private DrawerLayout drawerLayout;
+  private NavigationView drawerNavView;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_main);
-    Toolbar toolbar = ActivityUtils.findViewById(this, R.id.toolbar, "R.id.toolbar");
-    setSupportActionBar(toolbar);
 
-    FloatingActionButton fab = ActivityUtils.findViewById(this, R.id.fab, "R.id.fab");
-    fab.setOnClickListener(new View.OnClickListener() {
+    initMembers();
+    initState(savedInstanceState);
+
+    initToolbar();
+    initFab();
+
+    drawerNavView.setNavigationItemSelectedListener(new NavigationView.OnNavigationItemSelectedListener() {
       @Override
-      public void onClick(View view) {
-        openNewElementEditorActivity();
+      public boolean onNavigationItemSelected(MenuItem item) {
+        int id = item.getItemId();
+        switch (id) {
+          case R.id.
+        }
       }
     });
 
-    elementsList = ActivityUtils.findViewById(this, R.id.elements_list, "R.id.elements_list");
-    SysItemsAdapter adapter = new SysItemsAdapter(this, R.layout.element_view, new ArrayList<SysItem>(),
-        R.string.remove_sys_item_dialog_message, R.string.yes, R.string.no);
+    initElementsList();
+
+    NotesApplication app = (NotesApplication) getApplication();
     final DbHelper dbHelper = app.getDbHelper();
-    adapter.addOnSysItemRemoveListener(new SysItemRemoveListener() {
-      @Override
-      public void onSysItemRemove(SysItem sysItem, int position) {
-        new RemoveSysItemTask(dbHelper).execute(sysItem.getId());
-      }
-    });
-
-    elementsList.setAdapter(adapter);
-    elementsList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-      @Override
-      public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-        SysItem sysItem = (SysItem) parent.getItemAtPosition(position);
-        openElementEditorActivity(sysItem.getId());
-      }
-    });
-
-    if (savedInstanceState != null && savedInstanceState.containsKey(STATE_DEFAULT_ITEM_COLOR)) {
-      defaultItemColor = savedInstanceState.getInt(STATE_DEFAULT_ITEM_COLOR);
-    }
 
     GlobalDbState.subscribe(this, new DbStateChangeListener() {
       @Override
@@ -94,6 +88,57 @@ public class MainActivity extends AppCompatActivity {
     });
 
     new GetAllSysItemsTask(MainActivity.this, dbHelper).execute();
+  }
+
+  private void initState(Bundle savedInstanceState) {
+    if (savedInstanceState != null && savedInstanceState.containsKey(STATE_DEFAULT_ITEM_COLOR)) {
+      defaultItemColor = savedInstanceState.getInt(STATE_DEFAULT_ITEM_COLOR);
+    }
+  }
+
+  private void initElementsList() {
+    NotesApplication app = (NotesApplication) getApplication();
+    final DbHelper dbHelper = app.getDbHelper();
+
+    SysItemsAdapter adapter = new SysItemsAdapter(this, R.layout.element_view, new ArrayList<SysItem>(),
+        R.string.remove_sys_item_dialog_message, R.string.yes, R.string.no);
+
+    adapter.addOnSysItemRemoveListener(new SysItemRemoveListener() {
+      @Override
+      public void onSysItemRemove(SysItem sysItem, int position) {
+        new RemoveSysItemTask(dbHelper).execute(sysItem.getId());
+      }
+    });
+
+    elementsList.setAdapter(adapter);
+    elementsList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+      @Override
+      public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+        SysItem sysItem = (SysItem) parent.getItemAtPosition(position);
+        openElementEditorActivity(sysItem.getId());
+      }
+    });
+  }
+
+  private void initFab() {
+    FloatingActionButton fab = ActivityUtils.findViewById(this, R.id.fab, "R.id.fab");
+    fab.setOnClickListener(new View.OnClickListener() {
+      @Override
+      public void onClick(View view) {
+        openNewElementEditorActivity();
+      }
+    });
+  }
+
+  private void initToolbar() {
+    Toolbar toolbar = ActivityUtils.findViewById(this, R.id.toolbar, "R.id.toolbar");
+    setSupportActionBar(toolbar);
+  }
+
+  private void initMembers() {
+    elementsList = ActivityUtils.findViewById(this, R.id.elements_list, "R.id.elements_list");
+    drawerLayout = ActivityUtils.findViewById(this, R.id.drawer_layout, "R.id.drawer_layout");
+    drawerNavView = ActivityUtils.findViewById(this, R.id.drawer_nav_view, "R.id.drawer_nav_view");
   }
 
   @Override
@@ -123,6 +168,25 @@ public class MainActivity extends AppCompatActivity {
       default:
         Log.w(TAG, "Received unknown request code " + requestCode);
     }
+  }
+
+  @Override
+  public boolean onCreateOptionsMenu(Menu menu) {
+    getMenuInflater().inflate(R.menu.menu_main_activity, menu);
+    return true;
+  }
+
+  @Override
+  public boolean onOptionsItemSelected(MenuItem item) {
+    int id = item.getItemId();
+
+    switch (id) {
+      case R.id.edit_filter:
+        openFilterEditorActivity();
+        return true;
+    }
+
+    return super.onOptionsItemSelected(item);
   }
 
   /**
@@ -170,6 +234,11 @@ public class MainActivity extends AppCompatActivity {
     } else {
       startActivityForResult(intent, ADD_NEW_SYS_ITEM_REQUEST_CODE);
     }
+  }
+
+  private void openFilterEditorActivity() {
+    Intent intent = new Intent(this, FilterEditorActivity.class);
+    startActivityForResult(intent, EDIT_FILTER_ACTIVITY);
   }
 
   /**

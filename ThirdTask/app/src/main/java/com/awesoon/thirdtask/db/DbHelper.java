@@ -122,21 +122,28 @@ public class DbHelper extends SQLiteOpenHelper {
 
     if (item.getId() == null) {
       long id = db.insertOrThrow(SysItem.SysItemEntry.TABLE_NAME, null, values);
-      validateIdThrowing(id, item);
+      validateInsertedObjectThrowing(id, item);
       item.setId(id);
       GlobalDbState.notifySysItemAdded(item);
     } else {
-      db.update(SysItem.SysItemEntry.TABLE_NAME, values, SysItem.SysItemEntry.COLUMN_NAME_ID + " = ?",
+      int updatedRows = db.update(SysItem.SysItemEntry.TABLE_NAME, values, SysItem.SysItemEntry.COLUMN_NAME_ID + " = ?",
           new String[]{String.valueOf(item.getId())});
+      validateUpdatedObjectThrowing(updatedRows, item);
       GlobalDbState.notifySysItemUpdated(item);
     }
 
     return item;
   }
 
-  private void validateIdThrowing(long id, Object o) {
+  private void validateInsertedObjectThrowing(long id, Object o) {
     if (id == -1) {
-      throw new RuntimeException("Unable to perform insert / update operation with object " + o);
+      throw new RuntimeException("Unable to perform insert operation with object " + o);
+    }
+  }
+
+  private void validateUpdatedObjectThrowing(int updatedRows, Object o) {
+    if (updatedRows != 1) {
+      throw new RuntimeException("Unable to update object " + o + ", " + updatedRows + " rows updated");
     }
   }
 

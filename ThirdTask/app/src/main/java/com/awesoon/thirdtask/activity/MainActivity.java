@@ -162,9 +162,8 @@ public class MainActivity extends AppCompatActivity {
    * @param sysItemId Sys item id. Nullable.
    */
   private void openElementEditorActivity(Long sysItemId) {
-    Intent intent = new Intent(MainActivity.this, ElementEditorActivity.class);
+    Intent intent = ElementEditorActivity.getInstance(this, sysItemId);
     if (sysItemId != null) {
-      intent.putExtra(ElementEditorActivity.EXTRA_SYS_ITEM_ID, sysItemId.longValue());
       startActivityForResult(intent, EDIT_EXISTING_SYS_ITEM_REQUEST_CODE);
     } else {
       startActivityForResult(intent, ADD_NEW_SYS_ITEM_REQUEST_CODE);

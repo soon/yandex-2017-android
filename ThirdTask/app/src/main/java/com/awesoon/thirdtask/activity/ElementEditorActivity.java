@@ -1,9 +1,11 @@
 package com.awesoon.thirdtask.activity;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.annotation.Nullable;
 import android.support.v4.app.NavUtils;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
@@ -37,6 +39,21 @@ public class ElementEditorActivity extends AppCompatActivity {
 
   private DbHelper dbHelper;
   private SysItem sysItem;
+
+  /**
+   * Creates intent instance for starting this activity.
+   *
+   * @param context   A parent context.
+   * @param sysItemId An item id. Null, if you want to create new item.
+   * @return An intent.
+   */
+  public static Intent getInstance(Context context, @Nullable Long sysItemId) {
+    Intent intent = new Intent(context, ElementEditorActivity.class);
+    if (sysItemId != null) {
+      intent.putExtra(ElementEditorActivity.EXTRA_SYS_ITEM_ID, sysItemId.longValue());
+    }
+    return intent;
+  }
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -149,10 +166,7 @@ public class ElementEditorActivity extends AppCompatActivity {
    * @param color A color to be passed to the activity.
    */
   private void openColorPickerActivity(Integer color) {
-    Intent intent = new Intent(ElementEditorActivity.this, ColorPickerActivity.class);
-    if (color != null) {
-      intent.putExtra(ColorPickerActivity.EXTRA_CURRENT_COLOR, color.intValue());
-    }
+    Intent intent = ColorPickerActivity.getInstance(this, color);
     startActivityForResult(intent, SELECT_ELEMENT_COLOR_REQUEST_CODE);
   }
 

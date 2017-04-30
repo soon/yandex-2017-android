@@ -1,11 +1,13 @@
 package com.awesoon.thirdtask.activity;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v4.app.NavUtils;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -33,6 +35,21 @@ public class ColorPickerActivity extends AppCompatActivity {
   public static final String STATE_BUTTON_COLORS_IDENT = makeExtraIdent("STATE_BUTTON_COLORS");
 
   private DbHelper dbHelper;
+
+  /**
+   * Creates intent instance for starting this activity.
+   *
+   * @param context A parent context.
+   * @param color   A current color. Nullable.
+   * @return An intent.
+   */
+  public static Intent getInstance(Context context, @Nullable Integer color) {
+    Intent intent = new Intent(context, ColorPickerActivity.class);
+    if (color != null) {
+      intent.putExtra(ColorPickerActivity.EXTRA_CURRENT_COLOR, color.intValue());
+    }
+    return intent;
+  }
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {

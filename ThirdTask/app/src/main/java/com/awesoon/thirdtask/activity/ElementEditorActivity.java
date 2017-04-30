@@ -39,6 +39,9 @@ public class ElementEditorActivity extends AppCompatActivity {
 
   private DbHelper dbHelper;
   private SysItem sysItem;
+  private EditText titleEditText;
+  private EditText bodyEditText;
+  private ElementColorView elementColorView;
 
   /**
    * Creates intent instance for starting this activity.
@@ -61,9 +64,12 @@ public class ElementEditorActivity extends AppCompatActivity {
     setContentView(R.layout.activity_element_editor);
     overridePendingTransition(R.anim.trans_left_in, R.anim.trans_left_out);
 
+    titleEditText = findViewById(R.id.edit_title, "R.id.edit_title");
+    bodyEditText = findViewById(R.id.edit_body, "R.id.edit_body");
+    elementColorView = findViewById(R.id.edit_color, "R.id.edit_color");
+
     initToolbar();
 
-    EditText titleEditText = getTitleEditText();
     titleEditText.addTextChangedListener(new TextWatcher() {
       @Override
       public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -81,7 +87,6 @@ public class ElementEditorActivity extends AppCompatActivity {
       }
     });
 
-    final ElementColorView elementColorView = getElementColorView();
     elementColorView.setOnClickListener(new View.OnClickListener() {
       @Override
       public void onClick(View v) {
@@ -89,7 +94,7 @@ public class ElementEditorActivity extends AppCompatActivity {
       }
     });
 
-    this.dbHelper = new DbHelper(this);
+    dbHelper = new DbHelper(this);
     initializeEditorContent(savedInstanceState);
   }
 
@@ -97,13 +102,9 @@ public class ElementEditorActivity extends AppCompatActivity {
   protected void onSaveInstanceState(Bundle outState) {
     super.onSaveInstanceState(outState);
 
-    EditText titleEditText = getTitleEditText();
     outState.putString(STATE_CURRENT_TITLE, titleEditText.getText().toString());
-
-    EditText bodyEditText = getBodyEditText();
     outState.putString(STATE_CURRENT_BODY, bodyEditText.getText().toString());
 
-    ElementColorView elementColorView = getElementColorView();
     if (elementColorView.getColor() != null) {
       outState.putInt(STATE_CURRENT_COLOR, elementColorView.getColor());
     }
@@ -187,7 +188,7 @@ public class ElementEditorActivity extends AppCompatActivity {
     }
 
     int color = data.getExtras().getInt(ColorPickerActivity.EXTRA_CURRENT_COLOR);
-    getElementColorView().setColor(color);
+    elementColorView.setColor(color);
   }
 
   /**
@@ -210,14 +211,12 @@ public class ElementEditorActivity extends AppCompatActivity {
   private boolean validateInput() {
     boolean isValid = true;
 
-    EditText titleEditText = getTitleEditText();
     String title = titleEditText.getText().toString().trim();
     if (title.isEmpty()) {
       titleEditText.setError(getString(R.string.title_edit_text_error));
       isValid = false;
     }
 
-    EditText bodyEditText = getBodyEditText();
     String body = bodyEditText.getText().toString().trim();
     if (body.isEmpty()) {
       bodyEditText.setError(getString(R.string.body_edit_text_error));
@@ -232,7 +231,6 @@ public class ElementEditorActivity extends AppCompatActivity {
    */
   private void setDefaultColor() {
     int color = BeautifulColors.getBeautifulColor();
-    ElementColorView elementColorView = getElementColorView();
     elementColorView.setColor(color);
   }
 
@@ -266,7 +264,6 @@ public class ElementEditorActivity extends AppCompatActivity {
    * @param body Body text.
    */
   private void setBodyEditText(String body) {
-    EditText bodyEditText = getBodyEditText();
     bodyEditText.setText(body);
   }
 
@@ -276,7 +273,6 @@ public class ElementEditorActivity extends AppCompatActivity {
    * @param text Title text.
    */
   private void setTitleEditText(String text) {
-    EditText titleEditText = getTitleEditText();
     titleEditText.setText(text);
   }
 
@@ -288,13 +284,8 @@ public class ElementEditorActivity extends AppCompatActivity {
       sysItem = new SysItem();
     }
 
-    EditText titleEditText = getTitleEditText();
     sysItem.setTitle(titleEditText.getText().toString().trim());
-
-    EditText bodyEditText = getBodyEditText();
     sysItem.setBody(bodyEditText.getText().toString().trim());
-
-    ElementColorView elementColorView = getElementColorView();
     sysItem.setColor(elementColorView.getColor());
 
     new SaveSysItemTask(dbHelper).execute(sysItem);
@@ -368,18 +359,6 @@ public class ElementEditorActivity extends AppCompatActivity {
     }
   }
 
-  private EditText getTitleEditText() {
-    return findViewById(R.id.edit_title, "R.id.edit_title");
-  }
-
-  private EditText getBodyEditText() {
-    return findViewById(R.id.edit_body, "R.id.edit_body");
-  }
-
-  private ElementColorView getElementColorView() {
-    return findViewById(R.id.edit_color, "R.id.edit_color");
-  }
-
   /**
    * Finds a view by the given id.
    *
@@ -401,7 +380,6 @@ public class ElementEditorActivity extends AppCompatActivity {
    * @param color New color.
    */
   private void setColorEditColor(int color) {
-    ElementColorView elementColorView = getElementColorView();
     elementColorView.setColor(color);
   }
 

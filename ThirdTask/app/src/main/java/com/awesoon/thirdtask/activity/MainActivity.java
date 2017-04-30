@@ -34,6 +34,7 @@ public class MainActivity extends AppCompatActivity {
 
   private DbHelper dbHelper;
   private Integer defaultItemColor;
+  private ListView elementsList;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -50,7 +51,7 @@ public class MainActivity extends AppCompatActivity {
       }
     });
 
-    ListView elementsList = getElementsList();
+    elementsList = findViewById(R.id.elements_list, "R.id.elements_list");
     SysItemsAdapter adapter = new SysItemsAdapter(this, R.layout.element_view, new ArrayList<SysItem>());
     adapter.addOnSysItemRemoveListener(new SysItemRemoveListener() {
       @Override
@@ -72,7 +73,7 @@ public class MainActivity extends AppCompatActivity {
       defaultItemColor = savedInstanceState.getInt(STATE_DEFAULT_ITEM_COLOR);
     }
 
-    this.dbHelper = new DbHelper(this);
+    dbHelper = new DbHelper(this);
     GlobalDbState.subscribe(this, new DbStateChangeListener() {
       @Override
       public void onSysItemAdded(SysItem sysItem) {
@@ -145,7 +146,6 @@ public class MainActivity extends AppCompatActivity {
    * @return List view adapter.
    */
   private SysItemsAdapter getElementsAdapter() {
-    ListView elementsList = getElementsList();
     return (SysItemsAdapter) elementsList.getAdapter();
   }
 
@@ -177,10 +177,6 @@ public class MainActivity extends AppCompatActivity {
    */
   private void setSysItems(List<SysItem> sysItems) {
     updateListData(sysItems);
-  }
-
-  private ListView getElementsList() {
-    return findViewById(R.id.elements_list, "R.id.elements_list");
   }
 
   /**

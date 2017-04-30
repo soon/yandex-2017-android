@@ -6,7 +6,6 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.NavUtils;
 import android.support.v7.app.AppCompatActivity;
@@ -35,6 +34,8 @@ public class ColorPickerActivity extends AppCompatActivity {
   public static final String STATE_BUTTON_COLORS_IDENT = makeExtraIdent("STATE_BUTTON_COLORS");
 
   private DbHelper dbHelper;
+  private ColorPickerInfo colorPickerInfo;
+  private ColorPickerView colorPickerView;
 
   /**
    * Creates intent instance for starting this activity.
@@ -57,14 +58,13 @@ public class ColorPickerActivity extends AppCompatActivity {
     setContentView(R.layout.activity_color_picker);
     overridePendingTransition(R.anim.trans_left_in, R.anim.trans_left_out);
 
+    colorPickerInfo = findViewById(R.id.colorPickerInfo, "R.id.colorPickerInfo");
+    colorPickerView = findViewById(R.id.colorPickerView, "R.id.colorPickerView");
+    dbHelper = new DbHelper(this);
+
     Toolbar toolbar = findViewById(R.id.toolbar, "R.id.toolbar");
     setSupportActionBar(toolbar);
     getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-
-    this.dbHelper = new DbHelper(this);
-
-    final ColorPickerView colorPickerView = getColorPickerView();
-    final ColorPickerInfo colorPickerInfo = getColorPickerInfo();
 
     colorPickerView.setOnColorChangeListener(new ColorChangeListener() {
       @Override
@@ -103,7 +103,7 @@ public class ColorPickerActivity extends AppCompatActivity {
     switch (id) {
       case R.id.save_color:
         Intent resultIntent = new Intent();
-        Integer color = getColorPickerInfo().getColor();
+        Integer color = colorPickerInfo.getColor();
         if (color == null) {
           color = Color.TRANSPARENT;
         }
@@ -126,9 +126,6 @@ public class ColorPickerActivity extends AppCompatActivity {
   protected void onSaveInstanceState(Bundle outState) {
     super.onSaveInstanceState(outState);
 
-    final ColorPickerView colorPickerView = getColorPickerView();
-    final ColorPickerInfo colorPickerInfo = getColorPickerInfo();
-
     outState.putInt(STATE_SCROLL_POSITION_IDENT, colorPickerView.getCurrentScrollPosition());
     outState.putInt(STATE_PREV_SCROLL_VIEW_WIDTH_IDENT, colorPickerView.getCurrentScrollViewWidth());
     outState.putIntegerArrayList(STATE_BUTTON_COLORS_IDENT, colorPickerView.getCurrentButtonColors());
@@ -143,16 +140,6 @@ public class ColorPickerActivity extends AppCompatActivity {
   public void onBackPressed() {
     super.onBackPressed();
     overridePendingTransition(R.anim.trans_right_in, R.anim.trans_right_out);
-  }
-
-  @NonNull
-  private ColorPickerInfo getColorPickerInfo() {
-    return findViewById(R.id.colorPickerInfo, "R.id.colorPickerInfo");
-  }
-
-  @NonNull
-  private ColorPickerView getColorPickerView() {
-    return findViewById(R.id.colorPickerView, "R.id.colorPickerView");
   }
 
   /**
@@ -276,7 +263,7 @@ public class ColorPickerActivity extends AppCompatActivity {
       activity.runOnUiThread(new Runnable() {
         @Override
         public void run() {
-          ColorPickerInfo colorPickerInfo = activity.getColorPickerInfo();
+          ColorPickerInfo colorPickerInfo = activity.colorPickerInfo;
           colorPickerInfo.setFavoriteColors(favoriteColors);
         }
       });

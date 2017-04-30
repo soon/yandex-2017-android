@@ -11,6 +11,7 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
 
+import com.awesoon.thirdtask.NotesApplication;
 import com.awesoon.thirdtask.R;
 import com.awesoon.thirdtask.db.DbHelper;
 import com.awesoon.thirdtask.db.GlobalDbState;
@@ -33,7 +34,6 @@ public class MainActivity extends AppCompatActivity {
 
   public static final String STATE_DEFAULT_ITEM_COLOR = makeExtraIdent("STATE_DEFAULT_ITEM_COLOR");
 
-  private DbHelper dbHelper;
   private Integer defaultItemColor;
   private ListView elementsList;
 
@@ -55,6 +55,7 @@ public class MainActivity extends AppCompatActivity {
     elementsList = ActivityUtils.findViewById(this, R.id.elements_list, "R.id.elements_list");
     SysItemsAdapter adapter = new SysItemsAdapter(this, R.layout.element_view, new ArrayList<SysItem>(),
         R.string.remove_sys_item_dialog_message, R.string.yes, R.string.no);
+    final DbHelper dbHelper = app.getDbHelper();
     adapter.addOnSysItemRemoveListener(new SysItemRemoveListener() {
       @Override
       public void onSysItemRemove(SysItem sysItem, int position) {
@@ -75,7 +76,6 @@ public class MainActivity extends AppCompatActivity {
       defaultItemColor = savedInstanceState.getInt(STATE_DEFAULT_ITEM_COLOR);
     }
 
-    dbHelper = new DbHelper(this);
     GlobalDbState.subscribe(this, new DbStateChangeListener() {
       @Override
       public void onSysItemAdded(SysItem sysItem) {

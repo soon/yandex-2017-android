@@ -21,6 +21,7 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import com.awesoon.thirdtask.NotesApplication;
 import com.awesoon.thirdtask.R;
 import com.awesoon.thirdtask.adapter.text.TextWatcherAdapter;
 import com.awesoon.thirdtask.db.DbHelper;
@@ -44,7 +45,6 @@ public class ElementEditorActivity extends AppCompatActivity {
   public static final String STATE_CURRENT_TITLE = makeExtraIdent("STATE_CURRENT_TITLE");
   public static final String STATE_CURRENT_BODY = makeExtraIdent("STATE_CURRENT_BODY");
 
-  private DbHelper dbHelper;
   private SysItem sysItem;
   private EditText titleEditText;
   private EditText bodyEditText;
@@ -92,7 +92,6 @@ public class ElementEditorActivity extends AppCompatActivity {
       }
     });
 
-    dbHelper = new DbHelper(this);
     initializeEditorContent(savedInstanceState);
   }
 
@@ -351,6 +350,9 @@ public class ElementEditorActivity extends AppCompatActivity {
     sysItem.setBody(getNormalizedBody());
     sysItem.setColor(elementColorView.getColor());
 
+    NotesApplication app = (NotesApplication) getApplication();
+    DbHelper dbHelper = app.getDbHelper();
+
     new SaveSysItemTask(dbHelper).execute(sysItem);
   }
 
@@ -436,6 +438,8 @@ public class ElementEditorActivity extends AppCompatActivity {
     }
 
     if (id != null) {
+      NotesApplication app = (NotesApplication) getApplication();
+      DbHelper dbHelper = app.getDbHelper();
       new GetSysItemByIdTask(this, dbHelper, updateFields).execute(id);
     } else {
       setSysItem(null, updateFields);

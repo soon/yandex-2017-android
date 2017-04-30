@@ -104,7 +104,7 @@ public class ColorPickerView extends LinearLayout {
    */
   @NonNull
   private ColorPickerButton addNewColorPickerButton(final LinearLayout buttonsContainer) {
-    ColorPickerButton button = new ColorPickerButton(getContext());
+    final ColorPickerButton button = new ColorPickerButton(getContext());
     DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
 
     int width = (int) (displayMetrics.density * BUTTON_WIDTH_DPI);
@@ -132,7 +132,7 @@ public class ColorPickerView extends LinearLayout {
       @Override
       public void onColorSelected(int newColor) {
         color = newColor;
-        notifyColorChanged();
+        notifyColorChanged(button);
       }
     });
 
@@ -276,8 +276,10 @@ public class ColorPickerView extends LinearLayout {
 
   /**
    * Notifies all listeners about changed color.
+   *
+   * @param button Button, changes the color.
    */
-  private void notifyColorChanged() {
+  private void notifyColorChanged(ColorPickerButton button) {
     for (ColorChangeListener listener : colorChangeListeners) {
       listener.onColorChanged(color);
     }

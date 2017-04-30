@@ -8,12 +8,16 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.awesoon.thirdtask.R;
+import com.awesoon.thirdtask.event.ButtonColorListenerAdapter;
 import com.awesoon.thirdtask.util.Assert;
 
 import java.util.Locale;
 
 public class ColorPickerInfo extends LinearLayout {
   private Integer color;
+  private TextView currentColorRgbText;
+  private TextView currentColorHsvText;
+  private ColorPickerButton currentColorButton;
 
   public ColorPickerInfo(Context context) {
     super(context);
@@ -31,6 +35,23 @@ public class ColorPickerInfo extends LinearLayout {
     super(context, attrs, defStyleAttr, defStyleRes);
   }
 
+  @Override
+  protected void onFinishInflate() {
+    super.onFinishInflate();
+
+    currentColorRgbText = (TextView) findViewById(R.id.currentColorRgbText);
+    currentColorHsvText = (TextView) findViewById(R.id.currentColorHsvText);
+    currentColorButton = getCurrentColorView();
+
+    currentColorButton.setOnColorChangeListener(new ButtonColorListenerAdapter() {
+      @Override
+      public void onColorChanged(int newColor) {
+        ColorPickerInfo.this.color = newColor;
+        updateTextColorInfo(newColor);
+      }
+    });
+  }
+
   /**
    * Updates the info view with the given color.
    *
@@ -39,18 +60,33 @@ public class ColorPickerInfo extends LinearLayout {
   public void setColor(Integer color) {
     this.color = color;
 
-    TextView currentColorRgbText = (TextView) findViewById(R.id.currentColorRgbText);
-    TextView currentColorHsvText = (TextView) findViewById(R.id.currentColorHsvText);
-    CurrentColorView currentColorView = getCurrentColorView();
-
     if (color == null) {
+      currentColorButton.setDefaultColor(Color.TRANSPARENT);
+      currentColorButton.setColorAnimated(Color.TRANSPARENT);
+      currentColorButton.setHueMinValue(ColorPickerButton.MIN_HUE_VALUE);
+      currentColorButton.setHueMaxValue(ColorPickerButton.MAX_HUE_VALUE);
+    } else {
+      currentColorButton.setDefaultColor(color);
+      currentColorButton.setColorAnimated(color);
+
+      float[] hsv = new float[3];
+      Color.colorToHSV(color, hsv);
+      // e.g. the TOTAL_BUTTONS_COUNT is 3
+      // [-b--b--b-], where b is a button, - is a button delta, [ is the left bound and ] is the right bound
+      // so, the total number of deltas is 2*N
+      float delta = ColorPickerButton.MAX_HUE_VALUE / (ColorPickerView.TOTAL_BUTTONS_COUNT * 2);
+      currentColorButton.setHueMinValue(hsv[0] - delta / 2);
+      currentColorButton.setHueMaxValue(hsv[0] + delta / 2);
+    }
+  }
+
+  private void updateTextColorInfo(int color) {
+    if (color == Color.TRANSPARENT) {
       currentColorRgbText.setText("");
       currentColorHsvText.setText("");
-      currentColorView.setColor(Color.TRANSPARENT);
     } else {
       currentColorRgbText.setText(formatToRgb(color));
       currentColorHsvText.setText(formatToHsv(color));
-      currentColorView.setColor(color);
     }
   }
 
@@ -59,8 +95,8 @@ public class ColorPickerInfo extends LinearLayout {
    *
    * @return Current color view.
    */
-  private CurrentColorView getCurrentColorView() {
-    CurrentColorView currentColorView = (CurrentColorView) findViewById(R.id.currentColorBlock);
+  private ColorPickerButton getCurrentColorView() {
+    ColorPickerButton currentColorView =  (ColorPickerButton) findViewById(R.id.currentColorBlock);
     Assert.notNull(currentColorView, "currentColorView");
     return currentColorView;
   }

@@ -189,14 +189,10 @@ public class ColorPickerActivity extends AppCompatActivity {
     colorPickerView.setPreviousScrollViewWidth(savedInstanceState.getInt(STATE_PREV_SCROLL_VIEW_WIDTH_IDENT));
     colorPickerView.setCurrentButtonColors(savedInstanceState.getIntegerArrayList(STATE_BUTTON_COLORS_IDENT));
 
-    if (setColorFromIntent(colorPickerInfo)) {
-      return;
-    }
-
     if (savedInstanceState.containsKey(STATE_CURRENT_COLOR_IDENT)) {
       colorPickerInfo.setColor(savedInstanceState.getInt(STATE_CURRENT_COLOR_IDENT));
     } else {
-      colorPickerInfo.setColor(null);
+      setColorFromIntent(colorPickerInfo);
     }
   }
 

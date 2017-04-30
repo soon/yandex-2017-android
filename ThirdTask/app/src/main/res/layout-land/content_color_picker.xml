@@ -43,7 +43,7 @@
       android:gravity="center"
       android:orientation="vertical">
 
-      <com.awesoon.thirdtask.view.CurrentColorView
+      <com.awesoon.thirdtask.view.ColorPickerButton
         android:id="@+id/currentColorBlock"
         android:layout_width="180dp"
         android:layout_height="40dp"

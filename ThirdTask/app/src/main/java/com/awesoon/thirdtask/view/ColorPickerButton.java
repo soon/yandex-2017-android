@@ -1,7 +1,11 @@
 package com.awesoon.thirdtask.view;
 
+import android.animation.ArgbEvaluator;
+import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Color;
+import android.graphics.Paint;
 import android.os.Vibrator;
 import android.support.v7.widget.AppCompatButton;
 import android.util.AttributeSet;
@@ -18,6 +22,9 @@ import java.util.List;
 
 public class ColorPickerButton extends AppCompatButton {
   private static final String TAG = "ColorPickerButton";
+  public static final float MIN_HUE_VALUE = 0;
+  public static final float MAX_HUE_VALUE = 360;
+  public static final int COLOR_ANIMATION_DURATION = 200;
   public static final int VIBRATION_MS = 100;
   public static final float HUE_CHANGE_SPEED = 1.f / 20;
   public static final float BRIGHTNESS_CHANGE_SPEED = 1.f / 200;
@@ -36,6 +43,8 @@ public class ColorPickerButton extends AppCompatButton {
   private float prevMotionY = -1;
   private long lastTouchTime = -1;
   private long lastVibrationMills = -1;
+
+  private Paint backgroundPaint = new Paint(Color.TRANSPARENT);
 
   public ColorPickerButton(Context context) {
     super(context);
@@ -178,14 +187,16 @@ public class ColorPickerButton extends AppCompatButton {
     if (d > 0.5) {
       hsv[0] += dh;
       hsv[0] = MathUtil.fitToBounds(hueMinValue, hsv[0], hueMaxValue);
+      if (hsv[0] == hueMinValue || hsv[0] == hueMaxValue) {
+        performVibration();
+      }
     }
     if (d < 1.5) {
       hsv[2] += db;
       hsv[2] = MathUtil.fitToBounds(0, hsv[2], 1);
-    }
-
-    if (hsv[0] == hueMinValue || hsv[0] == hueMaxValue || hsv[2] == 0 || hsv[2] == 1) {
-      performVibration();
+      if (hsv[2] == 0 || hsv[2] == 1) {
+        performVibration();
+      }
     }
 
     color = Color.HSVToColor(hsv);
@@ -199,10 +210,52 @@ public class ColorPickerButton extends AppCompatButton {
    * @param color A new color.
    */
   public void setColor(int color) {
+    setColor(color, false);
+  }
+
+  public void setColorAnimated(int color) {
+    setColor(color, true);
+  }
+
+  private void setColor(int color, boolean animated) {
+    if (animated) {
+      startColorAnimation(this.color, color);
+    } else {
+      setBackgroundColor(color);
+    }
+
     this.color = color;
     Color.colorToHSV(color, this.hsv);
-    setBackgroundColor(color);
     notifyColorChanged();
+  }
+
+  /**
+   * Starts color animation.
+   *
+   * @param startColor Start color.
+   * @param endColor   End color.
+   */
+  private void startColorAnimation(Integer startColor, Integer endColor) {
+    if (startColor == null) {
+      setBackgroundColor(endColor);
+      return;
+    }
+
+    if (endColor == null) {
+      endColor = Color.TRANSPARENT;
+    }
+
+    ObjectAnimator animator = ObjectAnimator.ofObject(backgroundPaint, "color", new ArgbEvaluator(),
+        startColor, endColor);
+    animator.setDuration(COLOR_ANIMATION_DURATION);
+    animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+      @Override
+      public void onAnimationUpdate(ValueAnimator animation) {
+        setBackgroundColor(backgroundPaint.getColor());
+      }
+    });
+
+    animator.start();
   }
 
   /**
@@ -291,7 +344,7 @@ public class ColorPickerButton extends AppCompatButton {
    * @param hueMaxValue new Hue max value.
    */
   public void setHueMaxValue(float hueMaxValue) {
-    this.hueMaxValue = hueMaxValue;
+    this.hueMaxValue = MathUtil.fitToBounds(MIN_HUE_VALUE, hueMaxValue, MAX_HUE_VALUE);
   }
 
   /**
@@ -304,12 +357,12 @@ public class ColorPickerButton extends AppCompatButton {
   }
 
   /**
-   * Sets Hue max value.
+   * Sets Hue min value.
    *
-   * @param hueMinValue new Hue max value.
+   * @param hueMinValue new Hue min value.
    */
   public void setHueMinValue(float hueMinValue) {
-    this.hueMinValue = hueMinValue;
+    this.hueMinValue = MathUtil.fitToBounds(MIN_HUE_VALUE, hueMinValue, MAX_HUE_VALUE);
   }
 
   /**

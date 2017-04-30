@@ -77,7 +77,6 @@ public class ElementEditorActivity extends AppCompatActivity {
 
     initToolbar();
 
-    EditText titleEditText = getTitleEditText();
     titleEditText.addTextChangedListener(new TextWatcherAdapter() {
       @Override
       public void afterTextChanged(Editable s) {

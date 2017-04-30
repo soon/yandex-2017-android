@@ -21,23 +21,35 @@
         <category android:name="android.intent.category.LAUNCHER"/>
       </intent-filter>
     </activity>
+
     <activity
       android:name=".activity.ElementEditorActivity"
       android:label="@string/title_activity_element_editor"
-      android:theme="@style/AppTheme.NoActionBar"
-      android:launchMode="singleInstance">
+      android:launchMode="singleInstance"
+      android:theme="@style/AppTheme.NoActionBar">
       <meta-data
         android:name="android.support.PARENT_ACTIVITY"
         android:value=".activity.MainActivity"/>
     </activity>
+
     <activity
       android:name=".activity.ColorPickerActivity"
       android:label="@string/title_activity_color_picker"
-      android:theme="@style/AppTheme.NoActionBar"
-      android:launchMode="singleInstance">
+      android:launchMode="singleInstance"
+      android:theme="@style/AppTheme.NoActionBar">
       <meta-data
         android:name="android.support.PARENT_ACTIVITY"
         android:value=".activity.ElementEditorActivity"/>
+    </activity>
+
+    <activity
+      android:name=".activity.FilterEditorActivity"
+      android:label="@string/title_activity_filter_editor"
+      android:launchMode="singleInstance"
+      android:theme="@style/AppTheme.NoActionBar">
+      <meta-data
+        android:name="android.support.PARENT_ACTIVITY"
+        android:value=".activity.MainActivity"/>
     </activity>
   </application>
 

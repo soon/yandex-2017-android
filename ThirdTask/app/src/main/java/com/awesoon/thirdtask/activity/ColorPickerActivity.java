@@ -61,7 +61,7 @@ public class ColorPickerActivity extends AppCompatActivity {
     colorPickerInfo = ActivityUtils.findViewById(this, R.id.colorPickerInfo, "R.id.colorPickerInfo");
     colorPickerView = ActivityUtils.findViewById(this, R.id.colorPickerView, "R.id.colorPickerView");
 
-    Toolbar toolbar = findViewById(R.id.toolbar, "R.id.toolbar");
+    Toolbar toolbar = ActivityUtils.findViewById(this, R.id.toolbar, "R.id.toolbar");
     setSupportActionBar(toolbar);
     getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 

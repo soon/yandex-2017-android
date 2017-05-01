@@ -1,9 +1,12 @@
 package com.awesoon.thirdtask.view;
 
 import android.content.Context;
+import android.content.DialogInterface;
 import android.support.annotation.LayoutRes;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.StringRes;
+import android.support.v7.app.AlertDialog;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -21,10 +24,18 @@ import java.util.List;
 public class SysItemsAdapter extends ArrayAdapter<SysItem> {
   private final List<SysItem> data;
   private final List<SysItemRemoveListener> listeners = new ArrayList<>();
+  private final int removeDialogMessageResource;
+  private final int yesResource;
+  private final int noResource;
 
-  public SysItemsAdapter(@NonNull Context context, @LayoutRes int resource, @NonNull List<SysItem> objects) {
+  public SysItemsAdapter(@NonNull Context context, @LayoutRes int resource, @NonNull List<SysItem> objects,
+                         @StringRes int removeDialogMessageResource, @StringRes int yesResource,
+                         @StringRes int noResource) {
     super(context, resource, objects);
     this.data = objects;
+    this.removeDialogMessageResource = removeDialogMessageResource;
+    this.yesResource = yesResource;
+    this.noResource = noResource;
   }
 
   @NonNull
@@ -60,16 +71,38 @@ public class SysItemsAdapter extends ArrayAdapter<SysItem> {
       holder.removeElementButton.setOnClickListener(new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-          data.remove(position);
-          notifyDataSetChanged();
-          for (SysItemRemoveListener listener : listeners) {
-            listener.onSysItemRemove(sysItem);
-          }
+          handleElementRemoving(sysItem, position);
         }
       });
     }
 
     return convertView;
+  }
+
+  private void handleElementRemoving(final SysItem sysItem, final int position) {
+    DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
+      @Override
+      public void onClick(DialogInterface dialog, int which) {
+        switch (which){
+          case DialogInterface.BUTTON_POSITIVE:
+            removeItemOnPosition(position);
+            notifyDataSetChanged();
+            for (SysItemRemoveListener listener : listeners) {
+              listener.onSysItemRemove(sysItem, position);
+            }
+            break;
+
+          case DialogInterface.BUTTON_NEGATIVE:
+            break;
+        }
+      }
+    };
+
+    AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+    builder.setMessage(removeDialogMessageResource)
+        .setPositiveButton(yesResource, dialogClickListener)
+        .setNegativeButton(noResource, dialogClickListener)
+        .show();
   }
 
   @Override
@@ -79,6 +112,12 @@ public class SysItemsAdapter extends ArrayAdapter<SysItem> {
 
   public void addOnSysItemRemoveListener(SysItemRemoveListener listener) {
     listeners.add(listener);
+  }
+
+  public void removeItemOnPosition(int position) {
+    if (position >= 0 && position < data.size()) {
+      data.remove(position);
+    }
   }
 
   private static class ViewHolder {

@@ -34,6 +34,7 @@ public class MainActivity extends AppCompatActivity {
 
   private DbHelper dbHelper;
   private Integer defaultItemColor;
+  private ListView elementsList;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -50,11 +51,12 @@ public class MainActivity extends AppCompatActivity {
       }
     });
 
-    ListView elementsList = getElementsList();
-    SysItemsAdapter adapter = new SysItemsAdapter(this, R.layout.element_view, new ArrayList<SysItem>());
+    elementsList = findViewById(R.id.elements_list, "R.id.elements_list");
+    SysItemsAdapter adapter = new SysItemsAdapter(this, R.layout.element_view, new ArrayList<SysItem>(),
+        R.string.remove_sys_item_dialog_message, R.string.yes, R.string.no);
     adapter.addOnSysItemRemoveListener(new SysItemRemoveListener() {
       @Override
-      public void onSysItemRemove(SysItem sysItem) {
+      public void onSysItemRemove(SysItem sysItem, int position) {
         new RemoveSysItemTask(dbHelper).execute(sysItem.getId());
       }
     });
@@ -72,7 +74,7 @@ public class MainActivity extends AppCompatActivity {
       defaultItemColor = savedInstanceState.getInt(STATE_DEFAULT_ITEM_COLOR);
     }
 
-    this.dbHelper = new DbHelper(this);
+    dbHelper = new DbHelper(this);
     GlobalDbState.subscribe(this, new DbStateChangeListener() {
       @Override
       public void onSysItemAdded(SysItem sysItem) {
@@ -95,6 +97,8 @@ public class MainActivity extends AppCompatActivity {
 
   @Override
   protected void onSaveInstanceState(Bundle outState) {
+    super.onSaveInstanceState(outState);
+
     if (defaultItemColor != null) {
       outState.putInt(STATE_DEFAULT_ITEM_COLOR, defaultItemColor);
     }
@@ -143,7 +147,6 @@ public class MainActivity extends AppCompatActivity {
    * @return List view adapter.
    */
   private SysItemsAdapter getElementsAdapter() {
-    ListView elementsList = getElementsList();
     return (SysItemsAdapter) elementsList.getAdapter();
   }
 
@@ -160,9 +163,8 @@ public class MainActivity extends AppCompatActivity {
    * @param sysItemId Sys item id. Nullable.
    */
   private void openElementEditorActivity(Long sysItemId) {
-    Intent intent = new Intent(MainActivity.this, ElementEditorActivity.class);
+    Intent intent = ElementEditorActivity.getInstance(this, sysItemId);
     if (sysItemId != null) {
-      intent.putExtra(ElementEditorActivity.EXTRA_SYS_ITEM_ID, sysItemId.longValue());
       startActivityForResult(intent, EDIT_EXISTING_SYS_ITEM_REQUEST_CODE);
     } else {
       startActivityForResult(intent, ADD_NEW_SYS_ITEM_REQUEST_CODE);
@@ -176,10 +178,6 @@ public class MainActivity extends AppCompatActivity {
    */
   private void setSysItems(List<SysItem> sysItems) {
     updateListData(sysItems);
-  }
-
-  private ListView getElementsList() {
-    return findViewById(R.id.elements_list, "R.id.elements_list");
   }
 
   /**

@@ -1,11 +1,16 @@
 package com.awesoon.thirdtask.activity;
 
 import android.app.Activity;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v4.app.NavUtils;
 import android.support.v7.app.ActionBar;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.text.Editable;
@@ -24,6 +29,8 @@ import com.awesoon.thirdtask.util.BeautifulColors;
 import com.awesoon.thirdtask.util.StringUtils;
 import com.awesoon.thirdtask.view.ElementColorView;
 
+import java.util.Objects;
+
 public class ElementEditorActivity extends AppCompatActivity {
   private static final String TAG = "ElementEditorActivity";
   public static final int SELECT_ELEMENT_COLOR_REQUEST_CODE = 1;
@@ -37,6 +44,24 @@ public class ElementEditorActivity extends AppCompatActivity {
 
   private DbHelper dbHelper;
   private SysItem sysItem;
+  private EditText titleEditText;
+  private EditText bodyEditText;
+  private ElementColorView elementColorView;
+
+  /**
+   * Creates intent instance for starting this activity.
+   *
+   * @param context   A parent context.
+   * @param sysItemId An item id. Null, if you want to create new item.
+   * @return An intent.
+   */
+  public static Intent getInstance(Context context, @Nullable Long sysItemId) {
+    Intent intent = new Intent(context, ElementEditorActivity.class);
+    if (sysItemId != null) {
+      intent.putExtra(ElementEditorActivity.EXTRA_SYS_ITEM_ID, sysItemId.longValue());
+    }
+    return intent;
+  }
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -44,9 +69,12 @@ public class ElementEditorActivity extends AppCompatActivity {
     setContentView(R.layout.activity_element_editor);
     overridePendingTransition(R.anim.trans_left_in, R.anim.trans_left_out);
 
+    titleEditText = findViewById(R.id.edit_title, "R.id.edit_title");
+    bodyEditText = findViewById(R.id.edit_body, "R.id.edit_body");
+    elementColorView = findViewById(R.id.edit_color, "R.id.edit_color");
+
     initToolbar();
 
-    EditText titleEditText = getTitleEditText();
     titleEditText.addTextChangedListener(new TextWatcher() {
       @Override
       public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -64,7 +92,6 @@ public class ElementEditorActivity extends AppCompatActivity {
       }
     });
 
-    final ElementColorView elementColorView = getElementColorView();
     elementColorView.setOnClickListener(new View.OnClickListener() {
       @Override
       public void onClick(View v) {
@@ -72,19 +99,17 @@ public class ElementEditorActivity extends AppCompatActivity {
       }
     });
 
-    this.dbHelper = new DbHelper(this);
+    dbHelper = new DbHelper(this);
     initializeEditorContent(savedInstanceState);
   }
 
   @Override
   protected void onSaveInstanceState(Bundle outState) {
-    EditText titleEditText = getTitleEditText();
-    outState.putString(STATE_CURRENT_TITLE, titleEditText.getText().toString());
+    super.onSaveInstanceState(outState);
 
-    EditText bodyEditText = getBodyEditText();
+    outState.putString(STATE_CURRENT_TITLE, titleEditText.getText().toString());
     outState.putString(STATE_CURRENT_BODY, bodyEditText.getText().toString());
 
-    ElementColorView elementColorView = getElementColorView();
     if (elementColorView.getColor() != null) {
       outState.putInt(STATE_CURRENT_COLOR, elementColorView.getColor());
     }
@@ -118,8 +143,7 @@ public class ElementEditorActivity extends AppCompatActivity {
         }
         return true;
       case android.R.id.home:
-        NavUtils.navigateUpFromSameTask(this);
-        overridePendingTransition(R.anim.trans_right_in, R.anim.trans_right_out);
+        handleDiscardChangesAction();
         return true;
     }
 
@@ -129,6 +153,63 @@ public class ElementEditorActivity extends AppCompatActivity {
   @Override
   public void onBackPressed() {
     super.onBackPressed();
+    overridePendingTransition(R.anim.trans_right_in, R.anim.trans_right_out);
+  }
+
+  /**
+   * Handles discard changes action (e.g. android.R.id.home).
+   */
+  private void handleDiscardChangesAction() {
+    if (!wasElementChanged()) {
+      discardChangesAndNavigateUpFromTask();
+      return;
+    }
+
+    DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
+      @Override
+      public void onClick(DialogInterface dialog, int which) {
+        switch (which) {
+          case DialogInterface.BUTTON_POSITIVE:
+            discardChangesAndNavigateUpFromTask();
+            break;
+
+          case DialogInterface.BUTTON_NEGATIVE:
+            break;
+        }
+      }
+    };
+
+    AlertDialog.Builder builder = new AlertDialog.Builder(this);
+    builder.setMessage(R.string.move_back_dialog_message)
+        .setPositiveButton(R.string.yes, dialogClickListener)
+        .setNegativeButton(R.string.no, dialogClickListener)
+        .show();
+  }
+
+  /**
+   * Checks if a user made any change to the current sys item instance.
+   *
+   * @return true if a user changes current sys item, false otherwise.
+   */
+  private boolean wasElementChanged() {
+    String title = getNormalizedTitle();
+    String body = getNormalizedBody();
+    Integer color = elementColorView.getColor();
+
+    if (sysItem == null) {
+      return !title.isEmpty() || !body.isEmpty();
+    } else {
+      return !Objects.equals(title, sysItem.getTitle())
+          || !Objects.equals(body, sysItem.getBody())
+          || !Objects.equals(color, sysItem.getColor());
+    }
+  }
+
+  /**
+   * Discards current changes and moves back.
+   */
+  private void discardChangesAndNavigateUpFromTask() {
+    NavUtils.navigateUpFromSameTask(ElementEditorActivity.this);
     overridePendingTransition(R.anim.trans_right_in, R.anim.trans_right_out);
   }
 
@@ -147,10 +228,7 @@ public class ElementEditorActivity extends AppCompatActivity {
    * @param color A color to be passed to the activity.
    */
   private void openColorPickerActivity(Integer color) {
-    Intent intent = new Intent(ElementEditorActivity.this, ColorPickerActivity.class);
-    if (color != null) {
-      intent.putExtra(ColorPickerActivity.EXTRA_CURRENT_COLOR, color.intValue());
-    }
+    Intent intent = ColorPickerActivity.getInstance(this, color);
     startActivityForResult(intent, SELECT_ELEMENT_COLOR_REQUEST_CODE);
   }
 
@@ -171,7 +249,7 @@ public class ElementEditorActivity extends AppCompatActivity {
     }
 
     int color = data.getExtras().getInt(ColorPickerActivity.EXTRA_CURRENT_COLOR);
-    getElementColorView().setColor(color);
+    elementColorView.setColor(color);
   }
 
   /**
@@ -194,15 +272,13 @@ public class ElementEditorActivity extends AppCompatActivity {
   private boolean validateInput() {
     boolean isValid = true;
 
-    EditText titleEditText = getTitleEditText();
-    String title = titleEditText.getText().toString().trim();
+    String title = getNormalizedTitle();
     if (title.isEmpty()) {
       titleEditText.setError(getString(R.string.title_edit_text_error));
       isValid = false;
     }
 
-    EditText bodyEditText = getBodyEditText();
-    String body = bodyEditText.getText().toString().trim();
+    String body = getNormalizedBody();
     if (body.isEmpty()) {
       bodyEditText.setError(getString(R.string.body_edit_text_error));
       isValid = false;
@@ -216,7 +292,6 @@ public class ElementEditorActivity extends AppCompatActivity {
    */
   private void setDefaultColor() {
     int color = BeautifulColors.getBeautifulColor();
-    ElementColorView elementColorView = getElementColorView();
     elementColorView.setColor(color);
   }
 
@@ -250,7 +325,6 @@ public class ElementEditorActivity extends AppCompatActivity {
    * @param body Body text.
    */
   private void setBodyEditText(String body) {
-    EditText bodyEditText = getBodyEditText();
     bodyEditText.setText(body);
   }
 
@@ -260,7 +334,6 @@ public class ElementEditorActivity extends AppCompatActivity {
    * @param text Title text.
    */
   private void setTitleEditText(String text) {
-    EditText titleEditText = getTitleEditText();
     titleEditText.setText(text);
   }
 
@@ -272,16 +345,31 @@ public class ElementEditorActivity extends AppCompatActivity {
       sysItem = new SysItem();
     }
 
-    EditText titleEditText = getTitleEditText();
-    sysItem.setTitle(titleEditText.getText().toString().trim());
-
-    EditText bodyEditText = getBodyEditText();
-    sysItem.setBody(bodyEditText.getText().toString().trim());
-
-    ElementColorView elementColorView = getElementColorView();
+    sysItem.setTitle(getNormalizedTitle());
+    sysItem.setBody(getNormalizedBody());
     sysItem.setColor(elementColorView.getColor());
 
     new SaveSysItemTask(dbHelper).execute(sysItem);
+  }
+
+  /**
+   * Retrieves current body editor text value and normalizes it.
+   *
+   * @return Normalized body text.
+   */
+  @NonNull
+  private String getNormalizedBody() {
+    return bodyEditText.getText().toString().trim();
+  }
+
+  /**
+   * Retrieves current title editor text value and normalizes it.
+   *
+   * @return Normalized title text.
+   */
+  @NonNull
+  private String getNormalizedTitle() {
+    return titleEditText.getText().toString().trim();
   }
 
   /**
@@ -352,18 +440,6 @@ public class ElementEditorActivity extends AppCompatActivity {
     }
   }
 
-  private EditText getTitleEditText() {
-    return findViewById(R.id.edit_title, "R.id.edit_title");
-  }
-
-  private EditText getBodyEditText() {
-    return findViewById(R.id.edit_body, "R.id.edit_body");
-  }
-
-  private ElementColorView getElementColorView() {
-    return findViewById(R.id.edit_color, "R.id.edit_color");
-  }
-
   /**
    * Finds a view by the given id.
    *
@@ -385,7 +461,6 @@ public class ElementEditorActivity extends AppCompatActivity {
    * @param color New color.
    */
   private void setColorEditColor(int color) {
-    ElementColorView elementColorView = getElementColorView();
     elementColorView.setColor(color);
   }
 

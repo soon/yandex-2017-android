@@ -8,5 +8,5 @@ public interface SysItemRemoveListener {
    *
    * @param sysItem A removed sys item.
    */
-  void onSysItemRemove(SysItem sysItem);
+  void onSysItemRemove(SysItem sysItem, int position);
 }

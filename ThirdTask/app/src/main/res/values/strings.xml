@@ -13,4 +13,12 @@
 
   <string name="default_sys_item_title">Тут совсем пусто…</string>
   <string name="default_sys_item_body">Коснись меня, чтобы добавить заметку!</string>
+
+  <string name="remove_sys_item_dialog_message">Вы действительно хотите удалить заметку?</string>
+  <string name="yes">Да</string>
+  <string name="no">Нет</string>
+
+  <string name="move_back_dialog_message">
+    Вы действительно хотите вернуться? Все изменения будут утеряны.
+  </string>
 </resources>

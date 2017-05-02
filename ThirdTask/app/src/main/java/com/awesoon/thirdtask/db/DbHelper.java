@@ -5,9 +5,15 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.os.AsyncTask;
+import android.support.annotation.Nullable;
+import android.util.Log;
 
 import com.awesoon.thirdtask.domain.FavoriteColor;
 import com.awesoon.thirdtask.domain.SysItem;
+import com.awesoon.thirdtask.util.Action;
+import com.awesoon.thirdtask.util.Assert;
+import com.awesoon.thirdtask.util.Consumer;
 import com.awesoon.thirdtask.util.ContentValuesBuilder;
 import com.awesoon.thirdtask.util.RowMapperAdapter;
 import com.awesoon.thirdtask.util.SqlUtils;
@@ -22,6 +28,8 @@ import static com.awesoon.thirdtask.util.SqlUtils.pkIntAutoincrement;
 import static com.awesoon.thirdtask.util.SqlUtils.textField;
 
 public class DbHelper extends SQLiteOpenHelper {
+  private static final String TAG = "DbHelper";
+
   public static final int DATABASE_INITIAL_VERSION = 0;
   public static final int DATABASE_VERSION_1 = 1;
   public static final int DATABASE_VERSION_2 = 2;
@@ -178,6 +186,80 @@ public class DbHelper extends SQLiteOpenHelper {
   }
 
   /**
+   * Adds sys items to the db async.
+   *
+   * @param items             Items to add.
+   * @param successConsumer   A success callback. Will be called when all items are added to the db.
+   * @param exceptionConsumer An error callback. Will be called if there was an exception during task execution.
+   */
+  public void addSysItemsAsync(final List<SysItem> items, final Consumer<List<SysItem>> successConsumer,
+                               @Nullable final Consumer<Exception> exceptionConsumer) {
+    Assert.notNull(items, "items must not be null");
+    Assert.notNull(successConsumer, "successConsumer must not be null");
+
+    new AsyncTask<Void, Void, List<SysItem>>() {
+
+      private Exception exception;
+
+      @Override
+      protected List<SysItem> doInBackground(Void... params) {
+        try {
+          return addSysItems(items);
+        } catch (Exception e) {
+          exception = e;
+          Log.e(TAG, "Unable to add sys items async", e);
+        }
+
+        return null;
+      }
+
+      @Override
+      protected void onPostExecute(List<SysItem> sysItems) {
+        if (exception != null) {
+          if (exceptionConsumer != null) {
+            exceptionConsumer.apply(exception);
+          }
+        } else {
+          successConsumer.apply(sysItems);
+        }
+      }
+    }.execute();
+  }
+
+  /**
+   * Adds sys items to the db.
+   *
+   * @param items An items to add.
+   * @return Added items.
+   */
+  public List<SysItem> addSysItems(List<SysItem> items) {
+    Assert.notNull(items, "items must not be null");
+    SQLiteDatabase db = getWritableDatabase();
+
+    SavingOptions savingOptions = SavingOptions.getDefault()
+        .setDb(db)
+        .setNotifyItemInserted(false)
+        .setNotifyItemUpdated(false)
+        .setOverwriteCreatedTime(false)
+        .setOverwriteLastEditedTime(false)
+        .setOverwriteLastViewedTime(false);
+
+    try {
+      db.beginTransaction();
+      for (SysItem item : items) {
+        item.setId(null);
+        saveSysItemInternal(item, savingOptions);
+      }
+      db.setTransactionSuccessful();
+      GlobalDbState.notifySysItemsAdded(items);
+    } finally {
+      db.endTransaction();
+    }
+
+    return items;
+  }
+
+  /**
    * Adds new sys item.
    *
    * @param item An item to be added.
@@ -195,13 +277,31 @@ public class DbHelper extends SQLiteOpenHelper {
    * @return Added item.
    */
   public SysItem saveSysItem(SysItem item) {
-    SQLiteDatabase db = getWritableDatabase();
+    return saveSysItemInternal(item, SavingOptions.getDefault());
+  }
 
-    if (item.getCreatedTime() == null || item.getId() == null) {
+  /**
+   * Performs item saving.
+   *
+   * @param item    An item to save.
+   * @param options Saving options.
+   * @return Saved item.
+   */
+  private SysItem saveSysItemInternal(SysItem item, SavingOptions options) {
+    SQLiteDatabase db = options.getDb();
+    if (db == null) {
+      db = getWritableDatabase();
+    }
+
+    if (item.getCreatedTime() == null || (item.getId() == null && options.isOverwriteCreatedTime())) {
       item.setCreatedTime(DateTime.now());
     }
-    item.setLastEditedTime(DateTime.now());
-    item.setLastViewedTime(DateTime.now());
+    if (item.getLastEditedTime() == null || options.isOverwriteLastEditedTime()) {
+      item.setLastEditedTime(DateTime.now());
+    }
+    if (item.getLastViewedTime() == null || options.isOverwriteLastViewedTime()) {
+      item.setLastViewedTime(DateTime.now());
+    }
 
     ContentValues values = new ContentValuesBuilder()
         .put(SysItem.SysItemEntry.COLUMN_NAME_TITLE, item.getTitle())
@@ -216,12 +316,16 @@ public class DbHelper extends SQLiteOpenHelper {
       long id = db.insertOrThrow(SysItem.SysItemEntry.TABLE_NAME, null, values);
       validateInsertedObjectThrowing(id, item);
       item.setId(id);
-      GlobalDbState.notifySysItemAdded(item);
+      if (options.isNotifyItemInserted()) {
+        GlobalDbState.notifySysItemAdded(item);
+      }
     } else {
       int updatedRows = db.update(SysItem.SysItemEntry.TABLE_NAME, values, SysItem.SysItemEntry.COLUMN_NAME_ID + " = ?",
           new String[]{String.valueOf(item.getId())});
       validateUpdatedObjectThrowing(updatedRows, item);
-      GlobalDbState.notifySysItemUpdated(item);
+      if (options.isNotifyItemUpdated()) {
+        GlobalDbState.notifySysItemUpdated(item);
+      }
     }
 
     return item;
@@ -237,6 +341,26 @@ public class DbHelper extends SQLiteOpenHelper {
     if (updatedRows != 1) {
       throw new RuntimeException("Unable to update object " + o + ", " + updatedRows + " rows updated");
     }
+  }
+
+  /**
+   * Finds all sys item async.
+   *
+   * @param successConsumer A success consumer. Called when all items are retrieved from the db.
+   */
+  public void findAllSysItemsAsync(final Consumer<List<SysItem>> successConsumer) {
+    new AsyncTask<Void, Void, List<SysItem>>() {
+
+      @Override
+      protected List<SysItem> doInBackground(Void... params) {
+        return findAllSysItems();
+      }
+
+      @Override
+      protected void onPostExecute(List<SysItem> sysItems) {
+        successConsumer.apply(sysItems);
+      }
+    }.execute();
   }
 
   /**
@@ -266,6 +390,36 @@ public class DbHelper extends SQLiteOpenHelper {
         SysItem.SysItemEntry.COLUMN_NAME_ID);
 
     return SqlUtils.queryForObject(db, sql, SysItemMapper.INSTANCE, id);
+  }
+
+  /**
+   * Removes all sys items async.
+   *
+   * @param successAction A success action. Called when the all sys items are removed from the db.
+   */
+  public void removeAllSysItemsAsync(final Action successAction) {
+    Assert.notNull(successAction, "action must not be null");
+
+    new AsyncTask<Void, Void, Void>() {
+      @Override
+      protected Void doInBackground(Void... params) {
+        removeAllSysItems();
+        return null;
+      }
+
+      @Override
+      protected void onPostExecute(Void aVoid) {
+        successAction.call();
+      }
+    }.execute();
+  }
+
+  /**
+   * Removes all sys items from the db.
+   */
+  public void removeAllSysItems() {
+    SQLiteDatabase db = getWritableDatabase();
+    db.delete(SysItem.SysItemEntry.TABLE_NAME, null, null);
   }
 
   /**
@@ -310,6 +464,78 @@ public class DbHelper extends SQLiteOpenHelper {
       sysItem.setLastEditedTime(getDateTime(cursor, SysItem.SysItemEntry.COLUMN_LAST_EDITED_TIME));
       sysItem.setLastViewedTime(getDateTime(cursor, SysItem.SysItemEntry.COLUMN_LAST_VIEWED_TIME));
       return sysItem;
+    }
+  }
+
+  private static class SavingOptions {
+    private SQLiteDatabase db;
+    private boolean notifyItemInserted;
+    private boolean notifyItemUpdated;
+    private boolean overwriteCreatedTime;
+    private boolean overwriteLastEditedTime;
+    private boolean overwriteLastViewedTime;
+
+    public static SavingOptions getDefault() {
+      return new SavingOptions()
+          .setNotifyItemInserted(true)
+          .setNotifyItemUpdated(true)
+          .setOverwriteCreatedTime(true)
+          .setOverwriteLastEditedTime(true)
+          .setOverwriteLastViewedTime(true);
+    }
+
+    public SQLiteDatabase getDb() {
+      return db;
+    }
+
+    public SavingOptions setDb(SQLiteDatabase db) {
+      this.db = db;
+      return this;
+    }
+
+    public boolean isNotifyItemInserted() {
+      return notifyItemInserted;
+    }
+
+    public SavingOptions setNotifyItemInserted(boolean notifyItemInserted) {
+      this.notifyItemInserted = notifyItemInserted;
+      return this;
+    }
+
+    public boolean isNotifyItemUpdated() {
+      return notifyItemUpdated;
+    }
+
+    public SavingOptions setNotifyItemUpdated(boolean notifyItemUpdated) {
+      this.notifyItemUpdated = notifyItemUpdated;
+      return this;
+    }
+
+    public boolean isOverwriteCreatedTime() {
+      return overwriteCreatedTime;
+    }
+
+    public SavingOptions setOverwriteCreatedTime(boolean overwriteCreatedTime) {
+      this.overwriteCreatedTime = overwriteCreatedTime;
+      return this;
+    }
+
+    public boolean isOverwriteLastEditedTime() {
+      return overwriteLastEditedTime;
+    }
+
+    public SavingOptions setOverwriteLastEditedTime(boolean overwriteLastEditedTime) {
+      this.overwriteLastEditedTime = overwriteLastEditedTime;
+      return this;
+    }
+
+    public boolean isOverwriteLastViewedTime() {
+      return overwriteLastViewedTime;
+    }
+
+    public SavingOptions setOverwriteLastViewedTime(boolean overwriteLastViewedTime) {
+      this.overwriteLastViewedTime = overwriteLastViewedTime;
+      return this;
     }
   }
 }

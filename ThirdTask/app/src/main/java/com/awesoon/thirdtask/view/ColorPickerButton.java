@@ -198,6 +198,7 @@ public class ColorPickerButton extends AppCompatButton {
         performVibration();
       }
     }
+    hsv[1] = 1;
 
     color = Color.HSVToColor(hsv);
     setBackgroundColor(color);

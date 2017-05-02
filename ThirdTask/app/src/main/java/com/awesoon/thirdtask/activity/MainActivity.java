@@ -1,11 +1,13 @@
 package com.awesoon.thirdtask.activity;
 
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
 import android.support.v4.widget.DrawerLayout;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
@@ -22,16 +24,24 @@ import com.awesoon.thirdtask.db.GlobalDbState;
 import com.awesoon.thirdtask.domain.SysItem;
 import com.awesoon.thirdtask.event.DbStateChangeListener;
 import com.awesoon.thirdtask.event.SysItemRemoveListener;
+import com.awesoon.thirdtask.repository.SysItemRepository;
+import com.awesoon.thirdtask.util.Action;
 import com.awesoon.thirdtask.util.ActivityUtils;
 import com.awesoon.thirdtask.util.Assert;
 import com.awesoon.thirdtask.util.BeautifulColors;
+import com.awesoon.thirdtask.util.Consumer;
+import com.awesoon.thirdtask.util.PermissionUtils;
 import com.awesoon.thirdtask.view.SysItemsAdapter;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
+import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
+
 public class MainActivity extends AppCompatActivity {
   private static final String TAG = "MainActivity";
+  private static final String NOTES_FILE_PATH = "/storage/emulated/0/itemlist.ili";
 
   public static final int ADD_NEW_SYS_ITEM_REQUEST_CODE = 1;
   public static final int EDIT_EXISTING_SYS_ITEM_REQUEST_CODE = 2;
@@ -60,8 +70,15 @@ public class MainActivity extends AppCompatActivity {
       public boolean onNavigationItemSelected(MenuItem item) {
         int id = item.getItemId();
         switch (id) {
-          case R.id.
+          case R.id.drawer_store_notes_to_file:
+            storeNotesToFile();
+            return true;
+          case R.id.drawer_load_notes_from_file:
+            loadNotesFromFile();
+            return true;
         }
+
+        return false;
       }
     });
 
@@ -85,9 +102,166 @@ public class MainActivity extends AppCompatActivity {
       public void onSysItemDeleted(Long id) {
         new GetAllSysItemsTask(MainActivity.this, dbHelper).execute();
       }
+
+      @Override
+      public void onSysItemsAdded(List<SysItem> sysItems) {
+        new GetAllSysItemsTask(MainActivity.this, dbHelper).execute();
+      }
     });
 
     new GetAllSysItemsTask(MainActivity.this, dbHelper).execute();
+  }
+
+  /**
+   * Loads notes from the file.
+   * Also checks user permissions and shows dialog if a user removes previously added notes.
+   */
+  private void loadNotesFromFile() {
+    if (!PermissionUtils.requestWriteExternalStoragePermissionIfNecessary(this, READ_EXTERNAL_STORAGE)) {
+      return;
+    }
+
+    NotesApplication app = (NotesApplication) getApplication();
+    final DbHelper dbHelper = app.getDbHelper();
+    dbHelper.findAllSysItemsAsync(new Consumer<List<SysItem>>() {
+      @Override
+      public void apply(final List<SysItem> items) {
+        if (items.isEmpty()) {
+          doLoadNotesFromFile(dbHelper);
+        } else {
+          String message = getResources()
+              .getQuantityString(R.plurals.are_you_sure_you_want_to_delete_n_notes, items.size(), items.size());
+          new AlertDialog.Builder(MainActivity.this)
+              .setTitle(R.string.all_notes_will_be_deleted)
+              .setMessage(message)
+              .setPositiveButton(R.string.delete, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                  doLoadNotesFromFile(dbHelper);
+                }
+              })
+              .setNegativeButton(R.string.cancel, null)
+              .show();
+        }
+      }
+    });
+  }
+
+  /**
+   * Internal method. Performs notes loading from the file.
+   *
+   * @param dbHelper A db helper instance.
+   */
+  private void doLoadNotesFromFile(final DbHelper dbHelper) {
+    final Consumer<Exception> exceptionConsumer = new Consumer<Exception>() {
+      @Override
+      public void apply(Exception e) {
+
+        new AlertDialog.Builder(MainActivity.this)
+            .setTitle(R.string.error_occurred_while_importing_notes_title)
+            .setMessage(R.string.error_occurred_while_importing_notes_message)
+            .setPositiveButton(R.string.ok, null)
+            .show();
+      }
+    };
+
+    SysItemRepository.loadAllItemsFromFileAsync(NOTES_FILE_PATH, new Consumer<List<SysItem>>() {
+      @Override
+      public void apply(final List<SysItem> importedItems) {
+        if (importedItems == null || importedItems.isEmpty()) {
+          new AlertDialog.Builder(MainActivity.this)
+              .setTitle(R.string.unable_to_find_notes_to_import_title)
+              .setMessage(R.string.unable_to_find_notes_to_import_message)
+              .setPositiveButton(R.string.ok, null)
+              .show();
+          return;
+        }
+
+        dbHelper.removeAllSysItemsAsync(new Action() {
+          @Override
+          public void call() {
+            dbHelper.addSysItemsAsync(importedItems, new Consumer<List<SysItem>>() {
+              @Override
+              public void apply(List<SysItem> sysItems) {
+                String message = getResources()
+                    .getQuantityString(R.plurals.notes_have_been_imported_message, sysItems.size(), sysItems.size());
+
+                new AlertDialog.Builder(MainActivity.this)
+                    .setTitle(R.string.notes_have_been_imported_title)
+                    .setMessage(message)
+                    .setPositiveButton(R.string.ok, null)
+                    .show();
+              }
+            }, exceptionConsumer);
+          }
+        });
+      }
+    }, exceptionConsumer);
+  }
+
+  /**
+   * Stores current notes to the file.
+   * Also checks user permission.
+   */
+  private void storeNotesToFile() {
+    if (!PermissionUtils.requestWriteExternalStoragePermissionIfNecessary(this, WRITE_EXTERNAL_STORAGE)) {
+      return;
+    }
+
+    NotesApplication app = (NotesApplication) getApplication();
+    DbHelper dbHelper = app.getDbHelper();
+    dbHelper.findAllSysItemsAsync(new Consumer<List<SysItem>>() {
+      @Override
+      public void apply(List<SysItem> items) {
+        doStoreNotesToFile(items);
+      }
+    });
+  }
+
+  /**
+   * Internal method. Performs notes storing to the file.
+   *
+   * @param items A notes to store.
+   */
+  private void doStoreNotesToFile(final List<SysItem> items) {
+    Assert.notNull(items, "items must not be null");
+
+    if (items.isEmpty()) {
+      new AlertDialog.Builder(MainActivity.this)
+          .setTitle(R.string.you_do_not_have_notes)
+          .setMessage(R.string.do_you_want_to_add_one)
+          .setPositiveButton(R.string.add, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+              openNewElementEditorActivity();
+            }
+          })
+          .setNegativeButton(R.string.cancel, null)
+          .show();
+      return;
+    }
+
+    SysItemRepository.storeAllItemsToFileAsync(items, NOTES_FILE_PATH, new Action() {
+      @Override
+      public void call() {
+        String message = getResources()
+            .getQuantityString(R.plurals.notes_have_been_saved_message, items.size(), items.size());
+        new AlertDialog.Builder(MainActivity.this)
+            .setTitle(R.string.notes_have_been_saved_title)
+            .setMessage(message)
+            .setPositiveButton(R.string.ok, null)
+            .show();
+      }
+    }, new Consumer<Exception>() {
+      @Override
+      public void apply(Exception e) {
+        new AlertDialog.Builder(MainActivity.this)
+            .setTitle(R.string.notes_have_not_been_saved_title)
+            .setMessage(R.string.notes_have_not_been_saved_message)
+            .setPositiveButton(R.string.ok, null)
+            .show();
+      }
+    });
   }
 
   private void initState(Bundle savedInstanceState) {

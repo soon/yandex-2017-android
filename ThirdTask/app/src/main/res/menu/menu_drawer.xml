@@ -5,13 +5,13 @@
     android:checkableBehavior="single">
     <item
       android:checked="true"
-      android:id="@+id/drawer_item_timeline"
+      android:id="@+id/drawer_store_notes_to_file"
       android:icon="@drawable/ic_import_export"
-      android:title="Сохранить все заметки в файл"/>
+      android:title="@string/export_notes_to_file"/>
     <item
-      android:id="@+id/drawer_item_reports"
+      android:id="@+id/drawer_load_notes_from_file"
       android:icon="@drawable/ic_import_export"
-      android:title="Импорт заметок из файла"/>
+      android:title="@string/import_notes_from_file"/>
   </group>
 
   <group

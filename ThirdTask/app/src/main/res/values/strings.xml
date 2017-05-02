@@ -16,6 +16,7 @@
   <string name="default_sys_item_body">Коснись меня, чтобы добавить заметку!</string>
 
   <string name="remove_sys_item_dialog_message">Вы действительно хотите удалить заметку?</string>
+  <string name="ok">OK</string>
   <string name="yes">Да</string>
   <string name="no">Нет</string>
 
@@ -27,4 +28,51 @@
   <string name="filter_name_hint">Название фильтра</string>
   <string name="created_date_start_hint">Дата создания (начало)</string>
   <string name="created_date_end_hint">Дата создания (конец)</string>
+
+  <string name="export_notes_to_file">Экспорт заметок в файл</string>
+  <string name="import_notes_from_file">Импорт заметок из файла</string>
+
+  <string name="notes_have_not_been_saved_title">Не удалось экспортировать заметки</string>
+  <string name="notes_have_not_been_saved_message">
+    Пожалуйста, убедитесь, что директория выбрана верно
+  </string>
+
+  <string name="you_do_not_have_notes">У вас нет заметок</string>
+  <string name="do_you_want_to_add_one">Хотите добавить новую заметку?</string>
+  <string name="add">Добавить</string>
+  <string name="cancel">Отмена</string>
+
+  <string name="notes_have_been_saved_title">Заметки успешно экспортированы</string>
+
+  <plurals name="notes_have_been_saved_message">
+    <item quantity="one">Экспортирована %d заметка</item>
+    <item quantity="few">Экспортированы %d заметки</item>
+    <item quantity="other">Экспортировано %d заметок</item>
+  </plurals>
+
+  <string name="all_notes_will_be_deleted">Все текущие заметки будут удалены</string>
+  <plurals name="are_you_sure_you_want_to_delete_n_notes">
+    <item quantity="one">Вы действительно хотите удалить %d заметку?</item>
+    <item quantity="few">Вы действительно хотите удалить %d заметки?</item>
+    <item quantity="other">Вы действительно хотите удалить %d заметок?</item>
+  </plurals>
+  <string name="delete">Удалить</string>
+
+  <string name="notes_have_been_imported_title">Заметки успешно импортированы</string>
+
+  <plurals name="notes_have_been_imported_message">
+    <item quantity="one">Импортирована %d заметка</item>
+    <item quantity="few">Импортирова %d заметки</item>
+    <item quantity="other">Импортировано %d заметок</item>
+  </plurals>
+
+  <string name="unable_to_find_notes_to_import_title">Не найдено заметок для импорта</string>
+  <string name="unable_to_find_notes_to_import_message">
+    Импортирование заметок отменено
+  </string>
+
+  <string name="error_occurred_while_importing_notes_title">Ошибка при импорте заметок</string>
+  <string name="error_occurred_while_importing_notes_message">
+    Произошла ошибка в процессе импорта заметок
+  </string>
 </resources>

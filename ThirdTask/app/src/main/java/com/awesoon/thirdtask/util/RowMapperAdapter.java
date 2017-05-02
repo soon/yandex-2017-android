@@ -4,8 +4,6 @@ import android.database.Cursor;
 
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
-import org.joda.time.format.DateTimeFormatter;
-import org.joda.time.format.ISODateTimeFormat;
 
 public abstract class RowMapperAdapter<T> implements RowMapper<T> {
   public int getInt(Cursor cursor, String columnName) {
@@ -30,15 +28,6 @@ public abstract class RowMapperAdapter<T> implements RowMapper<T> {
       return null;
     }
 
-    DateTimeFormatter dateTimeFormatter = hasMillis(dateTime)
-        ? ISODateTimeFormat.dateTime()
-        : ISODateTimeFormat.dateTimeNoMillis();
-
-    return dateTimeFormatter.parseDateTime(dateTime).toDateTime(timeZone);
-  }
-
-  private boolean hasMillis(String data) {
-    // checks whether the data has yyyy-MM-dd'T'HH:mm:ss.SSSZZ format or yyyy-MM-dd'T'HH:mm:ssZZ (note the .SSS part)
-    return data.contains(".");
+    return DateTimeUtils.parseDateTime(dateTime, timeZone);
   }
 }

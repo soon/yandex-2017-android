@@ -83,7 +83,7 @@ public class SysItemsAdapter extends ArrayAdapter<SysItem> {
     DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
       @Override
       public void onClick(DialogInterface dialog, int which) {
-        switch (which){
+        switch (which) {
           case DialogInterface.BUTTON_POSITIVE:
             removeItemOnPosition(position);
             notifyDataSetChanged();
@@ -115,9 +115,10 @@ public class SysItemsAdapter extends ArrayAdapter<SysItem> {
   }
 
   public void removeItemOnPosition(int position) {
-    if (position >= 0 && position < data.size()) {
-      data.remove(position);
-    }
+    Assert.isTrue(position >= 0 && position < data.size(),
+        "Unable to remove element with " + position + " position. It should be in range [0; " + data.size() + ")");
+
+    data.remove(position);
   }
 
   private static class ViewHolder {

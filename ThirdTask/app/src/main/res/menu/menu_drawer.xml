@@ -13,15 +13,4 @@
       android:icon="@drawable/ic_import_export"
       android:title="@string/import_notes_from_file"/>
   </group>
-
-  <group
-    android:id="@+id/menu_bottom"
-    android:checkableBehavior="none">
-
-    <item
-      android:id="@+id/drawer_item_settings"
-      android:icon="@drawable/ic_import_export"
-      android:title="test" >
-    </item>
-  </group>
 </menu>

@@ -26,10 +26,10 @@ public class SysItemRepositoryTest extends BaseDbHelperTest {
     dbHelper.addSysItem(new SysItem().setTitle("title 3").setBody("body 3").setColor(43));
 
     // when
-    List<SysItem> filteredItems = SysItemRepository.getAllItemsFiltered(dbHelper, null);
+    FilteredItemsContainer filteredItems = SysItemRepository.getAllItemsFiltered(dbHelper, null);
 
     // then
-    assertThat(filteredItems.size(), is(3));
+    assertThat(filteredItems.getFilteredItemsSize(), is(3));
   }
 
   @Test
@@ -40,10 +40,10 @@ public class SysItemRepositoryTest extends BaseDbHelperTest {
     dbHelper.addSysItem(new SysItem().setTitle("title 3").setBody("body 3").setColor(43));
 
     // when
-    List<SysItem> filteredItems = SysItemRepository.getAllItemsFiltered(dbHelper, new SysItemFilter());
+    FilteredItemsContainer filteredItems = SysItemRepository.getAllItemsFiltered(dbHelper, new SysItemFilter());
 
     // then
-    assertThat(filteredItems.size(), is(3));
+    assertThat(filteredItems.getFilteredItemsSize(), is(3));
   }
 
   @Test
@@ -54,13 +54,13 @@ public class SysItemRepositoryTest extends BaseDbHelperTest {
     dbHelper.addSysItem(new SysItem().setTitle("title 3").setBody("body 3").setColor(43));
 
     // when
-    List<SysItem> filteredItems = SysItemRepository.getAllItemsFiltered(
+    FilteredItemsContainer filteredItems = SysItemRepository.getAllItemsFiltered(
         dbHelper, new SysItemFilter().setColors(ImmutableSet.of(41, 43)));
 
     // then
-    assertThat(filteredItems.size(), is(2));
-    assertThat(filteredItems.get(0).getColor(), is(41));
-    assertThat(filteredItems.get(1).getColor(), is(43));
+    assertThat(filteredItems.getFilteredItemsSize(), is(2));
+    assertThat(filteredItems.getFilteredItems().get(0).getColor(), is(41));
+    assertThat(filteredItems.getFilteredItems().get(1).getColor(), is(43));
   }
 
   @Test
@@ -71,22 +71,22 @@ public class SysItemRepositoryTest extends BaseDbHelperTest {
     dbHelper.addSysItem(new SysItem().setTitle("title 3").setBody("body 3").setColor(43));
 
     // when
-    List<SysItem> filteredItems = SysItemRepository.getAllItemsFiltered(dbHelper,
+    FilteredItemsContainer filteredItems = SysItemRepository.getAllItemsFiltered(dbHelper,
         new SysItemFilter().setSorts(ImmutableList.of(
             SortFilter.desc(FilteredColumn.TITLE),
             SortFilter.asc(FilteredColumn.BODY)
         )));
 
     // then
-    assertThat(filteredItems.size(), is(3));
-    assertThat(filteredItems.get(0).getTitle(), is("title 3"));
-    assertThat(filteredItems.get(0).getBody(), is("body 3"));
+    assertThat(filteredItems.getFilteredItemsSize(), is(3));
+    assertThat(filteredItems.getFilteredItems().get(0).getTitle(), is("title 3"));
+    assertThat(filteredItems.getFilteredItems().get(0).getBody(), is("body 3"));
 
-    assertThat(filteredItems.get(1).getTitle(), is("title 1"));
-    assertThat(filteredItems.get(1).getBody(), is("body 1"));
+    assertThat(filteredItems.getFilteredItems().get(1).getTitle(), is("title 1"));
+    assertThat(filteredItems.getFilteredItems().get(1).getBody(), is("body 1"));
 
-    assertThat(filteredItems.get(2).getTitle(), is("title 1"));
-    assertThat(filteredItems.get(2).getBody(), is("body 2"));
+    assertThat(filteredItems.getFilteredItems().get(2).getTitle(), is("title 1"));
+    assertThat(filteredItems.getFilteredItems().get(2).getBody(), is("body 2"));
   }
 
   @Test
@@ -101,16 +101,16 @@ public class SysItemRepositoryTest extends BaseDbHelperTest {
     dbHelper.saveSysItem(i3.setCreatedTime(new DateTime(2015, 1, 1, 1, 1, 1)));
 
     // when
-    List<SysItem> filteredItems = SysItemRepository.getAllItemsFiltered(dbHelper,
+    FilteredItemsContainer filteredItems = SysItemRepository.getAllItemsFiltered(dbHelper,
         new SysItemFilter().setSorts(ImmutableList.of(
-            SortFilter.desc(FilteredColumn.CREATED_TIME)
+            SortFilter.desc(FilteredColumn.CREATED)
         )));
 
     // then
-    assertThat(filteredItems.size(), is(3));
-    assertThat(filteredItems.get(0).getId(), is(i2.getId()));
-    assertThat(filteredItems.get(1).getId(), is(i1.getId()));
-    assertThat(filteredItems.get(2).getId(), is(i3.getId()));
+    assertThat(filteredItems.getFilteredItemsSize(), is(3));
+    assertThat(filteredItems.getFilteredItems().get(0).getId(), is(i2.getId()));
+    assertThat(filteredItems.getFilteredItems().get(1).getId(), is(i1.getId()));
+    assertThat(filteredItems.getFilteredItems().get(2).getId(), is(i3.getId()));
   }
 
   @Test
@@ -129,16 +129,16 @@ public class SysItemRepositoryTest extends BaseDbHelperTest {
     dbHelper.saveSysItem(i5.setCreatedTime(new DateTime(2016, 1, 5, 1, 1, 1)));
 
     // when
-    List<SysItem> filteredItems = SysItemRepository.getAllItemsFiltered(dbHelper,
+    FilteredItemsContainer filteredItems = SysItemRepository.getAllItemsFiltered(dbHelper,
         new SysItemFilter().setCreatedDateFilter(
             new DatePeriodFilter()
                 .setFrom(new DateTime(2016, 1, 2, 2, 2, 2))
                 .setTo(new DateTime(2016, 1, 4, 2, 2, 2))));
 
     // then
-    assertThat(filteredItems.size(), is(3));
-    assertThat(filteredItems.get(0).getId(), is(i2.getId()));
-    assertThat(filteredItems.get(1).getId(), is(i3.getId()));
-    assertThat(filteredItems.get(2).getId(), is(i4.getId()));
+    assertThat(filteredItems.getFilteredItemsSize(), is(3));
+    assertThat(filteredItems.getFilteredItems().get(0).getId(), is(i2.getId()));
+    assertThat(filteredItems.getFilteredItems().get(1).getId(), is(i3.getId()));
+    assertThat(filteredItems.getFilteredItems().get(2).getId(), is(i4.getId()));
   }
 }

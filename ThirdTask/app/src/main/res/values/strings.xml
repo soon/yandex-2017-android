@@ -28,6 +28,10 @@
   <string name="filter_name_hint">Название фильтра</string>
   <string name="created_date_start_hint">Дата создания (начало)</string>
   <string name="created_date_end_hint">Дата создания (конец)</string>
+  <string name="edited_date_start_hint">Дата редактирования (начало)</string>
+  <string name="edited_date_end_hint">Дата редактирования (конец)</string>
+  <string name="viewed_date_start_hint">Дата просмотра (начало)</string>
+  <string name="viewed_date_end_hint">Дата просмотра (конец)</string>
 
   <string name="export_notes_to_file">Экспорт заметок в файл</string>
   <string name="import_notes_from_file">Импорт заметок из файла</string>
@@ -82,4 +86,41 @@
 
   <string name="search_title">Поиск</string>
   <string name="search_hint">Поиск…</string>
+  <string name="add_order">Добавить сортировку</string>
+  <string name="sort_order">Порядок сортировки</string>
+
+  <string name="add_color">Добавить цвет</string>
+
+  <string-array name="sortable_sys_item_fields">
+    <item>Название</item>
+    <item>Описание</item>
+    <item>Дата создания</item>
+    <item>Дата редактирования</item>
+    <item>Дата просмотра</item>
+  </string-array>
+
+  <!-- should match com.awesoon.thirdtask.repository.filter.FilteredColumn -->
+  <string-array name="sortable_sys_item_fields_values">
+    <item>TITLE</item>
+    <item>BODY</item>
+    <item>CREATED</item>
+    <item>EDITED</item>
+    <item>VIEWED</item>
+  </string-array>
+
+  <string-array name="sort_directions">
+    <item>По возрастанию</item>
+    <item>По убыванию</item>
+  </string-array>
+
+  <string-array name="sort_order_values">
+    <item>ASC</item>
+    <item>DESC</item>
+  </string-array>
+
+  <plurals name="some_notes_are_hidden">
+    <item quantity="one">Фильтрами скрыта %d заметка</item>
+    <item quantity="few">Фильтрами скрыты %d заметки</item>
+    <item quantity="other">Фильтрами скрыто %d заметок</item>
+  </plurals>
 </resources>

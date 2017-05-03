@@ -4,6 +4,10 @@ public class SortFilter {
   private FilteredColumn filteredColumn;
   private boolean isAsc;
 
+  public SortFilter() {
+    this(null, true);
+  }
+
   public SortFilter(FilteredColumn filteredColumn, boolean isAsc) {
     this.filteredColumn = filteredColumn;
     this.isAsc = isAsc;

@@ -32,7 +32,8 @@ import java.util.Set;
 public final class SysItemRepository {
   private static final String TAG = "SysItemRepository";
 
-  public static List<SysItem> getAllItemsFiltered(@NonNull DbHelper dbHelper, @Nullable SysItemFilter sysItemFilter) {
+  public static FilteredItemsContainer getAllItemsFiltered(@NonNull DbHelper dbHelper,
+                                                           @Nullable SysItemFilter sysItemFilter) {
     Assert.notNull(dbHelper, "dbHelper must not be null");
 
     List<SysItem> allItems = dbHelper.findAllSysItems();
@@ -49,7 +50,7 @@ public final class SysItemRepository {
       Collections.sort(filteredItems, comparator);
     }
 
-    return filteredItems;
+    return new FilteredItemsContainer(allItems, filteredItems);
   }
 
   /**
@@ -209,11 +210,11 @@ public final class SysItemRepository {
             return doCompare(lhs.getTitle(), rhs.getTitle(), sortFilter.isAsc());
           case BODY:
             return doCompare(lhs.getBody(), rhs.getBody(), sortFilter.isAsc());
-          case CREATED_TIME:
+          case CREATED:
             return doCompare(lhs.getCreatedTime(), rhs.getCreatedTime(), sortFilter.isAsc());
-          case LAST_EDITED_TIME:
+          case EDITED:
             return doCompare(lhs.getLastEditedTime(), rhs.getLastEditedTime(), sortFilter.isAsc());
-          case LAST_VIEWED_TIME:
+          case VIEWED:
             return doCompare(lhs.getLastViewedTime(), rhs.getLastViewedTime(), sortFilter.isAsc());
         }
 
@@ -226,7 +227,7 @@ public final class SysItemRepository {
           return x;
         }
 
-        DateTimeComparator comparator = DateTimeComparator.getDateOnlyInstance();
+        DateTimeComparator comparator = DateTimeComparator.getInstance();
         return isAsc ? comparator.compare(t1, t2) : comparator.compare(t2, t1);
       }
 
@@ -262,7 +263,7 @@ public final class SysItemRepository {
     }
 
     Set<Integer> colors = sysItemFilter.getColors();
-    if (colors != null && !colors.contains(item.getColor())) {
+    if (colors != null && !colors.isEmpty() && !colors.contains(item.getColor())) {
       return false;
     }
 

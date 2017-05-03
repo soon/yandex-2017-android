@@ -1,5 +1,10 @@
 package com.awesoon.thirdtask.repository.filter;
 
+import com.awesoon.thirdtask.json.adapter.DateTimeAdapter;
+import com.awesoon.thirdtask.util.JsonUtils;
+import com.squareup.moshi.Moshi;
+
+import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
@@ -9,6 +14,26 @@ public class SysItemFilter {
   private DatePeriodFilter lastViewedDateFilter;
   private Set<Integer> colors;
   private List<SortFilter> sorts;
+
+  public static SysItemFilter empty() {
+    return new SysItemFilter();
+  }
+
+  public static SysItemFilter parseJson(String json) throws IOException {
+    Moshi moshi = new Moshi.Builder()
+        .add(new DateTimeAdapter())
+        .build();
+
+    return JsonUtils.parseSingleObject(moshi, json, SysItemFilter.class);
+  }
+
+  public String toJson() {
+    Moshi moshi = new Moshi.Builder()
+        .add(new DateTimeAdapter())
+        .build();
+
+    return JsonUtils.writeSingleObject(moshi, this, SysItemFilter.class);
+  }
 
   public DatePeriodFilter getCreatedTimeFilter() {
     return createdDateFilter;

@@ -1,5 +1,6 @@
 package com.awesoon.thirdtask.activity;
 
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.AsyncTask;
@@ -19,6 +20,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import com.awesoon.thirdtask.NotesApplication;
 import com.awesoon.thirdtask.R;
@@ -27,7 +29,10 @@ import com.awesoon.thirdtask.db.GlobalDbState;
 import com.awesoon.thirdtask.domain.SysItem;
 import com.awesoon.thirdtask.event.DbStateChangeListener;
 import com.awesoon.thirdtask.event.SysItemRemoveListener;
+import com.awesoon.thirdtask.repository.FilteredItemsContainer;
+import com.awesoon.thirdtask.repository.SysItemFilterRepository;
 import com.awesoon.thirdtask.repository.SysItemRepository;
+import com.awesoon.thirdtask.repository.filter.SysItemFilter;
 import com.awesoon.thirdtask.util.Action;
 import com.awesoon.thirdtask.util.ActivityUtils;
 import com.awesoon.thirdtask.util.Assert;
@@ -96,61 +101,26 @@ public class MainActivity extends AppCompatActivity {
     GlobalDbState.subscribe(this, new DbStateChangeListener() {
       @Override
       public void onSysItemAdded(SysItem sysItem) {
-        new GetAllSysItemsTask(MainActivity.this, dbHelper).execute();
+        refreshData(dbHelper);
       }
 
       @Override
       public void onSysItemUpdated(SysItem sysItem) {
-        new GetAllSysItemsTask(MainActivity.this, dbHelper).execute();
+        refreshData(dbHelper);
       }
 
       @Override
       public void onSysItemDeleted(Long id) {
-        new GetAllSysItemsTask(MainActivity.this, dbHelper).execute();
+        refreshData(dbHelper);
       }
 
       @Override
       public void onSysItemsAdded(List<SysItem> sysItems) {
-        new GetAllSysItemsTask(MainActivity.this, dbHelper).execute();
+        refreshData(dbHelper);
       }
     });
 
-    new GetAllSysItemsTask(MainActivity.this, dbHelper).execute();
-  }
-
-  /**
-   * Loads notes from the file.
-   * Also checks user permissions and shows dialog if a user removes previously added notes.
-   */
-  private void loadNotesFromFile() {
-    if (!PermissionUtils.requestWriteExternalStoragePermissionIfNecessary(this, READ_EXTERNAL_STORAGE)) {
-      return;
-    }
-
-    NotesApplication app = (NotesApplication) getApplication();
-    final DbHelper dbHelper = app.getDbHelper();
-    dbHelper.findAllSysItemsAsync(new Consumer<List<SysItem>>() {
-      @Override
-      public void apply(final List<SysItem> items) {
-        if (items.isEmpty()) {
-          doLoadNotesFromFile(dbHelper);
-        } else {
-          String message = getResources()
-              .getQuantityString(R.plurals.are_you_sure_you_want_to_delete_n_notes, items.size(), items.size());
-          new AlertDialog.Builder(MainActivity.this)
-              .setTitle(R.string.all_notes_will_be_deleted)
-              .setMessage(message)
-              .setPositiveButton(R.string.delete, new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                  doLoadNotesFromFile(dbHelper);
-                }
-              })
-              .setNegativeButton(R.string.cancel, null)
-              .show();
-        }
-      }
-    });
+    refreshData(dbHelper);
   }
 
   @Override
@@ -179,6 +149,9 @@ public class MainActivity extends AppCompatActivity {
         break;
       case EDIT_EXISTING_SYS_ITEM_REQUEST_CODE:
         // the data updated via GlobalDbState
+        break;
+      case EDIT_FILTER_ACTIVITY:
+        refreshData();
         break;
       default:
         Log.w(TAG, "Received unknown request code " + requestCode);
@@ -250,6 +223,59 @@ public class MainActivity extends AppCompatActivity {
     }
 
     return super.onOptionsItemSelected(item);
+  }
+
+  /**
+   * Refreshes the list data.
+   */
+  private void refreshData() {
+    NotesApplication app = (NotesApplication) getApplication();
+    final DbHelper dbHelper = app.getDbHelper();
+    refreshData(dbHelper);
+  }
+
+  /**
+   * Refreshes the list data.
+   *
+   * @param dbHelper A db helper.
+   */
+  private void refreshData(DbHelper dbHelper) {
+    new GetAllSysItemsTask(MainActivity.this, dbHelper).execute();
+  }
+
+  /**
+   * Loads notes from the file.
+   * Also checks user permissions and shows dialog if a user removes previously added notes.
+   */
+  private void loadNotesFromFile() {
+    if (!PermissionUtils.requestWriteExternalStoragePermissionIfNecessary(this, READ_EXTERNAL_STORAGE)) {
+      return;
+    }
+
+    NotesApplication app = (NotesApplication) getApplication();
+    final DbHelper dbHelper = app.getDbHelper();
+    dbHelper.findAllSysItemsAsync(new Consumer<List<SysItem>>() {
+      @Override
+      public void apply(final List<SysItem> items) {
+        if (items.isEmpty()) {
+          doLoadNotesFromFile(dbHelper);
+        } else {
+          String message = getResources()
+              .getQuantityString(R.plurals.are_you_sure_you_want_to_delete_n_notes, items.size(), items.size());
+          new AlertDialog.Builder(MainActivity.this)
+              .setTitle(R.string.all_notes_will_be_deleted)
+              .setMessage(message)
+              .setPositiveButton(R.string.delete, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                  doLoadNotesFromFile(dbHelper);
+                }
+              })
+              .setNegativeButton(R.string.cancel, null)
+              .show();
+        }
+      }
+    });
   }
 
   /**
@@ -480,17 +506,31 @@ public class MainActivity extends AppCompatActivity {
   }
 
   private void openFilterEditorActivity() {
-    Intent intent = new Intent(this, FilterEditorActivity.class);
+    Intent intent = FilterEditorActivity.getInstance(this);
     startActivityForResult(intent, EDIT_FILTER_ACTIVITY);
   }
 
   /**
    * Sets new sys items to the list view.
    *
-   * @param sysItems A new list view data.
+   * @param items Items.
    */
-  private void setSysItems(List<SysItem> sysItems) {
-    updateListData(sysItems);
+  private void setSysItems(FilteredItemsContainer items) {
+    List<SysItem> filteredItems = items.getFilteredItems();
+    List<SysItem> originalItems = items.getOriginalItems();
+    if (filteredItems != null) {
+      int delta = originalItems.size() - filteredItems.size();
+
+      if (delta > 0) {
+        Context context = getApplicationContext();
+        String message = getResources().getQuantityString(R.plurals.some_notes_are_hidden, delta, delta);
+        int duration = Toast.LENGTH_SHORT;
+        Toast toast = Toast.makeText(context, message, duration);
+        toast.show();
+      }
+    }
+
+    updateListData(filteredItems);
   }
 
   /**
@@ -545,9 +585,10 @@ public class MainActivity extends AppCompatActivity {
   /**
    * Retrieves all sys items from the database. Calls setSysItems once finished.
    */
-  private static class GetAllSysItemsTask extends AsyncTask<Void, Void, List<SysItem>> {
+  private static class GetAllSysItemsTask extends AsyncTask<Void, Void, FilteredItemsContainer> {
     private MainActivity activity;
     private DbHelper dbHelper;
+    private SysItemFilter filter;
 
     public GetAllSysItemsTask(MainActivity activity, DbHelper dbHelper) {
       this.activity = activity;
@@ -555,16 +596,18 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    protected List<SysItem> doInBackground(Void... params) {
-      return dbHelper.findAllSysItems();
+    protected FilteredItemsContainer doInBackground(Void... params) {
+      filter = SysItemFilterRepository.getCurrentFilter(activity);
+      FilteredItemsContainer filteredItems = SysItemRepository.getAllItemsFiltered(dbHelper, filter);
+      return filteredItems;
     }
 
     @Override
-    protected void onPostExecute(final List<SysItem> sysItems) {
+    protected void onPostExecute(final FilteredItemsContainer items) {
       activity.runOnUiThread(new Runnable() {
         @Override
         public void run() {
-          activity.setSysItems(sysItems);
+          activity.setSysItems(items);
         }
       });
     }

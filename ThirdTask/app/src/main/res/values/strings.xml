@@ -1,6 +1,6 @@
 <resources>
-  <string name="app_name">Third Task</string>
-  <string name="title_activity_element_editor">ElementEditorActivity</string>
+  <string name="app_name">Заметки</string>
+  <string name="title_activity_element_editor">Редактирование заметки</string>
   <string name="element_editor_default_title">Новая заметка</string>
   <string name="title_activity_color_picker">Выбор цвета</string>
   <string name="title_activity_filter_editor">Настройка фильтра</string>
@@ -81,4 +81,5 @@
   <string name="last_viewed_time_info">Последний раз просмотрена %1$s</string>
 
   <string name="search_title">Поиск</string>
+  <string name="search_hint">Поиск…</string>
 </resources>

@@ -6,10 +6,13 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
+import android.support.v4.view.MenuItemCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -48,11 +51,14 @@ public class MainActivity extends AppCompatActivity {
   public static final int EDIT_FILTER_ACTIVITY = 3;
 
   public static final String STATE_DEFAULT_ITEM_COLOR = makeExtraIdent("STATE_DEFAULT_ITEM_COLOR");
+  public static final String STATE_FILTER_QUERY_TEXT = makeExtraIdent("STATE_FILTER_QUERY_TEXT");
 
   private Integer defaultItemColor;
   private ListView elementsList;
+  private SysItemsAdapter sysItemsAdapter;
   private DrawerLayout drawerLayout;
   private NavigationView drawerNavView;
+  private String filterQueryText;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -145,6 +151,105 @@ public class MainActivity extends AppCompatActivity {
         }
       }
     });
+  }
+
+  @Override
+  protected void onSaveInstanceState(Bundle outState) {
+    super.onSaveInstanceState(outState);
+
+    if (defaultItemColor != null) {
+      outState.putInt(STATE_DEFAULT_ITEM_COLOR, defaultItemColor);
+    }
+    if (filterQueryText != null) {
+      outState.putString(STATE_FILTER_QUERY_TEXT, filterQueryText);
+    }
+  }
+
+  @Override
+  protected void onDestroy() {
+    super.onDestroy();
+    GlobalDbState.unsubscribe(this);
+  }
+
+  @Override
+  protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    switch (requestCode) {
+      case ADD_NEW_SYS_ITEM_REQUEST_CODE:
+        // the data updated via GlobalDbState
+        break;
+      case EDIT_EXISTING_SYS_ITEM_REQUEST_CODE:
+        // the data updated via GlobalDbState
+        break;
+      default:
+        Log.w(TAG, "Received unknown request code " + requestCode);
+    }
+  }
+
+  @Override
+  public boolean onCreateOptionsMenu(Menu menu) {
+    getMenuInflater().inflate(R.menu.menu_main_activity, menu);
+
+    final MenuItem searchViewMenuItem = menu.findItem(R.id.menu_search);
+    final SearchView searchView = (SearchView) searchViewMenuItem.getActionView();
+
+    searchView.setQueryHint(getResources().getString(R.string.search_hint));
+    searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+      @Override
+      public boolean onQueryTextSubmit(String query) {
+        applyFilterText(query);
+        return true;
+      }
+
+      @Override
+      public boolean onQueryTextChange(String newText) {
+        applyFilterText(newText);
+        return false;
+      }
+    });
+
+    final String currentFilterQuery = filterQueryText;
+    MenuItemCompat.setOnActionExpandListener(searchViewMenuItem, new MenuItemCompat.OnActionExpandListener() {
+      @Override
+      public boolean onMenuItemActionExpand(MenuItem item) {
+        if (item.getActionView() instanceof SearchView) {
+          final SearchView searchView = (SearchView) item.getActionView();
+          if (currentFilterQuery != null) {
+            searchView.post(new Runnable() {
+              @Override
+              public void run() {
+                searchView.setQuery(currentFilterQuery, false);
+              }
+            });
+          }
+        }
+
+        return true;
+      }
+
+      @Override
+      public boolean onMenuItemActionCollapse(MenuItem item) {
+        return true;
+      }
+    });
+
+    if (currentFilterQuery != null) {
+      MenuItemCompat.expandActionView(searchViewMenuItem);
+    }
+
+    return true;
+  }
+
+  @Override
+  public boolean onOptionsItemSelected(MenuItem item) {
+    int id = item.getItemId();
+
+    switch (id) {
+      case R.id.edit_filter:
+        openFilterEditorActivity();
+        return true;
+    }
+
+    return super.onOptionsItemSelected(item);
   }
 
   /**
@@ -265,8 +370,15 @@ public class MainActivity extends AppCompatActivity {
   }
 
   private void initState(Bundle savedInstanceState) {
-    if (savedInstanceState != null && savedInstanceState.containsKey(STATE_DEFAULT_ITEM_COLOR)) {
+    if (savedInstanceState == null) {
+      return;
+    }
+
+    if (savedInstanceState.containsKey(STATE_DEFAULT_ITEM_COLOR)) {
       defaultItemColor = savedInstanceState.getInt(STATE_DEFAULT_ITEM_COLOR);
+    }
+    if (savedInstanceState.containsKey(STATE_FILTER_QUERY_TEXT)) {
+      applyFilterText(savedInstanceState.getString(STATE_FILTER_QUERY_TEXT));
     }
   }
 
@@ -274,17 +386,18 @@ public class MainActivity extends AppCompatActivity {
     NotesApplication app = (NotesApplication) getApplication();
     final DbHelper dbHelper = app.getDbHelper();
 
-    SysItemsAdapter adapter = new SysItemsAdapter(this, R.layout.element_view, new ArrayList<SysItem>(),
+    sysItemsAdapter = new SysItemsAdapter(this, R.layout.element_view, new ArrayList<SysItem>(),
         R.string.remove_sys_item_dialog_message, R.string.yes, R.string.no);
 
-    adapter.addOnSysItemRemoveListener(new SysItemRemoveListener() {
+    sysItemsAdapter.addOnSysItemRemoveListener(new SysItemRemoveListener() {
       @Override
       public void onSysItemRemove(SysItem sysItem, int position) {
         new RemoveSysItemTask(dbHelper).execute(sysItem.getId());
       }
     });
 
-    elementsList.setAdapter(adapter);
+    elementsList.setAdapter(sysItemsAdapter);
+    elementsList.setTextFilterEnabled(true);
     elementsList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
       @Override
       public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
@@ -315,52 +428,18 @@ public class MainActivity extends AppCompatActivity {
     drawerNavView = ActivityUtils.findViewById(this, R.id.drawer_nav_view, "R.id.drawer_nav_view");
   }
 
-  @Override
-  protected void onSaveInstanceState(Bundle outState) {
-    super.onSaveInstanceState(outState);
+  private void clearFilterText() {
+    applyFilterText(null);
+  }
 
-    if (defaultItemColor != null) {
-      outState.putInt(STATE_DEFAULT_ITEM_COLOR, defaultItemColor);
+  private void applyFilterText(String text) {
+    if (TextUtils.isEmpty(text)) {
+      elementsList.clearTextFilter();
+      filterQueryText = null;
+    } else {
+      elementsList.setFilterText(text);
+      filterQueryText = text;
     }
-  }
-
-  @Override
-  protected void onDestroy() {
-    super.onDestroy();
-    GlobalDbState.unsubscribe(this);
-  }
-
-  @Override
-  protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-    switch (requestCode) {
-      case ADD_NEW_SYS_ITEM_REQUEST_CODE:
-        // the data updated via GlobalDbState
-        break;
-      case EDIT_EXISTING_SYS_ITEM_REQUEST_CODE:
-        // the data updated via GlobalDbState
-        break;
-      default:
-        Log.w(TAG, "Received unknown request code " + requestCode);
-    }
-  }
-
-  @Override
-  public boolean onCreateOptionsMenu(Menu menu) {
-    getMenuInflater().inflate(R.menu.menu_main_activity, menu);
-    return true;
-  }
-
-  @Override
-  public boolean onOptionsItemSelected(MenuItem item) {
-    int id = item.getItemId();
-
-    switch (id) {
-      case R.id.edit_filter:
-        openFilterEditorActivity();
-        return true;
-    }
-
-    return super.onOptionsItemSelected(item);
   }
 
   /**
@@ -369,24 +448,14 @@ public class MainActivity extends AppCompatActivity {
    * @param sysItems New list data.
    */
   private void updateListData(List<SysItem> sysItems) {
-    SysItemsAdapter adapter = getElementsAdapter();
-    adapter.clear();
+    sysItemsAdapter.clear();
 
     if (sysItems.isEmpty()) {
       List<SysItem> defaultItems = getDefaultSysItems();
-      adapter.addAll(defaultItems);
+      sysItemsAdapter.addAll(defaultItems);
     } else {
-      adapter.addAll(sysItems);
+      sysItemsAdapter.addAll(sysItems);
     }
-  }
-
-  /**
-   * Retrieves list view elements adapter.
-   *
-   * @return List view adapter.
-   */
-  private SysItemsAdapter getElementsAdapter() {
-    return (SysItemsAdapter) elementsList.getAdapter();
   }
 
   /**

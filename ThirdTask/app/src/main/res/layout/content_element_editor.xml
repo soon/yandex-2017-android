@@ -43,8 +43,8 @@
         android:id="@+id/edit_color"
         android:layout_width="@dimen/edit_color_view_width"
         android:layout_height="@dimen/edit_color_view_height"
-        android:layout_marginTop="@dimen/edit_color_view_margin"
         android:layout_marginBottom="@dimen/edit_color_view_margin"
+        android:layout_marginTop="@dimen/edit_color_view_margin"
         android:background="@drawable/oval">
       </com.awesoon.thirdtask.view.ElementColorView>
     </LinearLayout>
@@ -60,17 +60,31 @@
     <TextView
       android:id="@+id/created_time"
       android:layout_width="match_parent"
-      android:layout_height="0dp"
-      android:layout_weight="1"/>
+      android:layout_height="wrap_content"
+      android:layout_weight="1"
+      android:drawableLeft="@drawable/ic_add_black_16dp"
+      android:drawablePadding="4dp"
+      android:freezesText="true"
+      android:paddingTop="16dp"/>
+
     <TextView
       android:id="@+id/last_updated_time"
       android:layout_width="match_parent"
-      android:layout_height="0dp"
-      android:layout_weight="1"/>
+      android:layout_height="wrap_content"
+      android:layout_weight="1"
+      android:drawableLeft="@drawable/ic_edit_black_16dp"
+      android:drawablePadding="4dp"
+      android:freezesText="true"
+      android:paddingTop="16dp"/>
+
     <TextView
       android:id="@+id/last_viewed_time"
       android:layout_width="match_parent"
-      android:layout_height="0dp"
-      android:layout_weight="1"/>
+      android:layout_height="wrap_content"
+      android:layout_weight="1"
+      android:drawableLeft="@drawable/ic_eye_black_16dp"
+      android:drawablePadding="4dp"
+      android:freezesText="true"
+      android:paddingTop="16dp"/>
   </LinearLayout>
 </android.support.constraint.ConstraintLayout>

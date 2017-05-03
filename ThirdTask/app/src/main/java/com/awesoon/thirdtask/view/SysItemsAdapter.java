@@ -18,6 +18,10 @@ import com.awesoon.thirdtask.domain.SysItem;
 import com.awesoon.thirdtask.event.SysItemRemoveListener;
 import com.awesoon.thirdtask.util.Assert;
 
+import net.danlew.android.joda.DateUtils;
+
+import org.joda.time.DateTime;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -49,6 +53,9 @@ public class SysItemsAdapter extends ArrayAdapter<SysItem> {
       holder = new ViewHolder();
       holder.titleTextView = (TextView) convertView.findViewById(R.id.element_title);
       holder.bodyTextView = (TextView) convertView.findViewById(R.id.element_body);
+      holder.createdTextView = (TextView) convertView.findViewById(R.id.element_created_time);
+      holder.lastEditedTextView = (TextView) convertView.findViewById(R.id.element_last_updated_time);
+      holder.lastViewedTextView = (TextView) convertView.findViewById(R.id.element_last_viewed_time);
       holder.elementColorView = (ElementColorView) convertView.findViewById(R.id.element_color);
       holder.removeElementButton = convertView.findViewById(R.id.remove_element);
       convertView.setTag(holder);
@@ -63,8 +70,11 @@ public class SysItemsAdapter extends ArrayAdapter<SysItem> {
     holder.bodyTextView.setText(sysItem.getBody());
     holder.elementColorView.setColor(sysItem.getColor());
 
-    final SysItem item = data.get(position);
-    if (item.getId() == null) {
+    setDateTime(sysItem.getCreatedTime(), holder.createdTextView);
+    setDateTime(sysItem.getLastEditedTime(), holder.lastEditedTextView);
+    setDateTime(sysItem.getLastViewedTime(), holder.lastViewedTextView);
+
+    if (sysItem.getId() == null) {
       holder.removeElementButton.setVisibility(View.GONE);
     } else {
       holder.removeElementButton.setVisibility(View.VISIBLE);
@@ -77,6 +87,20 @@ public class SysItemsAdapter extends ArrayAdapter<SysItem> {
     }
 
     return convertView;
+  }
+
+  private void setDateTime(DateTime dateTime, TextView textView) {
+    if (dateTime == null) {
+      textView.setVisibility(View.GONE);
+    } else {
+      textView.setVisibility(View.VISIBLE);
+      textView.setText(formatDateTime(dateTime));
+    }
+  }
+
+  private String formatDateTime(DateTime dateTime) {
+    Assert.notNull(dateTime, "dateTime must not be null");
+    return DateUtils.getRelativeTimeSpanString(getContext(), dateTime, false).toString();
   }
 
   private void handleElementRemoving(final SysItem sysItem, final int position) {
@@ -124,6 +148,9 @@ public class SysItemsAdapter extends ArrayAdapter<SysItem> {
   private static class ViewHolder {
     private TextView titleTextView;
     private TextView bodyTextView;
+    private TextView createdTextView;
+    private TextView lastEditedTextView;
+    private TextView lastViewedTextView;
     private ElementColorView elementColorView;
     private View removeElementButton;
   }

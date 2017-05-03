@@ -112,6 +112,14 @@ public class DbHelper extends SQLiteOpenHelper {
     for (String sql : sqlQueries) {
       db.execSQL(sql);
     }
+
+    DateTime now = DateTime.now();
+    ContentValues values = new ContentValuesBuilder()
+        .put(SysItem.SysItemEntry.COLUMN_CREATED_TIME, now)
+        .put(SysItem.SysItemEntry.COLUMN_LAST_EDITED_TIME, now)
+        .put(SysItem.SysItemEntry.COLUMN_LAST_VIEWED_TIME, now)
+        .build();
+    db.update(SysItem.SysItemEntry.TABLE_NAME, values, null, null);
   }
 
   private void doUpgrade2To3(SQLiteDatabase db) {

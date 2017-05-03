@@ -13,7 +13,7 @@
   <string name="save_element">Сохранить</string>
 
   <string name="default_sys_item_title">Тут совсем пусто…</string>
-  <string name="default_sys_item_body">Коснись меня, чтобы добавить заметку!</string>
+  <string name="default_sys_item_body">Коснись меня, чтобы создать заметку!</string>
 
   <string name="remove_sys_item_dialog_message">Вы действительно хотите удалить заметку?</string>
   <string name="ok">OK</string>
@@ -62,7 +62,7 @@
 
   <plurals name="notes_have_been_imported_message">
     <item quantity="one">Импортирована %d заметка</item>
-    <item quantity="few">Импортирова %d заметки</item>
+    <item quantity="few">Импортированы %d заметки</item>
     <item quantity="other">Импортировано %d заметок</item>
   </plurals>
 
@@ -75,4 +75,10 @@
   <string name="error_occurred_while_importing_notes_message">
     Произошла ошибка в процессе импорта заметок
   </string>
+
+  <string name="created_time_info">Заметка создана %1$s</string>
+  <string name="last_edited_time_info">Последний раз отредактирована %1$s</string>
+  <string name="last_viewed_time_info">Последний раз просмотрена %1$s</string>
+
+  <string name="search_title">Поиск</string>
 </resources>

@@ -8,6 +8,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.StringRes;
 import android.support.v4.app.NavUtils;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AlertDialog;
@@ -32,6 +33,10 @@ import com.awesoon.thirdtask.util.BeautifulColors;
 import com.awesoon.thirdtask.util.StringUtils;
 import com.awesoon.thirdtask.view.ElementColorView;
 
+import net.danlew.android.joda.DateUtils;
+
+import org.joda.time.DateTime;
+
 import java.util.Objects;
 
 public class ElementEditorActivity extends AppCompatActivity {
@@ -48,6 +53,9 @@ public class ElementEditorActivity extends AppCompatActivity {
   private SysItem sysItem;
   private EditText titleEditText;
   private EditText bodyEditText;
+  private TextView createdTimeTextView;
+  private TextView lastUpdatedTimeTextView;
+  private TextView lastViewedTimeTextView;
   private ElementColorView elementColorView;
 
   /**
@@ -74,6 +82,9 @@ public class ElementEditorActivity extends AppCompatActivity {
     titleEditText = ActivityUtils.findViewById(this, R.id.edit_title, "R.id.edit_title");
     bodyEditText = ActivityUtils.findViewById(this, R.id.edit_body, "R.id.edit_body");
     elementColorView = ActivityUtils.findViewById(this, R.id.edit_color, "R.id.edit_color");
+    createdTimeTextView = ActivityUtils.findViewById(this, R.id.created_time, "R.id.created_time");
+    lastUpdatedTimeTextView = ActivityUtils.findViewById(this, R.id.last_updated_time, "R.id.last_updated_time");
+    lastViewedTimeTextView = ActivityUtils.findViewById(this, R.id.last_viewed_time, "R.id.last_viewed_time");
 
     initToolbar();
 
@@ -302,21 +313,47 @@ public class ElementEditorActivity extends AppCompatActivity {
     if (sysItem == null) {
       setActionBarTitle(getString(R.string.element_editor_default_title));
       setDefaultColor();
+      hideDateTimeFields();
     } else {
       setActionBarTitle(sysItem.getTitle());
       setTitleEditText(sysItem.getTitle());
       setBodyEditText(sysItem.getBody());
       setColorEditColor(sysItem.getColor());
 
-      TextView createdTime = ActivityUtils.findViewById(this, R.id.created_time, "R.id.created_time");
-      createdTime.setText(String.valueOf(sysItem.getCreatedTime()));
-
-      TextView lastUpdatedTime = ActivityUtils.findViewById(this, R.id.last_updated_time, "R.id.last_updated_time");
-      lastUpdatedTime.setText(String.valueOf(sysItem.getLastEditedTime()));
-
-      TextView lastViewedTime = ActivityUtils.findViewById(this, R.id.last_viewed_time, "R.id.last_viewed_time");
-      lastViewedTime.setText(String.valueOf(sysItem.getLastViewedTime()));
+      setDateTime(createdTimeTextView, R.string.created_time_info, sysItem.getCreatedTime());
+      setDateTime(lastUpdatedTimeTextView, R.string.last_edited_time_info, sysItem.getLastEditedTime());
+      setDateTime(lastViewedTimeTextView, R.string.last_viewed_time_info, sysItem.getLastViewedTime());
     }
+  }
+
+  /**
+   * Sets datetime to the given text view.
+   * If the date time is null, hides text view.
+   * Otherwise extracts string resource with the given id, replaces placeholder with the datetime value
+   * and sets the string to the text view.
+   *
+   * @param textView       A text view.
+   * @param formatResource A text view format string. Should contain a string placeholder.
+   * @param dateTime       Date time. Nullable.
+   */
+  private void setDateTime(TextView textView, @StringRes int formatResource, @Nullable DateTime dateTime) {
+    if (dateTime == null) {
+      textView.setVisibility(View.GONE);
+    } else {
+      textView.setVisibility(View.VISIBLE);
+      textView.setText(formatDateTimeString(formatResource, dateTime));
+    }
+  }
+
+  /**
+   * Formats given date time string using the given string resource as a format string.
+   *
+   * @param formatResource A format string. Should contains a string placeholder.
+   * @param dateTime       Date time. Must not be null.
+   * @return Formatted datetime string.
+   */
+  private String formatDateTimeString(@StringRes int formatResource, @NonNull DateTime dateTime) {
+    return getResources().getString(formatResource, DateUtils.getRelativeTimeSpanString(this, dateTime, true));
   }
 
   /**
@@ -442,7 +479,14 @@ public class ElementEditorActivity extends AppCompatActivity {
       new GetSysItemByIdTask(this, dbHelper, updateFields).execute(id);
     } else {
       setSysItem(null, updateFields);
+      hideDateTimeFields();
     }
+  }
+
+  private void hideDateTimeFields() {
+    createdTimeTextView.setVisibility(View.GONE);
+    lastUpdatedTimeTextView.setVisibility(View.GONE);
+    lastViewedTimeTextView.setVisibility(View.GONE);
   }
 
   /**

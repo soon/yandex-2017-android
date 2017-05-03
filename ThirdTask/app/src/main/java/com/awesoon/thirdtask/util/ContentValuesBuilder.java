@@ -3,7 +3,6 @@ package com.awesoon.thirdtask.util;
 import android.content.ContentValues;
 
 import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
 
 public class ContentValuesBuilder {
   private ContentValues values;
@@ -23,8 +22,11 @@ public class ContentValuesBuilder {
   }
 
   public ContentValuesBuilder put(String key, DateTime value) {
-    String str = value.withZone(DateTimeZone.UTC).toString();
-    return put(key, str);
+    if (value == null) {
+      return put(key, (String) null);
+    } else {
+      return put(key, value.toString());
+    }
   }
 
   public ContentValues build() {

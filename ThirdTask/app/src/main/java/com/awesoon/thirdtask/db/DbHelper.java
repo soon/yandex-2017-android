@@ -389,7 +389,11 @@ public class DbHelper extends SQLiteOpenHelper {
         SysItem.SysItemEntry.TABLE_NAME,
         SysItem.SysItemEntry.COLUMN_NAME_ID);
 
-    return SqlUtils.queryForObject(db, sql, SysItemMapper.INSTANCE, id);
+    SysItem sysItem = SqlUtils.queryForObject(db, sql, SysItemMapper.INSTANCE, id);
+    if (sysItem != null) {
+      saveSysItemInternal(sysItem, new SavingOptions().setOverwriteLastViewedTime(true));
+    }
+    return sysItem;
   }
 
   /**

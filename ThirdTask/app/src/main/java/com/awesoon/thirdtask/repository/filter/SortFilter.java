@@ -38,4 +38,29 @@ public class SortFilter {
     isAsc = asc;
     return this;
   }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    SortFilter that = (SortFilter) o;
+
+    if (isAsc != that.isAsc) {
+      return false;
+    }
+    return filteredColumn == that.filteredColumn;
+
+  }
+
+  @Override
+  public int hashCode() {
+    int result = filteredColumn != null ? filteredColumn.hashCode() : 0;
+    result = 31 * result + (isAsc ? 1 : 0);
+    return result;
+  }
 }

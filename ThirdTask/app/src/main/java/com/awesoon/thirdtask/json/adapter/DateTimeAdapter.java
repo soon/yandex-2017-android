@@ -8,7 +8,7 @@ import org.joda.time.DateTime;
 
 public class DateTimeAdapter {
   @ToJson
-  public  String toJson(DateTime dateTime) {
+  public String toJson(DateTime dateTime) {
     return dateTime.toString();
   }
 

@@ -130,6 +130,7 @@
   </plurals>
 
   <string name="empty_filter_name">Пустой</string>
+  <string name="no_filter_name">Нет фильтра</string>
 
   <string name="title_sort_name">Сортировка по названию</string>
   <string name="body_sort_name">Сортировка по описанию</string>
@@ -139,4 +140,6 @@
 
   <string name="color_filter_name">Фильтр по цвету</string>
   <string name="date_filter_name">Фильтр по дате</string>
+
+  <string name="select_filter">Выбрать фильтр</string>
 </resources>

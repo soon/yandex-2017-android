@@ -24,6 +24,13 @@ public class SysItemFilter {
   private Set<Integer> colors;
   private List<SortFilter> sorts;
 
+  public SysItemFilter() {
+  }
+
+  public SysItemFilter(String name) {
+    this.name = name;
+  }
+
   public static SysItemFilter empty() {
     return new SysItemFilter();
   }

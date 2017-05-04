@@ -11,6 +11,8 @@ import com.awesoon.thirdtask.util.Assert;
 import com.awesoon.thirdtask.util.StringUtils;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -59,6 +61,19 @@ public final class SysItemFilterRepository {
         allFilters.add(filter);
       }
     }
+
+    Collections.sort(allFilters, new Comparator<SysItemFilter>() {
+      @Override
+      public int compare(SysItemFilter lhs, SysItemFilter rhs) {
+        if (lhs.getName() == null) {
+          return -1;
+        }
+        if (rhs.getName() == null) {
+          return 1;
+        }
+        return lhs.getName().compareTo(rhs.getName());
+      }
+    });
 
     return allFilters;
   }

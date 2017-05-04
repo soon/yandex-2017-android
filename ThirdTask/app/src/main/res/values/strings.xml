@@ -128,4 +128,15 @@
     <item quantity="few">Фильтрами скрыты %d заметки</item>
     <item quantity="other">Фильтрами скрыто %d заметок</item>
   </plurals>
+
+  <string name="empty_filter_name">Пустой</string>
+
+  <string name="title_sort_name">Сортировка по названию</string>
+  <string name="body_sort_name">Сортировка по описанию</string>
+  <string name="created_sort_name">Сортировка по дате создания</string>
+  <string name="edited_sort_name">Сортировка по дате редактирования</string>
+  <string name="viewed_sort_name">Сортировка по дате просмотра</string>
+
+  <string name="color_filter_name">Фильтр по цвету</string>
+  <string name="date_filter_name">Фильтр по дате</string>
 </resources>

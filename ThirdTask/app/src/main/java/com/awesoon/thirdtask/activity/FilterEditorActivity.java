@@ -2,10 +2,12 @@ package com.awesoon.thirdtask.activity;
 
 import android.app.DatePickerDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.NavUtils;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -24,6 +26,7 @@ import com.awesoon.thirdtask.repository.filter.SortFilter;
 import com.awesoon.thirdtask.repository.filter.SysItemFilter;
 import com.awesoon.thirdtask.util.ActivityUtils;
 import com.awesoon.thirdtask.util.BeautifulColors;
+import com.awesoon.thirdtask.util.CollectionUtils;
 import com.awesoon.thirdtask.util.StringUtils;
 import com.awesoon.thirdtask.view.ColorsFilterAdapter;
 import com.awesoon.thirdtask.view.SortFiltersAdapter;
@@ -37,11 +40,13 @@ import java.util.Calendar;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 public class FilterEditorActivity extends AppCompatActivity {
   public static final String DATE_FORMAT_STRING = "dd.MM.yyyy";
   public static final int SELECT_COLOR_ACTION_CODE = 1;
 
+  private EditText nameEditText;
   private RecyclerView sortsRecyclerView;
   private SortFiltersAdapter sortFiltersAdapter;
   private Button addSortButton;
@@ -77,12 +82,17 @@ public class FilterEditorActivity extends AppCompatActivity {
     initToolBar();
     initMembers();
 
+    initName();
     initSortsRecyclerView();
     initColorsRecyclerView();
 
     initializeDatePickers(createdStartDatePicker, createdEndDatePicker, initialFilter.getCreatedTimeFilter());
     initializeDatePickers(editedStartDatePicker, editedEndDatePicker, initialFilter.getLastEditedTimeFilter());
     initializeDatePickers(viewedStartDatePicker, viewedEndDatePicker, initialFilter.getLastViewedTimeFilter());
+  }
+
+  private void initName() {
+    nameEditText.setText(initialFilter.getName());
   }
 
   private void initColorsRecyclerView() {
@@ -176,8 +186,7 @@ public class FilterEditorActivity extends AppCompatActivity {
         return true;
 
       case android.R.id.home:
-        NavUtils.navigateUpFromSameTask(this);
-        overridePendingTransition(R.anim.trans_right_in, R.anim.trans_right_out);
+        handleDiscardChangesAction();
         return true;
     }
 
@@ -198,6 +207,7 @@ public class FilterEditorActivity extends AppCompatActivity {
   }
 
   private void initMembers() {
+    nameEditText = ActivityUtils.findViewById(this, R.id.filter_name, "R.id.filter_name");
     sortsRecyclerView = ActivityUtils.findViewById(this, R.id.orders_list, "R.id.orders_list");
     addSortButton = ActivityUtils.findViewById(this, R.id.add_new_order, "R.id.add_new_order");
     createdStartDatePicker = ActivityUtils.findViewById(this,
@@ -223,6 +233,47 @@ public class FilterEditorActivity extends AppCompatActivity {
     Toolbar toolbar = ActivityUtils.findViewById(this, R.id.toolbar);
     setSupportActionBar(toolbar);
     getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+  }
+
+  private void handleDiscardChangesAction() {
+    if (!wasElementChanged()) {
+      discardChangesAndNavigateUpFromTask();
+      return;
+    }
+
+    DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
+      @Override
+      public void onClick(DialogInterface dialog, int which) {
+        switch (which) {
+          case DialogInterface.BUTTON_POSITIVE:
+            discardChangesAndNavigateUpFromTask();
+            break;
+
+          case DialogInterface.BUTTON_NEGATIVE:
+            break;
+        }
+      }
+    };
+
+    AlertDialog.Builder builder = new AlertDialog.Builder(this);
+    builder.setMessage(R.string.move_back_dialog_message)
+        .setPositiveButton(R.string.yes, dialogClickListener)
+        .setNegativeButton(R.string.no, dialogClickListener)
+        .show();
+  }
+
+  private boolean wasElementChanged() {
+    SysItemFilter newFilter = getUpdatedFilter();
+    SysItemFilter currentFilter = SysItemFilterRepository.getCurrentFilter(this);
+    return !Objects.equals(newFilter, currentFilter);
+  }
+
+  /**
+   * Discards current changes and moves back.
+   */
+  private void discardChangesAndNavigateUpFromTask() {
+    NavUtils.navigateUpFromSameTask(this);
+    overridePendingTransition(R.anim.trans_right_in, R.anim.trans_right_out);
   }
 
   private void saveSysItemFilterAndFinish() {
@@ -252,7 +303,51 @@ public class FilterEditorActivity extends AppCompatActivity {
             extractDateTime(viewedEndDatePicker)))
         .setColors(new HashSet<>(colors));
 
+    String name = nameEditText.getText().toString();
+    if (StringUtils.isBlank(name)) {
+      name = getDefaultFilterName(filter);
+    }
+
+    filter.setName(name);
+
     return filter;
+  }
+
+  private String getDefaultFilterName(SysItemFilter filter) {
+    if (filter == null) {
+      return getString(R.string.empty_filter_name);
+    }
+
+    List<SortFilter> sorts = filter.getSorts();
+    if (CollectionUtils.isEmpty(filter.getColors()) &&
+        CollectionUtils.isEmpty(sorts) &&
+        (filter.getCreatedTimeFilter() == null || filter.getCreatedTimeFilter().isEmpty()) &&
+        (filter.getLastViewedTimeFilter() == null || filter.getLastEditedTimeFilter().isEmpty()) &&
+        (filter.getLastViewedTimeFilter() == null || filter.getLastViewedTimeFilter().isEmpty())) {
+      return getString(R.string.empty_filter_name);
+    }
+
+    if (!CollectionUtils.isEmpty(sorts)) {
+      SortFilter sortFilter = sorts.get(0);
+      switch (sortFilter.getFilteredColumn()) {
+        case TITLE:
+          return getString(R.string.title_sort_name);
+        case BODY:
+          return getString(R.string.body_sort_name);
+        case CREATED:
+          return getString(R.string.created_sort_name);
+        case EDITED:
+          return getString(R.string.edited_sort_name);
+        case VIEWED:
+          return getString(R.string.viewed_sort_name);
+      }
+    }
+
+    if (!CollectionUtils.isEmpty(filter.getColors())) {
+      return getString(R.string.color_filter_name);
+    }
+
+    return getString(R.string.date_filter_name);
   }
 
   @Nullable

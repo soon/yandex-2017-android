@@ -305,14 +305,17 @@ public class FilterEditorActivity extends AppCompatActivity {
 
   private void saveSysItemFilterAndFinish() {
     SysItemFilter filter = getUpdatedFilter(true);
-    SysItemFilterRepository.updateCurrentFilter(this, filter);
+    SysItemFilterRepository.saveFilter(this, filter);
 
     finish();
     overridePendingTransition(R.anim.trans_right_in, R.anim.trans_right_out);
   }
 
   private SysItemFilter getUpdatedFilter(boolean setName) {
-    SysItemFilter filter = SysItemFilterRepository.getCurrentFilter(this);
+    SysItemFilter filter = SysItemFilterRepository.getFilterByUuid(this, initialFilter.getUuid());
+    if (filter == null) {
+      filter = SysItemFilter.empty();
+    }
     List<SortFilter> sortFilters = sortFiltersAdapter.getItems();
 
     List<Integer> colors = colorsAdapter.getItems();

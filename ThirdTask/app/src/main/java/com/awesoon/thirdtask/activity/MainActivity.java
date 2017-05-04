@@ -37,12 +37,17 @@ import com.awesoon.thirdtask.util.Action;
 import com.awesoon.thirdtask.util.ActivityUtils;
 import com.awesoon.thirdtask.util.Assert;
 import com.awesoon.thirdtask.util.BeautifulColors;
+import com.awesoon.thirdtask.util.BiPredicate;
+import com.awesoon.thirdtask.util.CollectionUtils;
 import com.awesoon.thirdtask.util.Consumer;
+import com.awesoon.thirdtask.util.Function;
 import com.awesoon.thirdtask.util.PermissionUtils;
 import com.awesoon.thirdtask.view.SysItemsAdapter;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 
 import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
@@ -87,6 +92,9 @@ public class MainActivity extends AppCompatActivity {
           case R.id.drawer_load_notes_from_file:
             loadNotesFromFile();
             return true;
+          case R.id.drawer_select_filter:
+            showSelectFilterDialog();
+            return true;
         }
 
         return false;
@@ -121,6 +129,40 @@ public class MainActivity extends AppCompatActivity {
     });
 
     refreshData(dbHelper);
+  }
+
+  private void showSelectFilterDialog() {
+    final List<SysItemFilter> allFilters = SysItemFilterRepository.getAllFilters(this);
+    allFilters.add(0, new SysItemFilter(getString(R.string.no_filter_name)));
+
+    UUID currentFilterUuid = SysItemFilterRepository.getCurrentFilterUuid(this);
+    int selectedIndex = CollectionUtils.indexOf(allFilters, currentFilterUuid, new BiPredicate<SysItemFilter, UUID>() {
+      @Override
+      public boolean apply(SysItemFilter filter, UUID uuid) {
+        return filter != null && Objects.equals(filter.getUuid(), uuid);
+      }
+    });
+    if (selectedIndex == -1) {
+      selectedIndex = 0;
+    }
+    String[] items = CollectionUtils.mapToArray(allFilters, String.class, new Function<SysItemFilter, String>() {
+      @Override
+      public String apply(SysItemFilter filter) {
+        return filter == null || filter.getName() == null ? getString(R.string.empty_filter_name) : filter.getName();
+      }
+    });
+
+    new AlertDialog.Builder(this)
+        .setSingleChoiceItems(items, selectedIndex, new DialogInterface.OnClickListener() {
+          @Override
+          public void onClick(DialogInterface dialog, int which) {
+            SysItemFilterRepository.setCurrentFilter(MainActivity.this, allFilters.get(which).getUuid());
+            refreshData();
+            dialog.dismiss();
+          }
+        })
+        .setNegativeButton(R.string.cancel, null)
+        .show();
   }
 
   @Override

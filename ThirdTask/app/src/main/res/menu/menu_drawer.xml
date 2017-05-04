@@ -13,4 +13,13 @@
       android:icon="@drawable/ic_import_export"
       android:title="@string/import_notes_from_file"/>
   </group>
+  <group
+    android:id="@+id/select_menu_filter"
+    android:checkableBehavior="single">
+    <item
+      android:checked="true"
+      android:id="@+id/drawer_select_filter"
+      android:icon="@drawable/ic_tune_black_24dp"
+      android:title="@string/select_filter"/>
+  </group>
 </menu>

@@ -1,5 +1,7 @@
 package com.awesoon.thirdtask.repository;
 
+import android.content.ContentResolver;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -10,7 +12,6 @@ import com.awesoon.thirdtask.domain.SysItem;
 import com.awesoon.thirdtask.repository.filter.DatePeriodFilter;
 import com.awesoon.thirdtask.repository.filter.SortFilter;
 import com.awesoon.thirdtask.repository.filter.SysItemFilter;
-import com.awesoon.thirdtask.util.Action;
 import com.awesoon.thirdtask.util.Assert;
 import com.awesoon.thirdtask.util.Consumer;
 import com.awesoon.thirdtask.util.DateTimeUtils;
@@ -20,9 +21,9 @@ import org.joda.time.DateTimeComparator;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -56,13 +57,17 @@ public final class SysItemRepository {
   /**
    * Loads all items from thr given file.
    *
-   * @param filePath          A path to file.
+   * @param contentResolver   A content resolver.
+   * @param uri               A path to file.
    * @param successConsumer   A success consumer. Called when all items are extracted from the file.
    * @param exceptionConsumer An exception consumer. Called when the task fails with an exception.
    */
-  public static void loadAllItemsFromFileAsync(final String filePath, final Consumer<List<SysItem>> successConsumer,
+  public static void loadAllItemsFromFileAsync(@NonNull final ContentResolver contentResolver,
+                                               @NonNull final Uri uri,
+                                               @NonNull final Consumer<List<SysItem>> successConsumer,
                                                @Nullable final Consumer<Exception> exceptionConsumer) {
-    Assert.notNull(filePath, "filePath must not be null");
+    Assert.notNull(uri, "uri must not be null");
+    Assert.notNull(contentResolver, "contentResolver must not be null");
     Assert.notNull(successConsumer, "successConsumer must not be null");
 
     new AsyncTask<Void, Void, List<SysItem>>() {
@@ -72,7 +77,7 @@ public final class SysItemRepository {
       @Override
       protected List<SysItem> doInBackground(Void... params) {
         try {
-          return loadAllItemsFromFile(filePath);
+          return loadAllItemsFromFile(contentResolver, uri);
         } catch (Exception e) {
           Log.e(TAG, "Unable load items from a file", e);
           exception = e;
@@ -97,19 +102,21 @@ public final class SysItemRepository {
   /**
    * Loads all items from the file.
    *
-   * @param filePath A path to file.
+   * @param contentResolver A content resolver.
+   * @param uri             A path to file.
    * @return A list of parsed items.
    * @throws IOException When the parser is unable to process the file or there is problem with opening the file.
    */
-  public static List<SysItem> loadAllItemsFromFile(String filePath) throws IOException {
-    Assert.notNull(filePath, "filePath must not be null");
+  public static List<SysItem> loadAllItemsFromFile(ContentResolver contentResolver, Uri uri) throws IOException {
+    Assert.notNull(uri, "uri must not be null");
 
-    try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+    try (InputStreamReader reader = new InputStreamReader(contentResolver.openInputStream(uri));
+         BufferedReader bufferedReader = new BufferedReader(reader)) {
       StringBuilder sb = new StringBuilder();
-      String s = reader.readLine();
+      String s = bufferedReader.readLine();
       while (s != null) {
         sb.append(s);
-        s = reader.readLine();
+        s = bufferedReader.readLine();
       }
 
       String json = sb.toString();
@@ -121,25 +128,28 @@ public final class SysItemRepository {
   /**
    * Stores all items to a file async.
    *
-   * @param items             A list of items to store.
-   * @param filePath          A file path
+   * @param contentResolver   A content resolver.
+   * @param uri               A file uri
    * @param successAction     A success action. Called when the all items are saved to the file.
    * @param exceptionConsumer An exception consumer. Called when a task fails with an exception.
    */
-  public static void storeAllItemsToFileAsync(final List<SysItem> items, final String filePath,
-                                              final Action successAction,
+  public static void storeAllItemsToFileAsync(@NonNull final DbHelper dbHelper,
+                                              @NonNull final ContentResolver contentResolver, @NonNull final Uri uri,
+                                              @NonNull final Consumer<List<SysItem>> successAction,
                                               @Nullable final Consumer<Exception> exceptionConsumer) {
-    Assert.notNull(items, "items must not be null");
-    Assert.notNull(filePath, "filePath must not be null");
+    Assert.notNull(dbHelper, "dbHelper must not be null");
+    Assert.notNull(uri, "uri must not be null");
     Assert.notNull(successAction, "successAction must not be null");
 
     new AsyncTask<Void, Void, Void>() {
       private Exception exception;
+      private List<SysItem> items;
 
       @Override
       protected Void doInBackground(Void... params) {
         try {
-          storeAllItemsToFile(items, filePath);
+          items = dbHelper.findAllSysItems();
+          storeAllItemsToFile(items, contentResolver, uri);
         } catch (Exception e) {
           Log.e(TAG, "Unable store items to a file", e);
           exception = e;
@@ -155,7 +165,7 @@ public final class SysItemRepository {
             exceptionConsumer.apply(exception);
           }
         } else {
-          successAction.call();
+          successAction.apply(items);
         }
       }
     }.execute();
@@ -164,17 +174,21 @@ public final class SysItemRepository {
   /**
    * Stores all items to the file.
    *
-   * @param items    A items to store.
-   * @param filePath A file path.
+   * @param items           A items to store.
+   * @param contentResolver A content resolver.
+   * @param uri             A file path.
    * @throws IOException When there is a problem with opening the file.
    */
-  public static void storeAllItemsToFile(List<SysItem> items, String filePath) throws IOException {
+  public static void storeAllItemsToFile(List<SysItem> items, ContentResolver contentResolver, Uri uri) throws IOException {
     Assert.notNull(items, "items must not be null");
-    Assert.notNull(filePath, "filePath must not be null");
+    Assert.notNull(uri, "uri must not be null");
+    Assert.notNull(contentResolver, "contentResolver must not be null");
 
     SysItemsContainer container = new SysItemsContainer(items);
-    try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
-      writer.write(container.toJson());
+
+    try (OutputStreamWriter writer = new OutputStreamWriter(contentResolver.openOutputStream(uri));
+         BufferedWriter bufferedWriter = new BufferedWriter(writer)) {
+      bufferedWriter.write(container.toJson());
     }
   }
 

@@ -3,6 +3,7 @@ package com.awesoon.thirdtask.activity;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
@@ -56,11 +57,12 @@ import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 
 public class MainActivity extends AppCompatActivity {
   private static final String TAG = "MainActivity";
-  private static final String NOTES_FILE_PATH = "/storage/emulated/0/itemlist.ili";
 
   public static final int ADD_NEW_SYS_ITEM_REQUEST_CODE = 1;
   public static final int EDIT_EXISTING_SYS_ITEM_REQUEST_CODE = 2;
-  public static final int EDIT_FILTER_ACTIVITY = 3;
+  public static final int EDIT_FILTER_REQUEST_CODE = 3;
+  public static final int SELECT_FILE_TO_EXPORT_REQUEST_CODE = 4;
+  public static final int SELECT_FILE_TO_IMPORT_REQUEST_CODE = 5;
 
   public static final String STATE_DEFAULT_ITEM_COLOR = makeExtraIdent("STATE_DEFAULT_ITEM_COLOR");
   public static final String STATE_FILTER_QUERY_TEXT = makeExtraIdent("STATE_FILTER_QUERY_TEXT");
@@ -68,7 +70,6 @@ public class MainActivity extends AppCompatActivity {
   private Integer defaultItemColor;
   private ListView elementsList;
   private SysItemsAdapter sysItemsAdapter;
-  private DrawerLayout drawerLayout;
   private NavigationView drawerNavView;
   private String filterQueryText;
 
@@ -289,8 +290,14 @@ public class MainActivity extends AppCompatActivity {
       case EDIT_EXISTING_SYS_ITEM_REQUEST_CODE:
         // the data updated via GlobalDbState
         break;
-      case EDIT_FILTER_ACTIVITY:
+      case EDIT_FILTER_REQUEST_CODE:
         refreshData();
+        break;
+      case SELECT_FILE_TO_EXPORT_REQUEST_CODE:
+        handleExportNotesToFile(resultCode, data);
+        break;
+      case SELECT_FILE_TO_IMPORT_REQUEST_CODE:
+        handleImportNotesFromFile(resultCode, data);
         break;
       default:
         Log.w(TAG, "Received unknown request code " + requestCode);
@@ -397,7 +404,7 @@ public class MainActivity extends AppCompatActivity {
       @Override
       public void apply(final List<SysItem> items) {
         if (items.isEmpty()) {
-          doLoadNotesFromFile(dbHelper);
+          openSelectFileToImportDialog();
         } else {
           String message = getResources()
               .getQuantityString(R.plurals.are_you_sure_you_want_to_delete_n_notes, items.size(), items.size());
@@ -407,7 +414,7 @@ public class MainActivity extends AppCompatActivity {
               .setPositiveButton(R.string.delete, new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
-                  doLoadNotesFromFile(dbHelper);
+                  openSelectFileToImportDialog();
                 }
               })
               .setNegativeButton(R.string.cancel, null)
@@ -418,15 +425,82 @@ public class MainActivity extends AppCompatActivity {
   }
 
   /**
-   * Internal method. Performs notes loading from the file.
-   *
-   * @param dbHelper A db helper instance.
+   * Stores current notes to the file.
+   * Also checks user permission.
    */
-  private void doLoadNotesFromFile(final DbHelper dbHelper) {
+  private void storeNotesToFile() {
+    if (!PermissionUtils.requestWriteExternalStoragePermissionIfNecessary(this, WRITE_EXTERNAL_STORAGE)) {
+      return;
+    }
+
+    NotesApplication app = (NotesApplication) getApplication();
+    DbHelper dbHelper = app.getDbHelper();
+    dbHelper.findAllSysItemsAsync(new Consumer<List<SysItem>>() {
+      @Override
+      public void apply(List<SysItem> items) {
+        if (items.isEmpty()) {
+          new AlertDialog.Builder(MainActivity.this)
+              .setTitle(R.string.you_do_not_have_notes)
+              .setMessage(R.string.do_you_want_to_add_one)
+              .setPositiveButton(R.string.add, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                  openNewElementEditorActivity();
+                }
+              })
+              .setNegativeButton(R.string.cancel, null)
+              .show();
+        } else {
+          openSelectFileToExportDialog();
+        }
+      }
+    });
+  }
+
+  private void handleExportNotesToFile(int resultCode, Intent data) {
+    if (resultCode != RESULT_OK || data == null) {
+      return;
+    }
+
+    Uri uri = data.getData();
+    NotesApplication app = (NotesApplication) getApplication();
+    final DbHelper dbHelper = app.getDbHelper();
+
+    SysItemRepository.storeAllItemsToFileAsync(dbHelper, getContentResolver(), uri, new Consumer<List<SysItem>>() {
+      @Override
+      public void apply(List<SysItem> items) {
+        String message = getResources()
+            .getQuantityString(R.plurals.notes_have_been_saved_message, items.size(), items.size());
+        new AlertDialog.Builder(MainActivity.this)
+            .setTitle(R.string.notes_have_been_saved_title)
+            .setMessage(message)
+            .setPositiveButton(R.string.ok, null)
+            .show();
+      }
+    }, new Consumer<Exception>() {
+      @Override
+      public void apply(Exception e) {
+        new AlertDialog.Builder(MainActivity.this)
+            .setTitle(R.string.notes_have_not_been_saved_title)
+            .setMessage(R.string.notes_have_not_been_saved_message)
+            .setPositiveButton(R.string.ok, null)
+            .show();
+      }
+    });
+  }
+
+  private void handleImportNotesFromFile(int resultCode, Intent data) {
+    if (resultCode != RESULT_OK || data == null) {
+      return;
+    }
+
+    Uri uri = data.getData();
+    NotesApplication app = (NotesApplication) getApplication();
+    final DbHelper dbHelper = app.getDbHelper();
+
     final Consumer<Exception> exceptionConsumer = new Consumer<Exception>() {
       @Override
       public void apply(Exception e) {
-
         new AlertDialog.Builder(MainActivity.this)
             .setTitle(R.string.error_occurred_while_importing_notes_title)
             .setMessage(R.string.error_occurred_while_importing_notes_message)
@@ -435,7 +509,7 @@ public class MainActivity extends AppCompatActivity {
       }
     };
 
-    SysItemRepository.loadAllItemsFromFileAsync(NOTES_FILE_PATH, new Consumer<List<SysItem>>() {
+    SysItemRepository.loadAllItemsFromFileAsync(getContentResolver(), uri, new Consumer<List<SysItem>>() {
       @Override
       public void apply(final List<SysItem> importedItems) {
         if (importedItems == null || importedItems.isEmpty()) {
@@ -469,69 +543,18 @@ public class MainActivity extends AppCompatActivity {
     }, exceptionConsumer);
   }
 
-  /**
-   * Stores current notes to the file.
-   * Also checks user permission.
-   */
-  private void storeNotesToFile() {
-    if (!PermissionUtils.requestWriteExternalStoragePermissionIfNecessary(this, WRITE_EXTERNAL_STORAGE)) {
-      return;
-    }
-
-    NotesApplication app = (NotesApplication) getApplication();
-    DbHelper dbHelper = app.getDbHelper();
-    dbHelper.findAllSysItemsAsync(new Consumer<List<SysItem>>() {
-      @Override
-      public void apply(List<SysItem> items) {
-        doStoreNotesToFile(items);
-      }
-    });
+  private void openSelectFileToExportDialog() {
+    Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+    intent.addCategory(Intent.CATEGORY_OPENABLE);
+    intent.setType("*/*");
+    startActivityForResult(intent, SELECT_FILE_TO_EXPORT_REQUEST_CODE);
   }
 
-  /**
-   * Internal method. Performs notes storing to the file.
-   *
-   * @param items A notes to store.
-   */
-  private void doStoreNotesToFile(final List<SysItem> items) {
-    Assert.notNull(items, "items must not be null");
-
-    if (items.isEmpty()) {
-      new AlertDialog.Builder(MainActivity.this)
-          .setTitle(R.string.you_do_not_have_notes)
-          .setMessage(R.string.do_you_want_to_add_one)
-          .setPositiveButton(R.string.add, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-              openNewElementEditorActivity();
-            }
-          })
-          .setNegativeButton(R.string.cancel, null)
-          .show();
-      return;
-    }
-
-    SysItemRepository.storeAllItemsToFileAsync(items, NOTES_FILE_PATH, new Action() {
-      @Override
-      public void call() {
-        String message = getResources()
-            .getQuantityString(R.plurals.notes_have_been_saved_message, items.size(), items.size());
-        new AlertDialog.Builder(MainActivity.this)
-            .setTitle(R.string.notes_have_been_saved_title)
-            .setMessage(message)
-            .setPositiveButton(R.string.ok, null)
-            .show();
-      }
-    }, new Consumer<Exception>() {
-      @Override
-      public void apply(Exception e) {
-        new AlertDialog.Builder(MainActivity.this)
-            .setTitle(R.string.notes_have_not_been_saved_title)
-            .setMessage(R.string.notes_have_not_been_saved_message)
-            .setPositiveButton(R.string.ok, null)
-            .show();
-      }
-    });
+  private void openSelectFileToImportDialog() {
+    Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+    intent.addCategory(Intent.CATEGORY_OPENABLE);
+    intent.setType("*/*");
+    startActivityForResult(intent, SELECT_FILE_TO_IMPORT_REQUEST_CODE);
   }
 
   private void initState(Bundle savedInstanceState) {
@@ -589,12 +612,7 @@ public class MainActivity extends AppCompatActivity {
 
   private void initMembers() {
     elementsList = ActivityUtils.findViewById(this, R.id.elements_list, "R.id.elements_list");
-    drawerLayout = ActivityUtils.findViewById(this, R.id.drawer_layout, "R.id.drawer_layout");
     drawerNavView = ActivityUtils.findViewById(this, R.id.drawer_nav_view, "R.id.drawer_nav_view");
-  }
-
-  private void clearFilterText() {
-    applyFilterText(null);
   }
 
   private void applyFilterText(String text) {
@@ -646,12 +664,12 @@ public class MainActivity extends AppCompatActivity {
 
   private void openNewFilterEditorActivity() {
     Intent intent = FilterEditorActivity.getInstance(this, true);
-    startActivityForResult(intent, EDIT_FILTER_ACTIVITY);
+    startActivityForResult(intent, EDIT_FILTER_REQUEST_CODE);
   }
 
   private void openFilterEditorActivity() {
     Intent intent = FilterEditorActivity.getInstance(this, false);
-    startActivityForResult(intent, EDIT_FILTER_ACTIVITY);
+    startActivityForResult(intent, EDIT_FILTER_REQUEST_CODE);
   }
 
   /**

@@ -45,8 +45,10 @@ import com.awesoon.thirdtask.util.PermissionUtils;
 import com.awesoon.thirdtask.view.SysItemsAdapter;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
@@ -95,6 +97,12 @@ public class MainActivity extends AppCompatActivity {
           case R.id.drawer_select_filter:
             showSelectFilterDialog();
             return true;
+          case R.id.drawer_remove_filters:
+            showRemoveFiltersDialog();
+            return true;
+          case R.id.drawer_add_filter:
+            openNewFilterEditorActivity();
+            return true;
         }
 
         return false;
@@ -131,8 +139,97 @@ public class MainActivity extends AppCompatActivity {
     refreshData(dbHelper);
   }
 
+  private void showRemoveFiltersDialog() {
+    final List<SysItemFilter> allFilters = SysItemFilterRepository.getAllFilters(this);
+    if (allFilters.isEmpty()) {
+      showThereAreNoFiltersDialog();
+      return;
+    }
+
+    String[] items = CollectionUtils.mapToArray(allFilters, String.class, new Function<SysItemFilter, String>() {
+      @Override
+      public String apply(SysItemFilter filter) {
+        return filter == null || filter.getName() == null ? getString(R.string.empty_filter_name) : filter.getName();
+      }
+    });
+
+    final Set<Integer> itemIndicesToRemove = new HashSet<>();
+    new AlertDialog.Builder(this)
+        .setMultiChoiceItems(items, null, new DialogInterface.OnMultiChoiceClickListener() {
+          @Override
+          public void onClick(DialogInterface dialog, int which, boolean isChecked) {
+            if (isChecked) {
+              itemIndicesToRemove.add(which);
+            } else {
+              itemIndicesToRemove.remove(which);
+            }
+          }
+        })
+        .setPositiveButton(R.string.remove, new DialogInterface.OnClickListener() {
+          @Override
+          public void onClick(DialogInterface dialog, int which) {
+            showRemoveFiltersDialog(allFilters, itemIndicesToRemove);
+          }
+        })
+        .setNegativeButton(R.string.cancel, null)
+        .show();
+  }
+
+  private void showThereAreNoFiltersDialog() {
+    new AlertDialog.Builder(this)
+        .setTitle(R.string.you_do_not_have_filters)
+        .setMessage(R.string.do_you_want_to_add_one_filter)
+        .setPositiveButton(R.string.add, new DialogInterface.OnClickListener() {
+          @Override
+          public void onClick(DialogInterface dialog, int which) {
+            openNewFilterEditorActivity();
+          }
+        })
+        .setNegativeButton(R.string.cancel, null)
+        .show();
+  }
+
+  private void showRemoveFiltersDialog(List<SysItemFilter> allFilters, Set<Integer> itemIndicesToRemove) {
+    if (CollectionUtils.isEmpty(itemIndicesToRemove)) {
+      return;
+    }
+
+    final Set<UUID> uuidsToRemove = new HashSet<>();
+    for (Integer idx : itemIndicesToRemove) {
+      UUID uuid = allFilters.get(idx).getUuid();
+      if (uuid != null) {
+        uuidsToRemove.add(uuid);
+      }
+    }
+
+    if (uuidsToRemove.isEmpty()) {
+      return;
+    }
+
+    String message = getResources()
+        .getQuantityString(R.plurals.are_you_sure_you_want_to_delete_n_items,
+            itemIndicesToRemove.size(), itemIndicesToRemove.size());
+
+    new AlertDialog.Builder(this)
+        .setTitle(R.string.remove_filters_title)
+        .setMessage(message)
+        .setPositiveButton(R.string.remove, new DialogInterface.OnClickListener() {
+          @Override
+          public void onClick(DialogInterface dialog, int which) {
+            SysItemFilterRepository.removeFiltersByUuids(MainActivity.this, uuidsToRemove);
+            refreshData();
+          }
+        })
+        .setNegativeButton(R.string.cancel, null)
+        .show();
+  }
+
   private void showSelectFilterDialog() {
     final List<SysItemFilter> allFilters = SysItemFilterRepository.getAllFilters(this);
+    if (allFilters.isEmpty()) {
+      showThereAreNoFiltersDialog();
+      return;
+    }
     allFilters.add(0, new SysItemFilter(getString(R.string.no_filter_name)));
 
     UUID currentFilterUuid = SysItemFilterRepository.getCurrentFilterUuid(this);
@@ -547,8 +644,13 @@ public class MainActivity extends AppCompatActivity {
     }
   }
 
+  private void openNewFilterEditorActivity() {
+    Intent intent = FilterEditorActivity.getInstance(this, true);
+    startActivityForResult(intent, EDIT_FILTER_ACTIVITY);
+  }
+
   private void openFilterEditorActivity() {
-    Intent intent = FilterEditorActivity.getInstance(this);
+    Intent intent = FilterEditorActivity.getInstance(this, false);
     startActivityForResult(intent, EDIT_FILTER_ACTIVITY);
   }
 

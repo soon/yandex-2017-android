@@ -9,6 +9,8 @@ import com.awesoon.thirdtask.util.JsonUtils;
 import com.squareup.moshi.Moshi;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -25,9 +27,15 @@ public class SysItemFilter {
   private List<SortFilter> sorts;
 
   public SysItemFilter() {
+    this.createdDateFilter = new DatePeriodFilter();
+    this.lastEditedDateFilter = new DatePeriodFilter();
+    this.lastViewedDateFilter = new DatePeriodFilter();
+    this.colors = new HashSet<>();
+    this.sorts = new ArrayList<>();
   }
 
   public SysItemFilter(String name) {
+    this();
     this.name = name;
   }
 

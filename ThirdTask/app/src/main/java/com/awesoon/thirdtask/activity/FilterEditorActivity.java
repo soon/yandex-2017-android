@@ -45,6 +45,8 @@ import java.util.Objects;
 public class FilterEditorActivity extends AppCompatActivity {
   public static final String DATE_FORMAT_STRING = "dd.MM.yyyy";
   public static final int SELECT_COLOR_ACTION_CODE = 1;
+  public static final String EXTRA_SHOULD_CREATE_NEW_FILTER = makeExtraIdent("EXTRA_SHOULD_CREATE_NEW_FILTER");
+  public static final String STATE_INITIAL_FILTER = makeExtraIdent("STATE_INITIAL_FILTER");
 
   private EditText nameEditText;
   private RecyclerView sortsRecyclerView;
@@ -66,10 +68,12 @@ public class FilterEditorActivity extends AppCompatActivity {
    * Creates intent instance for starting this activity.
    *
    * @param context A parent context.
+   * @param isNew   Whether the editor should create a new filter (true) or edit currently selected (false).
    * @return An intent.
    */
-  public static Intent getInstance(Context context) {
+  public static Intent getInstance(Context context, boolean isNew) {
     Intent intent = new Intent(context, FilterEditorActivity.class);
+    intent.putExtra(EXTRA_SHOULD_CREATE_NEW_FILTER, isNew);
     return intent;
   }
 
@@ -80,7 +84,7 @@ public class FilterEditorActivity extends AppCompatActivity {
     overridePendingTransition(R.anim.trans_left_in, R.anim.trans_left_out);
 
     initToolBar();
-    initMembers();
+    initMembers(savedInstanceState);
 
     initName();
     initSortsRecyclerView();
@@ -206,7 +210,7 @@ public class FilterEditorActivity extends AppCompatActivity {
     });
   }
 
-  private void initMembers() {
+  private void initMembers(Bundle savedInstanceState) {
     nameEditText = ActivityUtils.findViewById(this, R.id.filter_name, "R.id.filter_name");
     sortsRecyclerView = ActivityUtils.findViewById(this, R.id.orders_list, "R.id.orders_list");
     addSortButton = ActivityUtils.findViewById(this, R.id.add_new_order, "R.id.add_new_order");
@@ -226,7 +230,30 @@ public class FilterEditorActivity extends AppCompatActivity {
     colorsRecyclerView = ActivityUtils.findViewById(this, R.id.filtered_colors, "R.id.filtered_colors");
     addColorButton = ActivityUtils.findViewById(this, R.id.add_new_color, "R.id.add_new_color");
 
-    initialFilter = SysItemFilterRepository.getCurrentFilter(this);
+    if (savedInstanceState != null && savedInstanceState.containsKey(STATE_INITIAL_FILTER)) {
+      String json = savedInstanceState.getString(STATE_INITIAL_FILTER);
+      initialFilter = SysItemFilter.tryParseJson(json);
+    } else {
+      Intent intent = getIntent();
+      if (intent != null && intent.getExtras() != null) {
+        boolean isNew = intent.getExtras().getBoolean(EXTRA_SHOULD_CREATE_NEW_FILTER, false);
+        initialFilter = isNew ? new SysItemFilter() : SysItemFilterRepository.getCurrentFilter(this);
+      }
+    }
+
+    if (initialFilter == null) {
+      initialFilter = SysItemFilterRepository.getCurrentFilter(this);
+    }
+  }
+
+  @Override
+  protected void onSaveInstanceState(Bundle outState) {
+    super.onSaveInstanceState(outState);
+
+    if (initialFilter != null) {
+      initialFilter = getUpdatedFilter(false);
+      outState.putString(STATE_INITIAL_FILTER, initialFilter.toJson());
+    }
   }
 
   private void initToolBar() {
@@ -263,7 +290,7 @@ public class FilterEditorActivity extends AppCompatActivity {
   }
 
   private boolean wasElementChanged() {
-    SysItemFilter newFilter = getUpdatedFilter();
+    SysItemFilter newFilter = getUpdatedFilter(false);
     SysItemFilter currentFilter = SysItemFilterRepository.getCurrentFilter(this);
     return !Objects.equals(newFilter, currentFilter);
   }
@@ -277,14 +304,14 @@ public class FilterEditorActivity extends AppCompatActivity {
   }
 
   private void saveSysItemFilterAndFinish() {
-    SysItemFilter filter = getUpdatedFilter();
+    SysItemFilter filter = getUpdatedFilter(true);
     SysItemFilterRepository.updateCurrentFilter(this, filter);
 
     finish();
     overridePendingTransition(R.anim.trans_right_in, R.anim.trans_right_out);
   }
 
-  private SysItemFilter getUpdatedFilter() {
+  private SysItemFilter getUpdatedFilter(boolean setName) {
     SysItemFilter filter = SysItemFilterRepository.getCurrentFilter(this);
     List<SortFilter> sortFilters = sortFiltersAdapter.getItems();
 
@@ -303,12 +330,14 @@ public class FilterEditorActivity extends AppCompatActivity {
             extractDateTime(viewedEndDatePicker)))
         .setColors(new HashSet<>(colors));
 
-    String name = nameEditText.getText().toString();
-    if (StringUtils.isBlank(name)) {
-      name = getDefaultFilterName(filter);
-    }
+    if (setName) {
+      String name = nameEditText.getText().toString();
+      if (StringUtils.isBlank(name)) {
+        name = getDefaultFilterName(filter);
+      }
 
-    filter.setName(name);
+      filter.setName(name);
+    }
 
     return filter;
   }
@@ -367,5 +396,9 @@ public class FilterEditorActivity extends AppCompatActivity {
 
   private DateTimeFormatter getDateTimeFormatter() {
     return DateTimeFormat.forPattern(DATE_FORMAT_STRING);
+  }
+
+  private static String makeExtraIdent(String name) {
+    return "com.awesoon.thirdtask.activity.FilterEditorActivity." + name;
   }
 }

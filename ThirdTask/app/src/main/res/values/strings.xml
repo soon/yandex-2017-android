@@ -113,6 +113,11 @@
     <item>По убыванию</item>
   </string-array>
 
+  <string-array name="date_sort_directions">
+    <item>Сначала старые</item>
+    <item>Сначала новые</item>
+  </string-array>
+
   <string-array name="sort_order_values">
     <item>ASC</item>
     <item>DESC</item>

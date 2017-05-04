@@ -71,6 +71,7 @@ public class SortFiltersAdapter extends RecyclerView.Adapter<SortFiltersAdapter.
         } else {
           initializeSpinnerValues(holder.sortDirectionsSpinner, R.array.date_sort_directions);
         }
+        holder.sortDirectionsSpinner.setSelection(sortFilter.isAsc() ? ASC_DIRECTION_IDX : DESC_DIRECTION_IDX);
       }
 
       @Override
@@ -79,7 +80,6 @@ public class SortFiltersAdapter extends RecyclerView.Adapter<SortFiltersAdapter.
       }
     });
 
-    holder.sortDirectionsSpinner.setSelection(sortFilter.isAsc() ? ASC_DIRECTION_IDX : DESC_DIRECTION_IDX);
     holder.sortDirectionsSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
       @Override
       public void onItemSelected(AdapterView<?> parent, View view, int p, long id) {

@@ -28,22 +28,21 @@ public final class SysItemFilterRepository {
     return allFilterIdents == null ? new HashSet<String>() : new HashSet<>(allFilterIdents);
   }
 
-  @NonNull
-  public static SysItemFilter addNewItemFilter(@NonNull Context context, @NonNull SysItemFilter filter) {
+  public static void removeFiltersByUuids(@NonNull Context context, @NonNull Set<UUID> uuidsToRemove) {
     Assert.notNull(context, "context must not be null");
-    Assert.notNull(filter, "filter must not be null");
+    Assert.notNull(uuidsToRemove, "uuidsToRemove must not be null");
 
-    UUID uuid = getAvailableUuid(context);
-    filter.setUuid(uuid);
-    Set<String> allFilterIdents = getAllFilterUuids(context);
-    allFilterIdents.add(uuid.toString());
+    Set<String> allFilterUuids = getAllFilterUuids(context);
     SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
-    sharedPreferences.edit()
-        .putStringSet(ALL_FILTER_UUIDS_IDENT, new HashSet<>(allFilterIdents))
-        .putString(uuid.toString(), filter.toJson())
-        .apply();
+    SharedPreferences.Editor editor = sharedPreferences.edit();
 
-    return filter;
+    for (UUID uuid : uuidsToRemove) {
+      allFilterUuids.remove(uuid.toString());
+      editor.remove(uuid.toString());
+    }
+
+    editor.putStringSet(ALL_FILTER_UUIDS_IDENT, allFilterUuids)
+        .apply();
   }
 
   @NonNull

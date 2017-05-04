@@ -18,8 +18,18 @@
     android:checkableBehavior="single">
     <item
       android:checked="true"
+      android:id="@+id/drawer_add_filter"
+      android:icon="@drawable/ic_add_black_24dp"
+      android:title="@string/add_filter"/>
+    <item
+      android:checked="true"
       android:id="@+id/drawer_select_filter"
       android:icon="@drawable/ic_tune_black_24dp"
       android:title="@string/select_filter"/>
+    <item
+      android:checked="true"
+      android:id="@+id/drawer_remove_filters"
+      android:icon="@drawable/ic_remove_circle_black_24dp"
+      android:title="@string/remove_filter"/>
   </group>
 </menu>

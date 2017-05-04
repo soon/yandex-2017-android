@@ -142,4 +142,19 @@
   <string name="date_filter_name">Фильтр по дате</string>
 
   <string name="select_filter">Выбрать фильтр</string>
+  <string name="remove_filter">Удалить фильтр</string>
+  <string name="add_filter">Добавить фильтр</string>
+
+  <string name="remove">Удалить</string>
+
+  <string name="remove_filters_title">Удаление фильтров</string>
+
+  <plurals name="are_you_sure_you_want_to_delete_n_items">
+    <item quantity="one">Вы действительно хотите удалить %d фильтр?</item>
+    <item quantity="few">Вы действительно хотите удалить %d фильтра?</item>
+    <item quantity="other">Вы действительно хотите удалить %d фильтров?</item>
+  </plurals>
+
+  <string name="you_do_not_have_filters">У вас нет фильтров</string>
+  <string name="do_you_want_to_add_one_filter">Хотите добавить новый фильтр?</string>
 </resources>

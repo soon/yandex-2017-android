@@ -64,7 +64,13 @@ public class SortFiltersAdapter extends RecyclerView.Adapter<SortFiltersAdapter.
     holder.sortableFieldsSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
       @Override
       public void onItemSelected(AdapterView<?> parent, View view, int p, long id) {
-        sortFilter.setFilteredColumn(getFilteredColumn((int) id));
+        FilteredColumn filteredColumn = getFilteredColumn((int) id);
+        sortFilter.setFilteredColumn(filteredColumn);
+        if (filteredColumn == FilteredColumn.TITLE || filteredColumn == FilteredColumn.BODY) {
+          initializeSpinnerValues(holder.sortDirectionsSpinner, R.array.sort_directions);
+        } else {
+          initializeSpinnerValues(holder.sortDirectionsSpinner, R.array.date_sort_directions);
+        }
       }
 
       @Override

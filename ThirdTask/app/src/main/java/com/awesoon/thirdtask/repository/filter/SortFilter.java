@@ -1,5 +1,7 @@
 package com.awesoon.thirdtask.repository.filter;
 
+import java.util.Objects;
+
 public class SortFilter {
   private FilteredColumn filteredColumn;
   private boolean isAsc;
@@ -47,20 +49,13 @@ public class SortFilter {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-
     SortFilter that = (SortFilter) o;
-
-    if (isAsc != that.isAsc) {
-      return false;
-    }
-    return filteredColumn == that.filteredColumn;
-
+    return isAsc == that.isAsc &&
+        filteredColumn == that.filteredColumn;
   }
 
   @Override
   public int hashCode() {
-    int result = filteredColumn != null ? filteredColumn.hashCode() : 0;
-    result = 31 * result + (isAsc ? 1 : 0);
-    return result;
+    return Objects.hash(filteredColumn, isAsc);
   }
 }

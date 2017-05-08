@@ -2,6 +2,10 @@ package com.awesoon.thirdtask.util;
 
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.support.annotation.Nullable;
+
+import com.awesoon.core.sql.Page;
+import com.awesoon.core.sql.Pageable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -114,17 +118,23 @@ public class SqlUtils {
    * @param <T>           A row type.
    * @return A list of selected rows.
    */
-  public static <T> List<T> queryForList(SQLiteDatabase db, String sql, RowMapper<T> rowMapper,
-                                         Object... selectionArgs) {
+  public static <T> List<T> queryForList(SQLiteDatabase db, String sql,
+                                         RowMapper<T> rowMapper, Object... selectionArgs) {
+    return queryForList(db, sql, rowMapper, convertToStringArgs(selectionArgs));
+  }
+
+  @Nullable
+  private static String[] convertToStringArgs(Object[] selectionArgs) {
     if (selectionArgs == null) {
-      return queryForList(db, sql, rowMapper, (String[]) null);
+      return null;
     }
+
     String[] args = new String[selectionArgs.length];
     for (int i = 0; i < args.length; i++) {
       args[i] = selectionArgs[i] == null ? null : selectionArgs[i].toString();
     }
 
-    return queryForList(db, sql, rowMapper, args);
+    return args;
   }
 
   /**
@@ -137,9 +147,47 @@ public class SqlUtils {
    * @param <T>           A row type.
    * @return A list of selected rows.
    */
-  public static <T> List<T> queryForList(SQLiteDatabase db, String sql, RowMapper<T> rowMapper,
-                                         String... selectionArgs) {
+  public static <T> List<T> queryForList(SQLiteDatabase db, String sql,
+                                         RowMapper<T> rowMapper, String... selectionArgs) {
+    Page<T> page = queryForPage(db, sql, null, rowMapper, selectionArgs);
+    return page.getData();
+  }
+
+
+  /**
+   * Executes given sql and retrieves page of data using the given row mapper.
+   *
+   * @param db            Db connection.
+   * @param sql           Sql to execute.
+   * @param pageable      Pagination options. Nullable.
+   * @param rowMapper     Row mapper.
+   * @param selectionArgs Selection arguments. Nullable.
+   * @param <T>           A row type.
+   * @return A page of selected rows.
+   */
+  public static <T> Page<T> queryForPage(SQLiteDatabase db, String sql, @Nullable Pageable pageable,
+                                         RowMapper<T> rowMapper, Object... selectionArgs) {
+    return queryForPage(db, sql, pageable, rowMapper, convertToStringArgs(selectionArgs));
+  }
+
+  /**
+   * Executes given sql and retrieves page of data using the given row mapper.
+   *
+   * @param db            Db connection.
+   * @param sql           Sql to execute.
+   * @param pageable      Pagination options. Nullable.
+   * @param rowMapper     Row mapper.
+   * @param selectionArgs Selection arguments. Nullable.
+   * @param <T>           A row type.
+   * @return A page of selected rows.
+   */
+  public static <T> Page<T> queryForPage(SQLiteDatabase db, String sql, @Nullable Pageable pageable,
+                                         RowMapper<T> rowMapper, String... selectionArgs) {
     List<T> rows = new ArrayList<>();
+
+    if (pageable != null) {
+      sql += " LIMIT " + pageable.getOffset() + ", " + pageable.getPageSize();
+    }
 
     try (Cursor cursor = db.rawQuery(sql, selectionArgs)) {
       int rowNumber = 0;
@@ -151,7 +199,31 @@ public class SqlUtils {
       }
     }
 
-    return rows;
+    int totalElementsCount;
+    if (pageable != null) {
+      totalElementsCount = queryCountAll(db, sql);
+    } else {
+      totalElementsCount = rows.size();
+    }
+
+    int pageNumber = pageable == null ? 0 : pageable.getPageNumber();
+    int pageSize = pageable == null ? totalElementsCount : pageable.getPageSize();
+    int totalPages = 0;
+    if (pageSize != 0) {
+      totalPages = totalElementsCount / pageSize;
+      if (totalElementsCount % pageSize != 0) {
+        totalPages++;
+      }
+    }
+
+    Page<T> page = new Page<T>()
+        .setData(rows)
+        .setTotalElements(totalElementsCount)
+        .setNumber(pageNumber)
+        .setSize(pageSize)
+        .setTotalPages(totalPages);
+
+    return page;
   }
 
   /**
@@ -165,6 +237,19 @@ public class SqlUtils {
    */
   public static <T> List<T> queryForList(SQLiteDatabase db, String sql, RowMapper<T> rowMapper) {
     return queryForList(db, sql, rowMapper, (String[]) null);
+  }
+
+  public static int queryCountAll(SQLiteDatabase db, String sql) {
+    String countAllSql = "SELECT COUNT(*) FROM (" + sql + ")";
+    Integer size = queryForObject(db, countAllSql, new RowMapper<Integer>() {
+      @Override
+      public Integer mapRow(Cursor cursor, int rowNumber) {
+        return cursor.getInt(0);
+      }
+    });
+    Assert.notNull(size, "size must not be null");
+
+    return size;
   }
 
   public static class AlterTableBuilder {

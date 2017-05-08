@@ -9,11 +9,12 @@
   tools:context="com.awesoon.thirdtask.activity.MainActivity"
   tools:showIn="@layout/activity_main">
 
-  <ListView
+  <android.support.v7.widget.RecyclerView
     android:id="@+id/elements_list"
-    android:layout_width="wrap_content"
+    android:scrollbars="vertical"
+    android:layout_width="match_parent"
     android:layout_height="wrap_content">
 
-  </ListView>
+  </android.support.v7.widget.RecyclerView>
 
 </android.support.constraint.ConstraintLayout>

@@ -7,10 +7,10 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.StringRes;
 import android.support.v7.app.AlertDialog;
+import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.BaseAdapter;
 import android.widget.Filter;
 import android.widget.Filterable;
 import android.widget.TextView;
@@ -21,6 +21,7 @@ import com.awesoon.thirdtask.event.SysItemRemoveListener;
 import com.awesoon.thirdtask.util.Assert;
 import com.awesoon.thirdtask.util.Consumer;
 import com.awesoon.thirdtask.util.StringUtils;
+import com.awesoon.thirdtask.util.ViewUtils;
 
 import net.danlew.android.joda.DateUtils;
 
@@ -29,7 +30,7 @@ import org.joda.time.DateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SysItemsAdapter extends BaseAdapter implements Filterable {
+public class SysItemsAdapter extends RecyclerView.Adapter<SysItemsAdapter.ViewHolder> implements Filterable {
   private final Object dataLock = new Object();
 
   private final List<SysItem> originalData;
@@ -41,6 +42,7 @@ public class SysItemsAdapter extends BaseAdapter implements Filterable {
   private final int noResource;
   private final ItemFilter filter;
   private final int viewResource;
+  private Consumer<SysItem> onItemClickListener;
 
   public SysItemsAdapter(@NonNull Context context, @LayoutRes int resource, @NonNull List<SysItem> objects,
                          @StringRes int removeDialogMessageResource, @StringRes int yesResource,
@@ -56,46 +58,24 @@ public class SysItemsAdapter extends BaseAdapter implements Filterable {
   }
 
   @Override
-  public int getCount() {
-    return filteredData.size();
+  public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+    View v = LayoutInflater.from(parent.getContext()).inflate(viewResource, parent, false);
+
+    ViewHolder vh = new ViewHolder(v);
+
+    vh.titleTextView = ViewUtils.findViewById(v, R.id.element_title, "R.id.element_title");
+    vh.bodyTextView = ViewUtils.findViewById(v, R.id.element_body, "R.id.element_body");
+    vh.createdTextView = ViewUtils.findViewById(v, R.id.element_created_time, "R.id.element_created_time");
+    vh.lastEditedTextView = ViewUtils.findViewById(v, R.id.element_last_updated_time, "R.id.element_last_updated_time");
+    vh.lastViewedTextView = ViewUtils.findViewById(v, R.id.element_last_viewed_time, "R.id.element_last_viewed_time");
+    vh.elementColorView = ViewUtils.findViewById(v, R.id.element_color, "R.id.element_color");
+    vh.removeElementButton = ViewUtils.findViewById(v, R.id.remove_element, "R.id.remove_element");
+
+    return vh;
   }
 
   @Override
-  public SysItem getItem(int position) {
-    return filteredData.get(position);
-  }
-
-  @Override
-  public long getItemId(int position) {
-    return 0;
-  }
-
-  @Override
-  public Filter getFilter() {
-    return filter;
-  }
-
-  @NonNull
-  @Override
-  public View getView(final int position, @Nullable View convertView, @NonNull ViewGroup parent) {
-    ViewHolder holder;
-
-    if (convertView == null) {
-      LayoutInflater inflater = LayoutInflater.from(getContext());
-      convertView = inflater.inflate(viewResource, null);
-      holder = new ViewHolder();
-      holder.titleTextView = (TextView) convertView.findViewById(R.id.element_title);
-      holder.bodyTextView = (TextView) convertView.findViewById(R.id.element_body);
-      holder.createdTextView = (TextView) convertView.findViewById(R.id.element_created_time);
-      holder.lastEditedTextView = (TextView) convertView.findViewById(R.id.element_last_updated_time);
-      holder.lastViewedTextView = (TextView) convertView.findViewById(R.id.element_last_viewed_time);
-      holder.elementColorView = (ElementColorView) convertView.findViewById(R.id.element_color);
-      holder.removeElementButton = convertView.findViewById(R.id.remove_element);
-      convertView.setTag(holder);
-    } else {
-      holder = (ViewHolder) convertView.getTag();
-    }
-
+  public void onBindViewHolder(final ViewHolder holder, int position) {
     final SysItem sysItem = getItem(position);
     Assert.notNull(sysItem, "sysItem must not be null");
 
@@ -114,12 +94,34 @@ public class SysItemsAdapter extends BaseAdapter implements Filterable {
       holder.removeElementButton.setOnClickListener(new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-          handleElementRemoving(sysItem, position);
+          handleElementRemoving(sysItem, holder.getAdapterPosition());
+        }
+      });
+      holder.itemView.setOnClickListener(new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+          if (onItemClickListener != null) {
+            int position = holder.getAdapterPosition();
+            SysItem item = getItem(position);
+            onItemClickListener.apply(item);
+          }
         }
       });
     }
+  }
 
-    return convertView;
+  public SysItem getItem(int position) {
+    return filteredData.get(position);
+  }
+
+  @Override
+  public int getItemCount() {
+    return filteredData.size();
+  }
+
+  @Override
+  public Filter getFilter() {
+    return filter;
   }
 
   public Context getContext() {
@@ -201,6 +203,10 @@ public class SysItemsAdapter extends BaseAdapter implements Filterable {
     notifyDataSetChanged();
   }
 
+  public void addOnItemClickListener(Consumer<SysItem> consumer) {
+    onItemClickListener = consumer;
+  }
+
   private class ItemFilter extends Filter {
     private Consumer<List<SysItem>> onItemsFilteredConsumer;
 
@@ -242,7 +248,11 @@ public class SysItemsAdapter extends BaseAdapter implements Filterable {
     }
   }
 
-  private static class ViewHolder {
+  public static class ViewHolder extends RecyclerView.ViewHolder {
+    public ViewHolder(View itemView) {
+      super(itemView);
+    }
+
     private TextView titleTextView;
     private TextView bodyTextView;
     private TextView createdTextView;

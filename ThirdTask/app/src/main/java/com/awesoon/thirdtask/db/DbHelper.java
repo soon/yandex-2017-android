@@ -9,6 +9,10 @@ import android.os.AsyncTask;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
+import com.awesoon.core.async.AsyncTaskBuilder;
+import com.awesoon.core.async.AsyncTaskProducer;
+import com.awesoon.core.sql.Page;
+import com.awesoon.core.sql.Pageable;
 import com.awesoon.thirdtask.domain.FavoriteColor;
 import com.awesoon.thirdtask.domain.SysItem;
 import com.awesoon.thirdtask.util.Action;
@@ -242,15 +246,28 @@ public class DbHelper extends SQLiteOpenHelper {
    */
   public List<SysItem> addSysItems(List<SysItem> items) {
     Assert.notNull(items, "items must not be null");
-    SQLiteDatabase db = getWritableDatabase();
 
     SavingOptions savingOptions = SavingOptions.getDefault()
-        .setDb(db)
-        .setNotifyItemInserted(false)
-        .setNotifyItemUpdated(false)
         .setOverwriteCreatedTime(false)
         .setOverwriteLastEditedTime(false)
         .setOverwriteLastViewedTime(false);
+    return addSysItems(items, savingOptions);
+  }
+
+  /**
+   * Adds sys items to the db.
+   *
+   * @param items An items to add.
+   * @return Added items.
+   */
+  public List<SysItem> addSysItems(List<SysItem> items, SavingOptions savingOptions) {
+    Assert.notNull(items, "items must not be null");
+    SQLiteDatabase db = getWritableDatabase();
+
+    savingOptions
+        .setDb(db)
+        .setNotifyItemInserted(false)
+        .setNotifyItemUpdated(false);
 
     try {
       db.beginTransaction();
@@ -385,6 +402,33 @@ public class DbHelper extends SQLiteOpenHelper {
     return SqlUtils.queryForList(db, sql, SysItemMapper.INSTANCE);
   }
 
+  public void findSysItemsAsync(final Pageable pageable, Consumer<Page<SysItem>> successConsumer) {
+    AsyncTaskBuilder
+        .firstly(new AsyncTaskProducer<Page<SysItem>>() {
+          @Override
+          public Page<SysItem> doApply() {
+            return findSysItems(pageable);
+          }
+        }, successConsumer)
+        .build().execute();
+  }
+
+  /**
+   * Retrieves page of sys items.
+   *
+   * @return A page of sys items.
+   */
+  public Page<SysItem> findSysItems(Pageable pageable) {
+    Assert.notNull(pageable, "pageable must not be null");
+
+    SQLiteDatabase db = getReadableDatabase();
+    String sql = String.format("SELECT * FROM %s a ORDER BY a.%s",
+        SysItem.SysItemEntry.TABLE_NAME,
+        SysItem.SysItemEntry.COLUMN_NAME_TITLE);
+
+    return SqlUtils.queryForPage(db, sql, pageable, SysItemMapper.INSTANCE);
+  }
+
   /**
    * Finds a sys item by the id.
    *
@@ -516,7 +560,7 @@ public class DbHelper extends SQLiteOpenHelper {
     }
   }
 
-  private static class SavingOptions {
+  public static class SavingOptions {
     private SQLiteDatabase db;
     private boolean notifyItemInserted;
     private boolean notifyItemUpdated;

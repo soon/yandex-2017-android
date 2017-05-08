@@ -12,6 +12,8 @@ import android.support.design.widget.NavigationView;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
@@ -21,12 +23,13 @@ import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ListView;
 import android.widget.Toast;
 
+import com.awesoon.core.sql.Page;
+import com.awesoon.core.sql.PageRequest;
 import com.awesoon.thirdtask.NotesApplication;
 import com.awesoon.thirdtask.R;
+import com.awesoon.thirdtask.activity.listener.EndlessRecyclerViewScrollListener;
 import com.awesoon.thirdtask.db.DbHelper;
 import com.awesoon.thirdtask.db.GlobalDbState;
 import com.awesoon.thirdtask.domain.SysItem;
@@ -71,7 +74,7 @@ public class MainActivity extends AppCompatActivity {
   public static final String STATE_FILTER_QUERY_TEXT = makeExtraIdent("STATE_FILTER_QUERY_TEXT");
 
   private Integer defaultItemColor;
-  private ListView elementsList;
+  private RecyclerView elementsList;
   private SysItemsAdapter sysItemsAdapter;
   private NavigationView drawerNavView;
   private String filterQueryText;
@@ -109,6 +112,9 @@ public class MainActivity extends AppCompatActivity {
           case R.id.drawer_add_filter:
             openNewFilterEditorActivity();
             return true;
+          case R.id.generate_notes:
+            generateNotes();
+            return true;
         }
 
         return false;
@@ -142,6 +148,13 @@ public class MainActivity extends AppCompatActivity {
       }
     });
 
+    refreshData(dbHelper);
+  }
+
+  private void generateNotes() {
+    NotesApplication app = (NotesApplication) getApplication();
+    final DbHelper dbHelper = app.getDbHelper();
+    List<SysItem> sysItems = SysItemRepository.generateNotes(dbHelper, 100);
     refreshData(dbHelper);
   }
 
@@ -649,16 +662,32 @@ public class MainActivity extends AppCompatActivity {
       }
     });
 
-    elementsList.setAdapter(sysItemsAdapter);
-    // disable built-in popup
-    elementsList.setTextFilterEnabled(false);
-    elementsList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+    sysItemsAdapter.addOnItemClickListener(new Consumer<SysItem>() {
       @Override
-      public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-        SysItem sysItem = (SysItem) parent.getItemAtPosition(position);
+      public void apply(SysItem sysItem) {
         openElementEditorActivity(sysItem.getId());
       }
     });
+
+    elementsList.setAdapter(sysItemsAdapter);
+
+    final LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
+    elementsList.setLayoutManager(linearLayoutManager);
+    EndlessRecyclerViewScrollListener scrollListener = new EndlessRecyclerViewScrollListener(linearLayoutManager) {
+      @Override
+      public void doLoadItems(int page, int totalItemsCount, RecyclerView view) {
+        dbHelper.findSysItemsAsync(new PageRequest(page, 25), new Consumer<Page<SysItem>>() {
+          @Override
+          public void apply(Page<SysItem> sysItemPage) {
+            if (!sysItemPage.isEmpty()) {
+              sysItemsAdapter.addAll(sysItemPage.getData());
+            }
+          }
+        });
+      }
+    };
+
+    elementsList.addOnScrollListener(scrollListener);
   }
 
   private void initFab() {
@@ -834,19 +863,16 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected FilteredItemsContainer doInBackground(Void... params) {
-      filter = SysItemFilterRepository.getCurrentFilter(activity);
-      FilteredItemsContainer filteredItems = SysItemRepository.getAllItemsFiltered(dbHelper, filter);
-      return filteredItems;
+      Page<SysItem> sysItems = dbHelper.findSysItems(new PageRequest(0, 25));
+      return new FilteredItemsContainer(sysItems.getData(), sysItems.getData());
+//      filter = SysItemFilterRepository.getCurrentFilter(activity);
+//      FilteredItemsContainer filteredItems = SysItemRepository.getAllItemsFiltered(dbHelper, filter);
+//      return filteredItems;
     }
 
     @Override
     protected void onPostExecute(final FilteredItemsContainer items) {
-      activity.runOnUiThread(new Runnable() {
-        @Override
-        public void run() {
-          activity.setSysItems(items);
-        }
-      });
+      activity.setSysItems(items);
     }
   }
 }

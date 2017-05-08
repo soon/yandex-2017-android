@@ -31,5 +31,10 @@
       android:id="@+id/drawer_remove_filters"
       android:icon="@drawable/ic_remove_circle_black_24dp"
       android:title="@string/remove_filter"/>
+    <item
+      android:checked="true"
+      android:id="@+id/generate_notes"
+      android:icon="@drawable/ic_remove_circle_black_24dp"
+      android:title="100 000 заметок"/>
   </group>
 </menu>

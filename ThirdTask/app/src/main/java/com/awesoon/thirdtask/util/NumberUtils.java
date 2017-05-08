@@ -3,6 +3,7 @@ package com.awesoon.thirdtask.util;
 import android.support.annotation.Nullable;
 
 import java.math.BigDecimal;
+import java.util.Random;
 
 
 public class NumberUtils {
@@ -28,5 +29,10 @@ public class NumberUtils {
     } catch (Exception e) {
       return null;
     }
+  }
+
+  public static int nextRandomInt(Random rnd, int start, int endExclusive) {
+    Assert.isTrue(endExclusive > start, "endExclusive should be greater than start");
+    return rnd.nextInt(endExclusive - start) + start;
   }
 }

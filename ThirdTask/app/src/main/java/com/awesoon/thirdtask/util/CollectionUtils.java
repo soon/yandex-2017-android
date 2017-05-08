@@ -1,6 +1,9 @@
 package com.awesoon.thirdtask.util;
 
+import com.android.internal.util.Predicate;
+
 import java.lang.reflect.Array;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -31,5 +34,38 @@ public class CollectionUtils {
     }
 
     return transformed;
+  }
+
+  public static <T> List<T> filter(List<T> data, Predicate<T> predicate) {
+    if (data == null) {
+      return new ArrayList<>();
+    }
+
+    ArrayList<T> result = new ArrayList<>(data.size());
+    for (T element : data) {
+      if (predicate.apply(element)) {
+        result.add(element);
+      }
+    }
+
+    return result;
+  }
+
+  public static <T, U> List<U> mapNotNull(List<T> data, Function<T, U> transformer) {
+    if (data == null) {
+      return new ArrayList<>();
+    }
+
+    ArrayList<U> result = new ArrayList<>(data.size());
+    for (T element : data) {
+      if (element != null) {
+        U transformed = transformer.apply(element);
+        if (transformed != null) {
+          result.add(transformed);
+        }
+      }
+    }
+
+    return result;
   }
 }

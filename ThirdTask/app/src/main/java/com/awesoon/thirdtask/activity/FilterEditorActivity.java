@@ -305,7 +305,7 @@ public class FilterEditorActivity extends AppCompatActivity {
 
   private void saveSysItemFilterAndFinish() {
     SysItemFilter filter = getUpdatedFilter(true);
-    SysItemFilterRepository.saveFilter(this, filter);
+    SysItemFilterRepository.saveFilter(this, filter, true);
 
     finish();
     overridePendingTransition(R.anim.trans_right_in, R.anim.trans_right_out);

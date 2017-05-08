@@ -6,8 +6,12 @@ import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import com.android.internal.util.Predicate;
 import com.awesoon.thirdtask.repository.filter.SysItemFilter;
 import com.awesoon.thirdtask.util.Assert;
+import com.awesoon.thirdtask.util.CollectionUtils;
+import com.awesoon.thirdtask.util.Function;
+import com.awesoon.thirdtask.util.NameUtils;
 import com.awesoon.thirdtask.util.StringUtils;
 
 import java.util.ArrayList;
@@ -15,6 +19,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -46,23 +51,47 @@ public final class SysItemFilterRepository {
   }
 
   @NonNull
-  public static SysItemFilter saveFilter(@NonNull Context context, @NonNull SysItemFilter filter) {
+  public static SysItemFilter saveFilter(@NonNull Context context, @NonNull final SysItemFilter newFilter,
+                                         boolean selectSavedFilter) {
     Assert.notNull(context, "context must not be null");
-    Assert.notNull(filter, "filter must not be null");
+    Assert.notNull(newFilter, "newFilter must not be null");
 
-    if (filter.getUuid() == null) {
-      filter.setUuid(getAvailableUuid(context));
+    if (newFilter.getUuid() == null) {
+      newFilter.setUuid(getAvailableUuid(context));
     }
 
+    List<String> otherFilterNames = CollectionUtils.mapNotNull(
+        CollectionUtils.filter(getAllFilters(context), new Predicate<SysItemFilter>() {
+          @Override
+          public boolean apply(SysItemFilter filter) {
+            return filter != null && !Objects.equals(newFilter.getUuid(), filter.getUuid());
+          }
+        }),
+        new Function<SysItemFilter, String>() {
+          @Override
+          public String apply(SysItemFilter filter) {
+            return filter.getName();
+          }
+        });
+
+    String uniqueName = NameUtils.createUniqueName(newFilter.getName(), otherFilterNames);
+    newFilter.setName(uniqueName);
+
     Set<String> allFilterUuids = getAllFilterUuids(context);
-    allFilterUuids.add(filter.getUuid().toString());
+    allFilterUuids.add(newFilter.getUuid().toString());
     SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
-    sharedPreferences.edit()
-        .putStringSet(ALL_FILTER_UUIDS_IDENT, allFilterUuids)
-        .putString(filter.getUuid().toString(), filter.toJson())
+    SharedPreferences.Editor editor = sharedPreferences.edit();
+    editor.putStringSet(ALL_FILTER_UUIDS_IDENT, allFilterUuids)
+        .putString(newFilter.getUuid().toString(), newFilter.toJson())
         .apply();
 
-    return filter;
+    if (selectSavedFilter) {
+      editor.putString(CURRENT_FILTER_UUID_IDENT, newFilter.getUuid().toString());
+    }
+
+    editor.apply();
+
+    return newFilter;
   }
 
   public static void removeFiltersByUuids(@NonNull Context context, @NonNull Set<UUID> uuidsToRemove) {

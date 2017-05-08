@@ -24,4 +24,12 @@ public final class StringUtils {
 
     return original.toLowerCase().contains(pattern.toLowerCase().trim());
   }
+
+  public static boolean startsWithTrimmed(String original, String pattern) {
+    if (original == null || pattern == null) {
+      return false;
+    }
+
+    return original.trim().startsWith(pattern.trim());
+  }
 }

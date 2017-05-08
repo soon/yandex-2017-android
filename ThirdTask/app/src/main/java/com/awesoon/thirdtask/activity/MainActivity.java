@@ -431,30 +431,7 @@ public class MainActivity extends AppCompatActivity {
       return;
     }
 
-    NotesApplication app = (NotesApplication) getApplication();
-    final DbHelper dbHelper = app.getDbHelper();
-    dbHelper.findAllSysItemsAsync(new Consumer<List<SysItem>>() {
-      @Override
-      public void apply(final List<SysItem> items) {
-        if (items.isEmpty()) {
-          openSelectFileToImportDialog();
-        } else {
-          String message = getResources()
-              .getQuantityString(R.plurals.are_you_sure_you_want_to_delete_n_notes, items.size(), items.size());
-          new AlertDialog.Builder(MainActivity.this)
-              .setTitle(R.string.all_notes_will_be_deleted)
-              .setMessage(message)
-              .setPositiveButton(R.string.delete, new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                  openSelectFileToImportDialog();
-                }
-              })
-              .setNegativeButton(R.string.cancel, null)
-              .show();
-        }
-      }
-    });
+    openSelectFileToImportDialog();
   }
 
   /**
@@ -527,7 +504,7 @@ public class MainActivity extends AppCompatActivity {
       return;
     }
 
-    Uri uri = data.getData();
+    final Uri uri = data.getData();
     NotesApplication app = (NotesApplication) getApplication();
     final DbHelper dbHelper = app.getDbHelper();
 
@@ -554,19 +531,54 @@ public class MainActivity extends AppCompatActivity {
           return;
         }
 
-        dbHelper.replaceAllSysItemsAsync(importedItems, new Consumer<List<SysItem>>() {
+        dbHelper.findAllSysItemsAsync(new Consumer<List<SysItem>>() {
           @Override
-          public void apply(List<SysItem> sysItems) {
-            String message = getResources()
-                .getQuantityString(R.plurals.notes_have_been_imported_message, sysItems.size(), sysItems.size());
+          public void apply(final List<SysItem> items) {
+            if (items.isEmpty()) {
+              replaceCurrentNotes(dbHelper, importedItems, exceptionConsumer);
+              return;
+            }
 
-            new AlertDialog.Builder(MainActivity.this)
-                .setTitle(R.string.notes_have_been_imported_title)
-                .setMessage(message)
-                .setPositiveButton(R.string.ok, null)
-                .show();
+            int currentItemsCount = items.size();
+            showRemoveCurrentNotesDialog(dbHelper, currentItemsCount, importedItems, exceptionConsumer);
           }
-        }, exceptionConsumer);
+        });
+      }
+    }, exceptionConsumer);
+  }
+
+  private void showRemoveCurrentNotesDialog(final DbHelper dbHelper, int currentItemsCount,
+                                            final List<SysItem> importedItems,
+                                            final Consumer<Exception> exceptionConsumer) {
+    String message = getResources()
+        .getQuantityString(R.plurals.are_you_sure_you_want_to_delete_n_notes, currentItemsCount, currentItemsCount);
+    new AlertDialog.Builder(MainActivity.this)
+        .setTitle(R.string.all_notes_will_be_deleted)
+        .setMessage(message)
+        .setPositiveButton(R.string.delete, new DialogInterface.OnClickListener() {
+          @Override
+          public void onClick(DialogInterface dialog, int which) {
+            replaceCurrentNotes(dbHelper, importedItems, exceptionConsumer);
+          }
+        })
+        .setNegativeButton(R.string.cancel, null)
+        .show();
+  }
+
+  private void replaceCurrentNotes(DbHelper dbHelper, List<SysItem> importedItems,
+                                   Consumer<Exception> exceptionConsumer) {
+
+    dbHelper.replaceAllSysItemsAsync(importedItems, new Consumer<List<SysItem>>() {
+      @Override
+      public void apply(List<SysItem> sysItems) {
+        String message = getResources()
+            .getQuantityString(R.plurals.notes_have_been_imported_message, sysItems.size(), sysItems.size());
+
+        new AlertDialog.Builder(MainActivity.this)
+            .setTitle(R.string.notes_have_been_imported_title)
+            .setMessage(message)
+            .setPositiveButton(R.string.ok, null)
+            .show();
       }
     }, exceptionConsumer);
   }

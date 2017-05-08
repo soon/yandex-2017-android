@@ -51,6 +51,20 @@ public class DbHelperUpgradeTest {
   }
 
   @Test
+  public void testUpgrade1to3() throws Exception {
+    // this is a placeholder test for the future db upgrades
+
+    // given
+    dbHelper.installSpecificDbVersionInternal(DbHelper.DATABASE_VERSION_1);
+
+    // when
+    dbHelper.performUpgradeInternal(DbHelper.DATABASE_VERSION_1, DbHelper.DATABASE_VERSION_2 + 1);
+
+    // then
+    // no exceptions expected
+  }
+
+  @Test
   public void testUpgrade1to2__setDateTime() throws Exception {
     // given
     dbHelper.installSpecificDbVersionInternal(DbHelper.DATABASE_VERSION_1);

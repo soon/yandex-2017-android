@@ -704,7 +704,7 @@ public class MainActivity extends AppCompatActivity {
    * @return Full ident name.
    */
   public static String makeExtraIdent(String name) {
-    return "com.awesoon.thirdtask.activity.MainActivity." + name;
+    return MainActivity.class.getCanonicalName() + "." + name;
   }
 
   /**

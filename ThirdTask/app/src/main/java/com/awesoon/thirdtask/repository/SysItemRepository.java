@@ -1,8 +1,11 @@
 package com.awesoon.thirdtask.repository;
 
 import android.content.ContentResolver;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.provider.DocumentsContract;
+import android.provider.OpenableColumns;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
@@ -15,6 +18,7 @@ import com.awesoon.thirdtask.repository.filter.SysItemFilter;
 import com.awesoon.thirdtask.util.Assert;
 import com.awesoon.thirdtask.util.Consumer;
 import com.awesoon.thirdtask.util.DateTimeUtils;
+import com.awesoon.thirdtask.util.StringUtils;
 
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeComparator;
@@ -29,6 +33,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 public final class SysItemRepository {
   private static final String TAG = "SysItemRepository";
@@ -179,17 +184,50 @@ public final class SysItemRepository {
    * @param uri             A file path.
    * @throws IOException When there is a problem with opening the file.
    */
-  public static void storeAllItemsToFile(List<SysItem> items, ContentResolver contentResolver, Uri uri) throws IOException {
+  public static void storeAllItemsToFile(List<SysItem> items, ContentResolver contentResolver, Uri uri)
+      throws IOException {
+
     Assert.notNull(items, "items must not be null");
     Assert.notNull(uri, "uri must not be null");
     Assert.notNull(contentResolver, "contentResolver must not be null");
 
     SysItemsContainer container = new SysItemsContainer(items);
 
-    try (OutputStreamWriter writer = new OutputStreamWriter(contentResolver.openOutputStream(uri));
-         BufferedWriter bufferedWriter = new BufferedWriter(writer)) {
-      bufferedWriter.write(container.toJson());
+    if (!isFileNameValid(contentResolver, uri)) {
+      String fileName = getFileName(contentResolver, uri);
+      tryRemoveFile(contentResolver, uri);
+      throw new RuntimeException("Invalid filename " + fileName);
+    } else {
+      try (OutputStreamWriter writer = new OutputStreamWriter(contentResolver.openOutputStream(uri));
+           BufferedWriter bufferedWriter = new BufferedWriter(writer)) {
+        bufferedWriter.write(container.toJson());
+      }
     }
+  }
+
+  private static void tryRemoveFile(ContentResolver contentResolver, Uri uri) {
+    try {
+      DocumentsContract.deleteDocument(contentResolver, uri);
+    } catch (Exception e) {
+      Log.e(TAG, "Unable to remove file " + uri, e);
+    }
+  }
+
+  private static boolean isFileNameValid(ContentResolver contentResolver, Uri uri) {
+    String fileName = getFileName(contentResolver, uri);
+    Pattern invalidFileNamePattern = Pattern.compile("\\(invalid\\)( \\(\\d+\\))?");
+    return !StringUtils.isBlank(fileName) && !invalidFileNamePattern.matcher(fileName).matches();
+  }
+
+  @Nullable
+  private static String getFileName(ContentResolver contentResolver, Uri uri) {
+    try (Cursor cursor = contentResolver.query(uri, null, null, null, null)) {
+      if (cursor != null && cursor.moveToFirst()) {
+        return cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
+      }
+    }
+
+    return null;
   }
 
   @Nullable

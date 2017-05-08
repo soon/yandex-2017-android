@@ -38,7 +38,7 @@
 
   <string name="notes_have_not_been_saved_title">Не удалось экспортировать заметки</string>
   <string name="notes_have_not_been_saved_message">
-    Пожалуйста, убедитесь, что директория выбрана верно
+    Пожалуйста, убедитесь, что имя файла выбрано верно
   </string>
 
   <string name="you_do_not_have_notes">У вас нет заметок</string>

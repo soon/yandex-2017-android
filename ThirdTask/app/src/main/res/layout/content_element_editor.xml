@@ -65,7 +65,7 @@
       android:drawableLeft="@drawable/ic_add_black_16dp"
       android:drawablePadding="4dp"
       android:freezesText="true"
-      android:paddingTop="16dp"/>
+      android:paddingTop="@dimen/content_element_editor_time_padding_top"/>
 
     <TextView
       android:id="@+id/last_updated_time"
@@ -75,7 +75,7 @@
       android:drawableLeft="@drawable/ic_edit_black_16dp"
       android:drawablePadding="4dp"
       android:freezesText="true"
-      android:paddingTop="16dp"/>
+      android:paddingTop="@dimen/content_element_editor_time_padding_top"/>
 
     <TextView
       android:id="@+id/last_viewed_time"
@@ -85,6 +85,6 @@
       android:drawableLeft="@drawable/ic_eye_black_16dp"
       android:drawablePadding="4dp"
       android:freezesText="true"
-      android:paddingTop="16dp"/>
+      android:paddingTop="@dimen/content_element_editor_time_padding_top"/>
   </LinearLayout>
 </android.support.constraint.ConstraintLayout>

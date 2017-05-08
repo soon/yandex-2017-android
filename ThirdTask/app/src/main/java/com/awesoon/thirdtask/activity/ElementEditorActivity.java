@@ -8,26 +8,34 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.StringRes;
 import android.support.v4.app.NavUtils;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.text.Editable;
-import android.text.TextWatcher;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.TextView;
 
+import com.awesoon.thirdtask.NotesApplication;
 import com.awesoon.thirdtask.R;
+import com.awesoon.thirdtask.adapter.text.TextWatcherAdapter;
 import com.awesoon.thirdtask.db.DbHelper;
 import com.awesoon.thirdtask.domain.SysItem;
+import com.awesoon.thirdtask.util.ActivityUtils;
 import com.awesoon.thirdtask.util.Assert;
 import com.awesoon.thirdtask.util.BeautifulColors;
 import com.awesoon.thirdtask.util.StringUtils;
 import com.awesoon.thirdtask.view.ElementColorView;
+
+import net.danlew.android.joda.DateUtils;
+
+import org.joda.time.DateTime;
 
 import java.util.Objects;
 
@@ -42,10 +50,12 @@ public class ElementEditorActivity extends AppCompatActivity {
   public static final String STATE_CURRENT_TITLE = makeExtraIdent("STATE_CURRENT_TITLE");
   public static final String STATE_CURRENT_BODY = makeExtraIdent("STATE_CURRENT_BODY");
 
-  private DbHelper dbHelper;
   private SysItem sysItem;
   private EditText titleEditText;
   private EditText bodyEditText;
+  private TextView createdTimeTextView;
+  private TextView lastUpdatedTimeTextView;
+  private TextView lastViewedTimeTextView;
   private ElementColorView elementColorView;
 
   /**
@@ -69,23 +79,16 @@ public class ElementEditorActivity extends AppCompatActivity {
     setContentView(R.layout.activity_element_editor);
     overridePendingTransition(R.anim.trans_left_in, R.anim.trans_left_out);
 
-    titleEditText = findViewById(R.id.edit_title, "R.id.edit_title");
-    bodyEditText = findViewById(R.id.edit_body, "R.id.edit_body");
-    elementColorView = findViewById(R.id.edit_color, "R.id.edit_color");
+    titleEditText = ActivityUtils.findViewById(this, R.id.edit_title, "R.id.edit_title");
+    bodyEditText = ActivityUtils.findViewById(this, R.id.edit_body, "R.id.edit_body");
+    elementColorView = ActivityUtils.findViewById(this, R.id.edit_color, "R.id.edit_color");
+    createdTimeTextView = ActivityUtils.findViewById(this, R.id.created_time, "R.id.created_time");
+    lastUpdatedTimeTextView = ActivityUtils.findViewById(this, R.id.last_updated_time, "R.id.last_updated_time");
+    lastViewedTimeTextView = ActivityUtils.findViewById(this, R.id.last_viewed_time, "R.id.last_viewed_time");
 
     initToolbar();
 
-    titleEditText.addTextChangedListener(new TextWatcher() {
-      @Override
-      public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-
-      }
-
-      @Override
-      public void onTextChanged(CharSequence s, int start, int before, int count) {
-
-      }
-
+    titleEditText.addTextChangedListener(new TextWatcherAdapter() {
       @Override
       public void afterTextChanged(Editable s) {
         setActionBarTitle(s);
@@ -99,7 +102,6 @@ public class ElementEditorActivity extends AppCompatActivity {
       }
     });
 
-    dbHelper = new DbHelper(this);
     initializeEditorContent(savedInstanceState);
   }
 
@@ -217,7 +219,7 @@ public class ElementEditorActivity extends AppCompatActivity {
    * Initializes toolbar.
    */
   private void initToolbar() {
-    Toolbar toolbar = findViewById(R.id.toolbar, "R.id.toolbar");
+    Toolbar toolbar = ActivityUtils.findViewById(this, R.id.toolbar, "R.id.toolbar");
     setSupportActionBar(toolbar);
     getSupportActionBar().setDisplayHomeAsUpEnabled(true);
   }
@@ -311,12 +313,47 @@ public class ElementEditorActivity extends AppCompatActivity {
     if (sysItem == null) {
       setActionBarTitle(getString(R.string.element_editor_default_title));
       setDefaultColor();
+      hideDateTimeFields();
     } else {
       setActionBarTitle(sysItem.getTitle());
       setTitleEditText(sysItem.getTitle());
       setBodyEditText(sysItem.getBody());
       setColorEditColor(sysItem.getColor());
+
+      setDateTime(createdTimeTextView, R.string.created_time_info, sysItem.getCreatedTime());
+      setDateTime(lastUpdatedTimeTextView, R.string.last_edited_time_info, sysItem.getLastEditedTime());
+      setDateTime(lastViewedTimeTextView, R.string.last_viewed_time_info, sysItem.getLastViewedTime());
     }
+  }
+
+  /**
+   * Sets datetime to the given text view.
+   * If the date time is null, hides text view.
+   * Otherwise extracts string resource with the given id, replaces placeholder with the datetime value
+   * and sets the string to the text view.
+   *
+   * @param textView       A text view.
+   * @param formatResource A text view format string. Should contain a string placeholder.
+   * @param dateTime       Date time. Nullable.
+   */
+  private void setDateTime(TextView textView, @StringRes int formatResource, @Nullable DateTime dateTime) {
+    if (dateTime == null) {
+      textView.setVisibility(View.GONE);
+    } else {
+      textView.setVisibility(View.VISIBLE);
+      textView.setText(formatDateTimeString(formatResource, dateTime));
+    }
+  }
+
+  /**
+   * Formats given date time string using the given string resource as a format string.
+   *
+   * @param formatResource A format string. Should contains a string placeholder.
+   * @param dateTime       Date time. Must not be null.
+   * @return Formatted datetime string.
+   */
+  private String formatDateTimeString(@StringRes int formatResource, @NonNull DateTime dateTime) {
+    return getResources().getString(formatResource, DateUtils.getRelativeTimeSpanString(this, dateTime, true));
   }
 
   /**
@@ -348,6 +385,9 @@ public class ElementEditorActivity extends AppCompatActivity {
     sysItem.setTitle(getNormalizedTitle());
     sysItem.setBody(getNormalizedBody());
     sysItem.setColor(elementColorView.getColor());
+
+    NotesApplication app = (NotesApplication) getApplication();
+    DbHelper dbHelper = app.getDbHelper();
 
     new SaveSysItemTask(dbHelper).execute(sysItem);
   }
@@ -395,7 +435,7 @@ public class ElementEditorActivity extends AppCompatActivity {
    * @return Full ident name.
    */
   public static String makeExtraIdent(String name) {
-    return "com.awesoon.thirdtask.activity.ElementEditorActivity." + name;
+    return ElementEditorActivity.class.getCanonicalName() + "." + name;
   }
 
   /**
@@ -434,25 +474,19 @@ public class ElementEditorActivity extends AppCompatActivity {
     }
 
     if (id != null) {
+      NotesApplication app = (NotesApplication) getApplication();
+      DbHelper dbHelper = app.getDbHelper();
       new GetSysItemByIdTask(this, dbHelper, updateFields).execute(id);
     } else {
       setSysItem(null, updateFields);
+      hideDateTimeFields();
     }
   }
 
-  /**
-   * Finds a view by the given id.
-   *
-   * @param id   View id.
-   * @param name View name.
-   * @param <T>  View type.
-   * @return Found id.
-   * @throws AssertionError if the view not found.
-   */
-  private <T> T findViewById(int id, String name) {
-    View view = findViewById(id);
-    Assert.notNull(view, "Unable to find view " + name);
-    return (T) view;
+  private void hideDateTimeFields() {
+    createdTimeTextView.setVisibility(View.GONE);
+    lastUpdatedTimeTextView.setVisibility(View.GONE);
+    lastViewedTimeTextView.setVisibility(View.GONE);
   }
 
   /**

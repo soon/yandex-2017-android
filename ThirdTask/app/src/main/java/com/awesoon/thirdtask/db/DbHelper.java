@@ -427,6 +427,43 @@ public class DbHelper extends SQLiteOpenHelper {
   }
 
   /**
+   * Replaces all existing notes with the given list of notes.
+   *
+   * @param newItems          A list of new notes.
+   * @param successConsumer   A success callback. Will be called when all items are added to the db.
+   * @param exceptionConsumer An error callback. Will be called if there was an exception during task execution.
+   */
+  public void replaceAllSysItemsAsync(final List<SysItem> newItems, final Consumer<List<SysItem>> successConsumer,
+                                      @Nullable final Consumer<Exception> exceptionConsumer) {
+    Assert.notNull(newItems, "newItems must not be null");
+    Assert.notNull(successConsumer, "successConsumer must not be null");
+
+    new AsyncTask<Void, Void, List<SysItem>>() {
+      private Exception exception;
+
+      @Override
+      protected List<SysItem> doInBackground(Void... params) {
+        try {
+          removeAllSysItems();
+          return addSysItems(newItems);
+        } catch (Exception e) {
+          exception = e;
+          return null;
+        }
+      }
+
+      @Override
+      protected void onPostExecute(List<SysItem> sysItems) {
+        if (exception == null) {
+          successConsumer.apply(sysItems);
+        } else if (exceptionConsumer != null) {
+          exceptionConsumer.apply(exception);
+        }
+      }
+    }.execute();
+  }
+
+  /**
    * Removes all sys items from the db.
    */
   public void removeAllSysItems() {

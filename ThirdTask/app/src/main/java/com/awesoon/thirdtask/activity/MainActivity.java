@@ -9,7 +9,6 @@ import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.MenuItemCompat;
-import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.SearchView;
@@ -34,7 +33,6 @@ import com.awesoon.thirdtask.repository.FilteredItemsContainer;
 import com.awesoon.thirdtask.repository.SysItemFilterRepository;
 import com.awesoon.thirdtask.repository.SysItemRepository;
 import com.awesoon.thirdtask.repository.filter.SysItemFilter;
-import com.awesoon.thirdtask.util.Action;
 import com.awesoon.thirdtask.util.ActivityUtils;
 import com.awesoon.thirdtask.util.Assert;
 import com.awesoon.thirdtask.util.BeautifulColors;
@@ -509,38 +507,42 @@ public class MainActivity extends AppCompatActivity {
       }
     };
 
+    doImportNotesFromFile(uri, dbHelper, exceptionConsumer);
+  }
+
+  private void doImportNotesFromFile(Uri uri, final DbHelper dbHelper, final Consumer<Exception> exceptionConsumer) {
     SysItemRepository.loadAllItemsFromFileAsync(getContentResolver(), uri, new Consumer<List<SysItem>>() {
       @Override
       public void apply(final List<SysItem> importedItems) {
         if (importedItems == null || importedItems.isEmpty()) {
-          new AlertDialog.Builder(MainActivity.this)
-              .setTitle(R.string.unable_to_find_notes_to_import_title)
-              .setMessage(R.string.unable_to_find_notes_to_import_message)
-              .setPositiveButton(R.string.ok, null)
-              .show();
+          showThereAreNoNotesToImportDialog();
           return;
         }
 
-        dbHelper.removeAllSysItemsAsync(new Action() {
+        dbHelper.replaceAllSysItemsAsync(importedItems, new Consumer<List<SysItem>>() {
           @Override
-          public void call() {
-            dbHelper.addSysItemsAsync(importedItems, new Consumer<List<SysItem>>() {
-              @Override
-              public void apply(List<SysItem> sysItems) {
-                String message = getResources()
-                    .getQuantityString(R.plurals.notes_have_been_imported_message, sysItems.size(), sysItems.size());
+          public void apply(List<SysItem> sysItems) {
+            String message = getResources()
+                .getQuantityString(R.plurals.notes_have_been_imported_message, sysItems.size(), sysItems.size());
 
-                new AlertDialog.Builder(MainActivity.this)
-                    .setTitle(R.string.notes_have_been_imported_title)
-                    .setMessage(message)
-                    .setPositiveButton(R.string.ok, null)
-                    .show();
-              }
-            }, exceptionConsumer);
+            new AlertDialog.Builder(MainActivity.this)
+                .setTitle(R.string.notes_have_been_imported_title)
+                .setMessage(message)
+                .setPositiveButton(R.string.ok, null)
+                .show();
           }
-        });
+        }, exceptionConsumer);
       }
     }, exceptionConsumer);
+  }
+
+  private void showThereAreNoNotesToImportDialog() {
+    new AlertDialog.Builder(MainActivity.this)
+        .setTitle(R.string.unable_to_find_notes_to_import_title)
+        .setMessage(R.string.unable_to_find_notes_to_import_message)
+        .setPositiveButton(R.string.ok, null)
+        .show();
+    return;
   }
 
   private void openSelectFileToExportDialog() {

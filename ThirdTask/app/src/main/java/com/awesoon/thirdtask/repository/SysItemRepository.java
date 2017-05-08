@@ -193,15 +193,15 @@ public final class SysItemRepository {
 
     SysItemsContainer container = new SysItemsContainer(items);
 
-    if (!isFileNameValid(contentResolver, uri)) {
-      String fileName = getFileName(contentResolver, uri);
-      tryRemoveFile(contentResolver, uri);
-      throw new RuntimeException("Invalid filename " + fileName);
-    } else {
+    if (isFileNameValid(contentResolver, uri)) {
       try (OutputStreamWriter writer = new OutputStreamWriter(contentResolver.openOutputStream(uri));
            BufferedWriter bufferedWriter = new BufferedWriter(writer)) {
         bufferedWriter.write(container.toJson());
       }
+    } else {
+      String fileName = getFileName(contentResolver, uri);
+      tryRemoveFile(contentResolver, uri);
+      throw new RuntimeException("Invalid filename " + fileName);
     }
   }
 

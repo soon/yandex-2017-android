@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -142,42 +143,18 @@ public class SysItemFilter {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-
     SysItemFilter that = (SysItemFilter) o;
-
-    if (uuid != null ? !uuid.equals(that.uuid) : that.uuid != null) {
-      return false;
-    }
-    if (name != null ? !name.equals(that.name) : that.name != null) {
-      return false;
-    }
-    if (createdDateFilter != null ? !createdDateFilter.equals(that.createdDateFilter) : that.createdDateFilter != null) {
-      return false;
-    }
-    if (lastEditedDateFilter != null
-        ? !lastEditedDateFilter.equals(that.lastEditedDateFilter)
-        : that.lastEditedDateFilter != null) {
-      return false;
-    }
-    if (lastViewedDateFilter != null ? !lastViewedDateFilter.equals(that.lastViewedDateFilter) : that.lastViewedDateFilter != null) {
-      return false;
-    }
-    if (colors != null ? !colors.equals(that.colors) : that.colors != null) {
-      return false;
-    }
-    return sorts != null ? sorts.equals(that.sorts) : that.sorts == null;
-
+    return Objects.equals(uuid, that.uuid) &&
+        Objects.equals(name, that.name) &&
+        Objects.equals(createdDateFilter, that.createdDateFilter) &&
+        Objects.equals(lastEditedDateFilter, that.lastEditedDateFilter) &&
+        Objects.equals(lastViewedDateFilter, that.lastViewedDateFilter) &&
+        Objects.equals(colors, that.colors) &&
+        Objects.equals(sorts, that.sorts);
   }
 
   @Override
   public int hashCode() {
-    int result = uuid != null ? uuid.hashCode() : 0;
-    result = 31 * result + (name != null ? name.hashCode() : 0);
-    result = 31 * result + (createdDateFilter != null ? createdDateFilter.hashCode() : 0);
-    result = 31 * result + (lastEditedDateFilter != null ? lastEditedDateFilter.hashCode() : 0);
-    result = 31 * result + (lastViewedDateFilter != null ? lastViewedDateFilter.hashCode() : 0);
-    result = 31 * result + (colors != null ? colors.hashCode() : 0);
-    result = 31 * result + (sorts != null ? sorts.hashCode() : 0);
-    return result;
+    return Objects.hash(uuid, name, createdDateFilter, lastEditedDateFilter, lastViewedDateFilter, colors, sorts);
   }
 }

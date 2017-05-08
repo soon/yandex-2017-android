@@ -4,6 +4,8 @@ import android.support.annotation.Nullable;
 
 import org.joda.time.DateTime;
 
+import java.util.Objects;
+
 public class DatePeriodFilter {
   private DateTime from;
   private DateTime to;
@@ -46,20 +48,13 @@ public class DatePeriodFilter {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-
     DatePeriodFilter that = (DatePeriodFilter) o;
-
-    if (from != null ? !from.equals(that.from) : that.from != null) {
-      return false;
-    }
-    return to != null ? to.equals(that.to) : that.to == null;
-
+    return Objects.equals(from, that.from) &&
+        Objects.equals(to, that.to);
   }
 
   @Override
   public int hashCode() {
-    int result = from != null ? from.hashCode() : 0;
-    result = 31 * result + (to != null ? to.hashCode() : 0);
-    return result;
+    return Objects.hash(from, to);
   }
 }

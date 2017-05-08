@@ -40,7 +40,7 @@ public class GlobalDbState {
   /**
    * Notifies all subscribers when several sys item were added.
    *
-   * @param sysItems Added sys item s.
+   * @param sysItems Added sys items.
    */
   public static void notifySysItemsAdded(final List<SysItem> sysItems) {
     runForEachListener(new Consumer<DbStateChangeListener>() {

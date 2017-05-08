@@ -12,6 +12,10 @@ public class CollectionUtils {
     return collection == null || collection.isEmpty();
   }
 
+  public static <T> int size(Collection<T> collection) {
+    return collection == null ? 0 : collection.size();
+  }
+
   public static <T, U> int indexOf(List<T> list, U value, BiPredicate<T, U> cmp) {
     for (int i = 0; i < list.size(); i++) {
       if (cmp.apply(list.get(i), value)) {

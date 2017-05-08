@@ -19,6 +19,7 @@ import com.awesoon.thirdtask.R;
 import com.awesoon.thirdtask.domain.SysItem;
 import com.awesoon.thirdtask.event.SysItemRemoveListener;
 import com.awesoon.thirdtask.util.Assert;
+import com.awesoon.thirdtask.util.Consumer;
 import com.awesoon.thirdtask.util.StringUtils;
 
 import net.danlew.android.joda.DateUtils;
@@ -38,12 +39,13 @@ public class SysItemsAdapter extends BaseAdapter implements Filterable {
   private final int removeDialogMessageResource;
   private final int yesResource;
   private final int noResource;
-  private final ItemFilter filter = new ItemFilter();
+  private final ItemFilter filter;
   private final int viewResource;
 
   public SysItemsAdapter(@NonNull Context context, @LayoutRes int resource, @NonNull List<SysItem> objects,
                          @StringRes int removeDialogMessageResource, @StringRes int yesResource,
-                         @StringRes int noResource) {
+                         @StringRes int noResource, @Nullable Consumer<List<SysItem>> onItemsFilteredCallback) {
+    this.filter = new ItemFilter(onItemsFilteredCallback);
     this.context = context;
     this.viewResource = resource;
     this.originalData = new ArrayList<>(objects);
@@ -200,6 +202,12 @@ public class SysItemsAdapter extends BaseAdapter implements Filterable {
   }
 
   private class ItemFilter extends Filter {
+    private Consumer<List<SysItem>> onItemsFilteredConsumer;
+
+    public ItemFilter(Consumer<List<SysItem>> onItemsFilteredConsumer) {
+      this.onItemsFilteredConsumer = onItemsFilteredConsumer;
+    }
+
     @Override
     protected FilterResults performFiltering(CharSequence constraint) {
       String filterString = constraint.toString().toLowerCase();
@@ -228,6 +236,9 @@ public class SysItemsAdapter extends BaseAdapter implements Filterable {
     protected void publishResults(CharSequence constraint, FilterResults results) {
       filteredData = (List<SysItem>) results.values;
       notifyDataSetChanged();
+      if (onItemsFilteredConsumer != null) {
+        onItemsFilteredConsumer.apply(filteredData);
+      }
     }
   }
 

@@ -157,4 +157,11 @@
 
   <string name="you_do_not_have_filters">У вас нет фильтров</string>
   <string name="do_you_want_to_add_one_filter">Хотите добавить новый фильтр?</string>
+
+  <plurals name="found_n_notes">
+    <item quantity="zero">Найдено %d заметок</item>
+    <item quantity="one">Найдена %d заметка</item>
+    <item quantity="few">Найдено %d заметки</item>
+    <item quantity="other">Найдено %d заметок</item>
+  </plurals>
 </resources>

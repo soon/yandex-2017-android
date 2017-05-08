@@ -17,6 +17,10 @@ public final class StringUtils {
     return str == null || str.trim().isEmpty();
   }
 
+  public static String trim(String str) {
+    return str == null ? "" : str.trim();
+  }
+
   public static boolean containsIgnoreCaseTrimmed(String original, String pattern) {
     if (original == null || pattern == null) {
       return false;

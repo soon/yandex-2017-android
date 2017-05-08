@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.MenuItemCompat;
@@ -14,7 +15,9 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
+import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -41,6 +44,7 @@ import com.awesoon.thirdtask.util.CollectionUtils;
 import com.awesoon.thirdtask.util.Consumer;
 import com.awesoon.thirdtask.util.Function;
 import com.awesoon.thirdtask.util.PermissionUtils;
+import com.awesoon.thirdtask.util.StringUtils;
 import com.awesoon.thirdtask.view.SysItemsAdapter;
 
 import java.util.ArrayList;
@@ -55,6 +59,7 @@ import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 
 public class MainActivity extends AppCompatActivity {
   private static final String TAG = "MainActivity";
+  private static final int SEARCH_TOAST_TOP_OFFSET_DPI = 64;
 
   public static final int ADD_NEW_SYS_ITEM_REQUEST_CODE = 1;
   public static final int EDIT_EXISTING_SYS_ITEM_REQUEST_CODE = 2;
@@ -70,6 +75,8 @@ public class MainActivity extends AppCompatActivity {
   private SysItemsAdapter sysItemsAdapter;
   private NavigationView drawerNavView;
   private String filterQueryText;
+  private Toast searchToast;
+  private String searchToastMessage;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -345,6 +352,7 @@ public class MainActivity extends AppCompatActivity {
 
       @Override
       public boolean onMenuItemActionCollapse(MenuItem item) {
+        hideSearchToastMessage();
         return true;
       }
     });
@@ -367,6 +375,33 @@ public class MainActivity extends AppCompatActivity {
     }
 
     return super.onOptionsItemSelected(item);
+  }
+
+  private void setSearchToastMessage(@Nullable String message) {
+    if (StringUtils.isBlank(message)) {
+      hideSearchToastMessage();
+    }
+
+    searchToastMessage = StringUtils.trim(message);
+    if (searchToast == null) {
+      searchToast = Toast.makeText(this, searchToastMessage, Toast.LENGTH_LONG);
+    }
+
+    DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
+
+    int yOffset = (int) (SEARCH_TOAST_TOP_OFFSET_DPI * displayMetrics.density);
+
+    searchToast.setText(searchToastMessage);
+    searchToast.setGravity(Gravity.TOP | Gravity.CENTER, 0, yOffset);
+    searchToast.show();
+  }
+
+  private void hideSearchToastMessage() {
+    if (searchToast != null) {
+      searchToast.cancel();
+      searchToast = null;
+      searchToastMessage = null;
+    }
   }
 
   /**
@@ -549,14 +584,14 @@ public class MainActivity extends AppCompatActivity {
     Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
     intent.addCategory(Intent.CATEGORY_OPENABLE);
     intent.setType("*/*");
-    startActivityForResult(intent, SELECT_FILE_TO_EXPORT_REQUEST_CODE);
+    doStartActivityForResult(intent, SELECT_FILE_TO_EXPORT_REQUEST_CODE);
   }
 
   private void openSelectFileToImportDialog() {
     Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
     intent.addCategory(Intent.CATEGORY_OPENABLE);
     intent.setType("*/*");
-    startActivityForResult(intent, SELECT_FILE_TO_IMPORT_REQUEST_CODE);
+    doStartActivityForResult(intent, SELECT_FILE_TO_IMPORT_REQUEST_CODE);
   }
 
   private void initState(Bundle savedInstanceState) {
@@ -577,7 +612,23 @@ public class MainActivity extends AppCompatActivity {
     final DbHelper dbHelper = app.getDbHelper();
 
     sysItemsAdapter = new SysItemsAdapter(this, R.layout.element_view, new ArrayList<SysItem>(),
-        R.string.remove_sys_item_dialog_message, R.string.yes, R.string.no);
+        R.string.remove_sys_item_dialog_message, R.string.yes, R.string.no, new Consumer<List<SysItem>>() {
+      @Override
+      public void apply(final List<SysItem> sysItems) {
+        runOnUiThread(new Runnable() {
+          @Override
+          public void run() {
+            int size = CollectionUtils.size(sysItems);
+            if (size == 1 && sysItems.get(0).getId() == null) {
+              // workaround for a "there are no notes" note.
+              size = 0;
+            }
+            String message = getResources().getQuantityString(R.plurals.found_n_notes, size, size);
+            setSearchToastMessage(message);
+          }
+        });
+      }
+    });
 
     sysItemsAdapter.addOnSysItemRemoveListener(new SysItemRemoveListener() {
       @Override
@@ -587,7 +638,8 @@ public class MainActivity extends AppCompatActivity {
     });
 
     elementsList.setAdapter(sysItemsAdapter);
-    elementsList.setTextFilterEnabled(true);
+    // disable built-in popup
+    elementsList.setTextFilterEnabled(false);
     elementsList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
       @Override
       public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
@@ -619,10 +671,10 @@ public class MainActivity extends AppCompatActivity {
 
   private void applyFilterText(String text) {
     if (TextUtils.isEmpty(text)) {
-      elementsList.clearTextFilter();
+      sysItemsAdapter.getFilter().filter("");
       filterQueryText = null;
     } else {
-      elementsList.setFilterText(text);
+      sysItemsAdapter.getFilter().filter(text);
       filterQueryText = text;
     }
   }
@@ -658,20 +710,29 @@ public class MainActivity extends AppCompatActivity {
   private void openElementEditorActivity(Long sysItemId) {
     Intent intent = ElementEditorActivity.getInstance(this, sysItemId);
     if (sysItemId != null) {
-      startActivityForResult(intent, EDIT_EXISTING_SYS_ITEM_REQUEST_CODE);
+      doStartActivityForResult(intent, EDIT_EXISTING_SYS_ITEM_REQUEST_CODE);
     } else {
-      startActivityForResult(intent, ADD_NEW_SYS_ITEM_REQUEST_CODE);
+      doStartActivityForResult(intent, ADD_NEW_SYS_ITEM_REQUEST_CODE);
     }
   }
 
   private void openNewFilterEditorActivity() {
     Intent intent = FilterEditorActivity.getInstance(this, true);
-    startActivityForResult(intent, EDIT_FILTER_REQUEST_CODE);
+    doStartActivityForResult(intent, EDIT_FILTER_REQUEST_CODE);
   }
 
   private void openFilterEditorActivity() {
     Intent intent = FilterEditorActivity.getInstance(this, false);
-    startActivityForResult(intent, EDIT_FILTER_REQUEST_CODE);
+    doStartActivityForResult(intent, EDIT_FILTER_REQUEST_CODE);
+  }
+
+  private void doStartActivityForResult(Intent intent, int requestCode) {
+    leaveFromActivity();
+    startActivityForResult(intent, requestCode);
+  }
+
+  private void leaveFromActivity() {
+    hideSearchToastMessage();
   }
 
   /**

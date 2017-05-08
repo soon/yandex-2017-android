@@ -402,6 +402,6 @@ public class FilterEditorActivity extends AppCompatActivity {
   }
 
   private static String makeExtraIdent(String name) {
-    return "com.awesoon.thirdtask.activity.FilterEditorActivity." + name;
+    return FilterEditorActivity.class.getCanonicalName() + "." + name;
   }
 }

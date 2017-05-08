@@ -435,7 +435,7 @@ public class ElementEditorActivity extends AppCompatActivity {
    * @return Full ident name.
    */
   public static String makeExtraIdent(String name) {
-    return "com.awesoon.thirdtask.activity.ElementEditorActivity." + name;
+    return ElementEditorActivity.class.getCanonicalName() + "." + name;
   }
 
   /**

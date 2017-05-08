@@ -14,11 +14,8 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 
-import com.awesoon.thirdtask.NotesApplication;
 import com.awesoon.thirdtask.R;
 import com.awesoon.thirdtask.event.ColorChangeListener;
-import com.awesoon.thirdtask.util.Assert;
-import com.awesoon.thirdtask.event.FavoriteColorListener;
 import com.awesoon.thirdtask.util.ActivityUtils;
 import com.awesoon.thirdtask.view.ColorPickerInfo;
 import com.awesoon.thirdtask.view.ColorPickerView;
@@ -224,6 +221,6 @@ public class ColorPickerActivity extends AppCompatActivity {
    * @return Full ident name.
    */
   public static String makeExtraIdent(String name) {
-    return "com.awesoon.thirdtask.activity.ColorPickerActivity." + name;
+    return ColorPickerActivity.class.getCanonicalName() + "." + name;
   }
 }

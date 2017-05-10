@@ -129,6 +129,8 @@
     <item quantity="other">Фильтрами скрыто %d заметок</item>
   </plurals>
 
+  <string name="some_notes_are_hidden_short_number">Фильтрами скрыто %s заметок</string>
+
   <string name="empty_filter_name">Пустой</string>
   <string name="no_filter_name">Нет фильтра</string>
 
@@ -157,11 +159,24 @@
 
   <string name="you_do_not_have_filters">У вас нет фильтров</string>
   <string name="do_you_want_to_add_one_filter">Хотите добавить новый фильтр?</string>
+  <string name="create_100_000_notes">100 000 заметок</string>
+  <string name="remove_all_notes">Удалить все заметки</string>
 
   <plurals name="found_n_notes">
     <item quantity="zero">Найдено %d заметок</item>
     <item quantity="one">Найдена %d заметка</item>
     <item quantity="few">Найдено %d заметки</item>
     <item quantity="other">Найдено %d заметок</item>
+  </plurals>
+
+  <plurals name="n_notes_title">
+    <item quantity="zero">Заметки </item>
+    <item quantity="other">Заметки (%s)</item>
+  </plurals>
+
+  <plurals name="removed_n_notes">
+    <item quantity="one">Удалена %d заметка</item>
+    <item quantity="few">Удалены %d заметки</item>
+    <item quantity="other">Удалено %d заметок</item>
   </plurals>
 </resources>

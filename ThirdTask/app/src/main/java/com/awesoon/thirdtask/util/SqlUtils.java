@@ -38,6 +38,14 @@ public class SqlUtils {
     return sqlBuilder.toString();
   }
 
+  public static String makeCreateIndexSql(String tableName, String indexColumn, String indexName) {
+    return String.format("CREATE INDEX %s ON %s (%s)", indexColumn, tableName, indexColumn);
+  }
+
+  public static String makeCreateIndexSql(String tableName, String indexColumn) {
+    return makeCreateIndexSql(tableName, indexColumn, tableName + "_" + indexColumn + "_idx");
+  }
+
   public static AlterTableBuilder makeAlterTableBuilder(String tableName) {
     return new AlterTableBuilder(tableName);
   }
@@ -93,6 +101,22 @@ public class SqlUtils {
   }
 
   /**
+   * Creates a string of form ?,?,...,?
+   *
+   * @param size The number of placeholders.
+   * @return A string of form ?,?,...,?
+   */
+  public static String createInPlaceholders(int size) {
+    Assert.isTrue(size > 0, "size must be greater than zero");
+    StringBuilder sb = new StringBuilder(size * 2 - 1);
+    sb.append("?");
+    for (int i = 1; i < size; i++) {
+      sb.append(",?");
+    }
+    return sb.toString();
+  }
+
+  /**
    * Executes given sql and retrieves the first result.
    *
    * @param db            Db connection.
@@ -104,6 +128,22 @@ public class SqlUtils {
    */
   public static <T> T queryForObject(SQLiteDatabase db, String sql, RowMapper<T> rowMapper,
                                      Object... selectionArgs) {
+    List<T> data = queryForList(db, sql, rowMapper, selectionArgs);
+    return data.isEmpty() ? null : data.get(0);
+  }
+
+  /**
+   * Executes given sql and retrieves the first result.
+   *
+   * @param db            Db connection.
+   * @param sql           Sql to execute.
+   * @param rowMapper     Row mapper.
+   * @param selectionArgs Selection arguments. Nullable.
+   * @param <T>           A row type.
+   * @return The first retrieved result. null, if the query returns an empty set.
+   */
+  public static <T> T queryForObject(SQLiteDatabase db, String sql, RowMapper<T> rowMapper,
+                                     String... selectionArgs) {
     List<T> data = queryForList(db, sql, rowMapper, selectionArgs);
     return data.isEmpty() ? null : data.get(0);
   }
@@ -153,6 +193,22 @@ public class SqlUtils {
     return page.getData();
   }
 
+  /**
+   * Executes given sql and retrieves page of data using the given row mapper.
+   *
+   * @param db            Db connection.
+   * @param sql           Sql to execute.
+   * @param pageable      Pagination options. Nullable.
+   * @param rowMapper     Row mapper.
+   * @param selectionArgs Selection arguments. Nullable.
+   * @param <T>           A row type.
+   * @return A page of selected rows.
+   */
+  public static <T> Page<T> queryForPage(SQLiteDatabase db, String sql, @Nullable Pageable pageable,
+                                         RowMapper<T> rowMapper, List<Object> selectionArgs) {
+    Object[] argsArray = CollectionUtils.toArray(selectionArgs, Object.class);
+    return queryForPage(db, sql, pageable, rowMapper, argsArray);
+  }
 
   /**
    * Executes given sql and retrieves page of data using the given row mapper.
@@ -185,11 +241,12 @@ public class SqlUtils {
                                          RowMapper<T> rowMapper, String... selectionArgs) {
     List<T> rows = new ArrayList<>();
 
+    String pagedSql = sql;
     if (pageable != null) {
-      sql += " LIMIT " + pageable.getOffset() + ", " + pageable.getPageSize();
+      pagedSql += " LIMIT " + pageable.getOffset() + ", " + pageable.getPageSize();
     }
 
-    try (Cursor cursor = db.rawQuery(sql, selectionArgs)) {
+    try (Cursor cursor = db.rawQuery(pagedSql, selectionArgs)) {
       int rowNumber = 0;
 
       while (cursor.moveToNext()) {
@@ -201,7 +258,7 @@ public class SqlUtils {
 
     int totalElementsCount;
     if (pageable != null) {
-      totalElementsCount = queryCountAll(db, sql);
+      totalElementsCount = queryCountAll(db, sql, selectionArgs);
     } else {
       totalElementsCount = rows.size();
     }
@@ -239,14 +296,15 @@ public class SqlUtils {
     return queryForList(db, sql, rowMapper, (String[]) null);
   }
 
-  public static int queryCountAll(SQLiteDatabase db, String sql) {
+  public static int queryCountAll(SQLiteDatabase db, String sql, String... selectionArgs) {
     String countAllSql = "SELECT COUNT(*) FROM (" + sql + ")";
-    Integer size = queryForObject(db, countAllSql, new RowMapper<Integer>() {
+    RowMapper<Integer> intRowMapper = new RowMapper<Integer>() {
       @Override
       public Integer mapRow(Cursor cursor, int rowNumber) {
         return cursor.getInt(0);
       }
-    });
+    };
+    Integer size = queryForObject(db, countAllSql, intRowMapper, selectionArgs);
     Assert.notNull(size, "size must not be null");
 
     return size;

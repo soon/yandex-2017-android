@@ -16,6 +16,16 @@ public class CollectionUtils {
     return collection == null ? 0 : collection.size();
   }
 
+  @SuppressWarnings("unchecked")
+  public static <T> T[] toArray(Collection<T> collection, Class<T> clazz) {
+    if (collection == null) {
+      return (T[]) Array.newInstance(clazz, 0);
+    }
+
+    T[] array = (T[]) Array.newInstance(clazz, collection.size());
+    return collection.toArray(array);
+  }
+
   public static <T, U> int indexOf(List<T> list, U value, BiPredicate<T, U> cmp) {
     for (int i = 0; i < list.size(); i++) {
       if (cmp.apply(list.get(i), value)) {

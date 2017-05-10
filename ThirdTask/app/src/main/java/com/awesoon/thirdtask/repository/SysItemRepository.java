@@ -20,8 +20,8 @@ import com.awesoon.thirdtask.util.Assert;
 import com.awesoon.thirdtask.util.BeautifulColors;
 import com.awesoon.thirdtask.util.Consumer;
 import com.awesoon.thirdtask.util.DateTimeUtils;
+import com.awesoon.thirdtask.util.FastRandom;
 import com.awesoon.thirdtask.util.StringUtils;
-import com.awesoon.thirdtask.util.NumberUtils;
 
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeComparator;
@@ -35,7 +35,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Random;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -60,7 +59,7 @@ public final class SysItemRepository {
       Collections.sort(filteredItems, comparator);
     }
 
-    return new FilteredItemsContainer(allItems, filteredItems);
+    return new FilteredItemsContainer(allItems.size(), filteredItems, filteredItems.size());
   }
 
   /**
@@ -238,19 +237,19 @@ public final class SysItemRepository {
     Assert.notNull(dbHelper, "dbHelper must not be null");
     Assert.isTrue(itemsCount > 0, "itemsCount must be greater then zero");
 
-    Random rnd = new Random();
+    FastRandom rnd = new FastRandom();
     String[] titleAndBodies = SysItemData.DATA.split("[.\n]", -1);
 
-    List<SysItem> items = new ArrayList<>();
+    List<SysItem> items = new ArrayList<>(itemsCount);
     for (int i = 0; i < itemsCount; i++) {
       DateTime createdTime = createRandomDateTime(rnd, null, 2015);
       DateTime lastEditedTime = createRandomDateTime(rnd, createdTime, 2016);
       DateTime lastViewedTime = createRandomDateTime(rnd, lastEditedTime, 2017);
 
-      SysItem sysItem = new SysItem();
       int titleIndex = rnd.nextInt(titleAndBodies.length - 1);
-      sysItem.setTitle(titleAndBodies[titleIndex])
-          .setBody(titleAndBodies[titleIndex + 1])
+      SysItem sysItem = new SysItem()
+          .setTitle(titleAndBodies[titleIndex].trim())
+          .setBody(titleAndBodies[titleIndex + 1].trim())
           .setCreatedTime(createdTime)
           .setLastEditedTime(lastEditedTime)
           .setLastViewedTime(lastViewedTime)
@@ -262,11 +261,11 @@ public final class SysItemRepository {
     return sysItems;
   }
 
-  private static DateTime createRandomDateTime(Random rnd, @Nullable DateTime startDateTime, int maxYear) {
-    return new DateTime()
-        .withYear(startDateTime == null ? NumberUtils.nextRandomInt(rnd, 2000, maxYear)
-            : NumberUtils.nextRandomInt(rnd, startDateTime.getYear() + 1, maxYear))
-        .withDayOfYear(rnd.nextInt(365) + 1);
+  private static DateTime createRandomDateTime(FastRandom rnd, @Nullable DateTime startDateTime, int maxYear) {
+    int year = startDateTime == null ? rnd.nextInt(2000, maxYear) : rnd.nextInt(startDateTime.getYear() + 1, maxYear);
+    int month = rnd.nextInt(12) + 1;
+    int dayOfMonth = rnd.nextInt(28) + 1;
+    return new DateTime(year, month, dayOfMonth, 0, 0, 0);
   }
 
   @Nullable

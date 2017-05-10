@@ -6,17 +6,23 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.os.AsyncTask;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
 import com.awesoon.core.async.AsyncTaskBuilder;
 import com.awesoon.core.async.AsyncTaskProducer;
+import com.awesoon.core.sql.FilteredPage;
 import com.awesoon.core.sql.Page;
 import com.awesoon.core.sql.Pageable;
 import com.awesoon.thirdtask.domain.FavoriteColor;
 import com.awesoon.thirdtask.domain.SysItem;
+import com.awesoon.thirdtask.repository.filter.DatePeriodFilter;
+import com.awesoon.thirdtask.repository.filter.SortFilter;
+import com.awesoon.thirdtask.repository.filter.SysItemFilter;
 import com.awesoon.thirdtask.util.Action;
 import com.awesoon.thirdtask.util.Assert;
+import com.awesoon.thirdtask.util.CollectionUtils;
 import com.awesoon.thirdtask.util.Consumer;
 import com.awesoon.thirdtask.util.ContentValuesBuilder;
 import com.awesoon.thirdtask.util.RowMapperAdapter;
@@ -24,6 +30,7 @@ import com.awesoon.thirdtask.util.SqlUtils;
 
 import org.joda.time.DateTime;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static com.awesoon.thirdtask.util.SqlUtils.dateTimeField;
@@ -37,8 +44,9 @@ public class DbHelper extends SQLiteOpenHelper {
   public static final int DATABASE_INITIAL_VERSION = 0;
   public static final int DATABASE_VERSION_1 = 1;
   public static final int DATABASE_VERSION_2 = 2;
+  public static final int DATABASE_VERSION_3 = 3;
 
-  public static final int DATABASE_VERSION = DATABASE_VERSION_2;
+  public static final int DATABASE_VERSION = DATABASE_VERSION_3;
   public static final String DATABASE_NAME = "ThirdTask.db";
 
   public DbHelper(Context context) {
@@ -52,6 +60,9 @@ public class DbHelper extends SQLiteOpenHelper {
 
   private void doCreateDb(SQLiteDatabase db) {
     db.execSQL(SysItem.SQL_CREATE_TABLE);
+    for (String index : SysItem.INDICES) {
+      db.execSQL(index);
+    }
     db.execSQL(FavoriteColor.SQL_CREATE_TABLE);
   }
 
@@ -127,7 +138,16 @@ public class DbHelper extends SQLiteOpenHelper {
   }
 
   private void doUpgrade2To3(SQLiteDatabase db) {
+    String titleIndex = SqlUtils.makeCreateIndexSql(
+        SysItem.SysItemEntry.TABLE_NAME, SysItem.SysItemEntry.COLUMN_NAME_TITLE);
+    String bodyIndex = SqlUtils.makeCreateIndexSql(
+        SysItem.SysItemEntry.TABLE_NAME, SysItem.SysItemEntry.COLUMN_NAME_BODY);
+    String colorIndex = SqlUtils.makeCreateIndexSql(
+        SysItem.SysItemEntry.TABLE_NAME, SysItem.SysItemEntry.COLUMN_NAME_COLOR);
 
+    db.execSQL(titleIndex);
+    db.execSQL(bodyIndex);
+    db.execSQL(colorIndex);
   }
 
   /**
@@ -402,12 +422,13 @@ public class DbHelper extends SQLiteOpenHelper {
     return SqlUtils.queryForList(db, sql, SysItemMapper.INSTANCE);
   }
 
-  public void findSysItemsAsync(final Pageable pageable, Consumer<Page<SysItem>> successConsumer) {
+  public void findSysItemsAsync(final Pageable pageable, @Nullable final SysItemFilter filter,
+                                Consumer<Page<SysItem>> successConsumer) {
     AsyncTaskBuilder
         .firstly(new AsyncTaskProducer<Page<SysItem>>() {
           @Override
           public Page<SysItem> doApply() {
-            return findSysItems(pageable);
+            return findSysItems(pageable, filter);
           }
         }, successConsumer)
         .build().execute();
@@ -418,15 +439,101 @@ public class DbHelper extends SQLiteOpenHelper {
    *
    * @return A page of sys items.
    */
-  public Page<SysItem> findSysItems(Pageable pageable) {
+  public FilteredPage<SysItem> findSysItems(Pageable pageable, @Nullable SysItemFilter filter) {
     Assert.notNull(pageable, "pageable must not be null");
 
-    SQLiteDatabase db = getReadableDatabase();
-    String sql = String.format("SELECT * FROM %s a ORDER BY a.%s",
-        SysItem.SysItemEntry.TABLE_NAME,
-        SysItem.SysItemEntry.COLUMN_NAME_TITLE);
+    String originalSql = "SELECT * FROM " + SysItem.SysItemEntry.TABLE_NAME + " a";
 
-    return SqlUtils.queryForPage(db, sql, pageable, SysItemMapper.INSTANCE);
+    List<Object> args = new ArrayList<>();
+
+    String filteredSql = createFilteredSql(filter, originalSql, args);
+
+    SQLiteDatabase db = getReadableDatabase();
+    Page<SysItem> queriedData = SqlUtils.queryForPage(db, filteredSql, pageable, SysItemMapper.INSTANCE, args);
+    int totalSourceElements = SqlUtils.queryCountAll(db, originalSql);
+
+    return new FilteredPage<SysItem>()
+        .setData(queriedData.getData())
+        .setTotalPages(queriedData.getTotalPages())
+        .setSize(queriedData.getSize())
+        .setNumber(queriedData.getNumber())
+        .setTotalElements(queriedData.getTotalElements())
+        .setTotalSourceElements(totalSourceElements);
+  }
+
+  @NonNull
+  private String createFilteredSql(@Nullable SysItemFilter filter, String originalSql, List<Object> args) {
+    if (filter == null) {
+      return originalSql;
+    }
+
+    StringBuilder whereSb = new StringBuilder();
+    if (!CollectionUtils.isEmpty(filter.getColors())) {
+      whereSb.append(" a.").append(SysItem.SysItemEntry.COLUMN_NAME_COLOR)
+          .append(" IN (").append(SqlUtils.createInPlaceholders(filter.getColors().size())).append(")");
+      args.addAll(filter.getColors());
+    }
+
+    appendConditionToWherePart(whereSb, filter.getCreatedTimeFilter());
+    appendConditionToWherePart(whereSb, filter.getLastEditedTimeFilter());
+    appendConditionToWherePart(whereSb, filter.getLastViewedTimeFilter());
+
+    StringBuilder sqlSb = new StringBuilder(originalSql);
+    if (whereSb.length() > 0) {
+      sqlSb.append(" WHERE ").append(whereSb);
+    }
+
+    StringBuilder orderBySb = new StringBuilder();
+    List<SortFilter> sorts = filter.getSorts();
+    if (sorts != null) {
+      for (SortFilter sort : sorts) {
+        appendSortFilterToOrderByPart(orderBySb, sort);
+      }
+    }
+
+    sqlSb.append(" ORDER BY ");
+    if (orderBySb.length() > 0) {
+      sqlSb.append(orderBySb);
+    } else {
+      sqlSb.append("a.").append(SysItem.SysItemEntry.COLUMN_NAME_TITLE);
+    }
+
+    return sqlSb.toString();
+  }
+
+  private void appendSortFilterToOrderByPart(StringBuilder orderBySb, SortFilter sort) {
+    if (sort == null || sort.getFilteredColumn() == null) {
+      return;
+    }
+
+    if (orderBySb.length() > 0) {
+      orderBySb.append(", ");
+    }
+
+    orderBySb.append("a.");
+    switch (sort.getFilteredColumn()) {
+      case TITLE:
+        orderBySb.append(SysItem.SysItemEntry.COLUMN_NAME_TITLE);
+        break;
+      case BODY:
+        orderBySb.append(SysItem.SysItemEntry.COLUMN_NAME_BODY);
+        break;
+      case CREATED:
+        orderBySb.append(SysItem.SysItemEntry.COLUMN_CREATED_TIME);
+        break;
+      case EDITED:
+        orderBySb.append(SysItem.SysItemEntry.COLUMN_LAST_EDITED_TIME);
+        break;
+      case VIEWED:
+        orderBySb.append(SysItem.SysItemEntry.COLUMN_LAST_VIEWED_TIME);
+        break;
+    }
+
+    orderBySb.append(" ").append(sort.isAsc() ? " ASC" : " DESC");
+  }
+
+  private void appendConditionToWherePart(StringBuilder whereSb, DatePeriodFilter lastEditedTimeFilter) {
+    // todo
   }
 
   /**
@@ -510,9 +617,9 @@ public class DbHelper extends SQLiteOpenHelper {
   /**
    * Removes all sys items from the db.
    */
-  public void removeAllSysItems() {
+  public int removeAllSysItems() {
     SQLiteDatabase db = getWritableDatabase();
-    db.delete(SysItem.SysItemEntry.TABLE_NAME, null, null);
+    return db.delete(SysItem.SysItemEntry.TABLE_NAME, null, null);
   }
 
   /**

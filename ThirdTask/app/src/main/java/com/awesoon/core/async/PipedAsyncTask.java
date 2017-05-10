@@ -2,6 +2,7 @@ package com.awesoon.core.async;
 
 import android.os.AsyncTask;
 
+import com.awesoon.thirdtask.util.Assert;
 import com.awesoon.thirdtask.util.CollectionUtils;
 
 import java.util.List;
@@ -14,6 +15,8 @@ public class PipedAsyncTask<T, R> extends AsyncTask<T, PipedAsyncTaskProgress, R
   private Exception exception;
 
   public PipedAsyncTask(List<AsyncSubTask> subTasks, SuccessConsumer<R> onSuccess, ExceptionConsumer onError) {
+    Assert.notNull(subTasks, "subTasks must not be null");
+
     this.subTasks = subTasks;
     this.onSuccess = onSuccess;
     this.onError = onError;
@@ -33,7 +36,7 @@ public class PipedAsyncTask<T, R> extends AsyncTask<T, PipedAsyncTaskProgress, R
 
     Object inputData = params;
     for (AsyncSubTask subTask : subTasks) {
-      AsyncTaskAction action = subTask.getAction();
+      AbstractAsyncTaskAction action = subTask.getAction();
       try {
         inputData = action.apply(inputData);
         publishProgress(new PipedAsyncTaskProgressSuccess(subTask, inputData));

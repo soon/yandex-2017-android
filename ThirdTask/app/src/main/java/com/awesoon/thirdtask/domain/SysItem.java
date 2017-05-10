@@ -33,6 +33,12 @@ public class SysItem implements Parcelable {
       dateTimeField(SysItemEntry.COLUMN_LAST_VIEWED_TIME).setNull(false)
   );
 
+  public static final String[] INDICES = new String[] {
+      SqlUtils.makeCreateIndexSql(SysItem.SysItemEntry.TABLE_NAME, SysItem.SysItemEntry.COLUMN_NAME_TITLE),
+      SqlUtils.makeCreateIndexSql(SysItem.SysItemEntry.TABLE_NAME, SysItem.SysItemEntry.COLUMN_NAME_BODY),
+      SqlUtils.makeCreateIndexSql(SysItem.SysItemEntry.TABLE_NAME, SysItem.SysItemEntry.COLUMN_NAME_COLOR)
+  };
+
   public static final String SQL_DROP_TABLE = SqlUtils.makeDropTableIfExistsSql(SysItemEntry.TABLE_NAME);
 
   private Long id;
@@ -49,6 +55,16 @@ public class SysItem implements Parcelable {
   private DateTime lastViewedTime;
 
   public SysItem() {
+  }
+
+  public SysItem(String title, String body, int color, DateTime createdTime, DateTime lastEditedTime,
+                 DateTime lastViewedTime) {
+    this.title = title;
+    this.body = body;
+    this.color = color;
+    this.createdTime = createdTime;
+    this.lastEditedTime = lastEditedTime;
+    this.lastViewedTime = lastViewedTime;
   }
 
   private SysItem(Parcel in) {

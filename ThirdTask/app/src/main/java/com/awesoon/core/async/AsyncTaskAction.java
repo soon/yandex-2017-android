@@ -1,5 +1,11 @@
 package com.awesoon.core.async;
 
-public interface AsyncTaskAction<T, R> {
-  R apply(T data);
+public abstract class AsyncTaskAction extends AbstractAsyncTaskAction<Void, Void> {
+  @Override
+  public Void apply(Void data) {
+    doApply();
+    return null;
+  }
+
+  public abstract void doApply();
 }

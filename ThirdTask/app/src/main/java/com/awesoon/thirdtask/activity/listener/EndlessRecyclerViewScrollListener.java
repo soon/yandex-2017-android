@@ -33,4 +33,10 @@ public abstract class EndlessRecyclerViewScrollListener extends RecyclerView.OnS
   }
 
   public abstract void doLoadItems(int newPage, int totalItemsCount, RecyclerView view);
+
+  public void clear() {
+    page = 0;
+    prevItemCount = 0;
+    loading = true;
+  }
 }

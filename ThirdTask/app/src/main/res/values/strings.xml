@@ -54,6 +54,8 @@
     <item quantity="other">Экспортировано %d заметок</item>
   </plurals>
 
+  <string name="notes_have_been_saved_message_short_number">Экспортировано %s заметок</string>
+
   <string name="all_notes_will_be_deleted">Все текущие заметки будут удалены</string>
   <plurals name="are_you_sure_you_want_to_delete_n_notes">
     <item quantity="one">Вы действительно хотите удалить %d заметку?</item>
@@ -70,6 +72,8 @@
     <item quantity="other">Импортировано %d заметок</item>
   </plurals>
 
+  <string name="notes_have_been_imported_message_short_number">Импортировано %s заметок</string>
+
   <string name="unable_to_find_notes_to_import_title">Не найдено заметок для импорта</string>
   <string name="unable_to_find_notes_to_import_message">
     Импортирование заметок отменено
@@ -77,6 +81,10 @@
 
   <string name="error_occurred_while_importing_notes_title">Ошибка при импорте заметок</string>
   <string name="error_occurred_while_importing_notes_message">
+    Произошла ошибка в процессе импорта заметок
+  </string>
+
+  <string name="error_occurred_while_exporting_notes_message">
     Произошла ошибка в процессе импорта заметок
   </string>
 
@@ -184,4 +192,11 @@
   <string name="notes_saving_progress">Сохранение заметок</string>
   <string name="generated_n_notes">Сгенерировано %s заметок</string>
   <string name="notes_generation_failed">Не удалось сгенерировать заметки</string>
+
+  <string name="notes_importing_reading_file">Загрузка из файла</string>
+  <string name="notes_exporting_title">Экспорт заметок</string>
+  <string name="notes_importing_title">Импорт заметок</string>
+
+  <string name="notes_exporting_loading_from_db">Подготовка к экспорту</string>
+  <string name="notes_exporting_storing_to_file">Сохранение заметок</string>
 </resources>

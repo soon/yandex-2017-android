@@ -51,4 +51,8 @@ public class NumberUtils {
 
     return SHORT_STRING_DECIMAL_FORMATTER.format(resultNumber) + suffixes[suffixIndex];
   }
+
+  public static int getPercentage(int currentNumber, int maxNumber) {
+    return (int) ((double) currentNumber / maxNumber * 100);
+  }
 }

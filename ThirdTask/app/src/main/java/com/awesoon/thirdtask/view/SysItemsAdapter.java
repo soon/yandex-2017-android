@@ -4,7 +4,6 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.support.annotation.LayoutRes;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.support.annotation.StringRes;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.RecyclerView;
@@ -20,7 +19,6 @@ import com.awesoon.thirdtask.domain.SysItem;
 import com.awesoon.thirdtask.event.SysItemRemoveListener;
 import com.awesoon.thirdtask.util.Assert;
 import com.awesoon.thirdtask.util.Consumer;
-import com.awesoon.thirdtask.util.StringUtils;
 import com.awesoon.thirdtask.util.ViewUtils;
 
 import net.danlew.android.joda.DateUtils;
@@ -40,14 +38,12 @@ public class SysItemsAdapter extends RecyclerView.Adapter<SysItemsAdapter.ViewHo
   private final int removeDialogMessageResource;
   private final int yesResource;
   private final int noResource;
-  private final ItemFilter filter;
   private final int viewResource;
   private Consumer<SysItem> onItemClickListener;
 
   public SysItemsAdapter(@NonNull Context context, @LayoutRes int resource, @NonNull List<SysItem> objects,
                          @StringRes int removeDialogMessageResource, @StringRes int yesResource,
-                         @StringRes int noResource, @Nullable Consumer<List<SysItem>> onItemsFilteredCallback) {
-    this.filter = new ItemFilter(onItemsFilteredCallback);
+                         @StringRes int noResource) {
     this.context = context;
     this.viewResource = resource;
     this.originalData = new ArrayList<>(objects);
@@ -121,7 +117,7 @@ public class SysItemsAdapter extends RecyclerView.Adapter<SysItemsAdapter.ViewHo
 
   @Override
   public Filter getFilter() {
-    return filter;
+    return null;
   }
 
   public Context getContext() {
@@ -205,47 +201,6 @@ public class SysItemsAdapter extends RecyclerView.Adapter<SysItemsAdapter.ViewHo
 
   public void addOnItemClickListener(Consumer<SysItem> consumer) {
     onItemClickListener = consumer;
-  }
-
-  private class ItemFilter extends Filter {
-    private Consumer<List<SysItem>> onItemsFilteredConsumer;
-
-    public ItemFilter(Consumer<List<SysItem>> onItemsFilteredConsumer) {
-      this.onItemsFilteredConsumer = onItemsFilteredConsumer;
-    }
-
-    @Override
-    protected FilterResults performFiltering(CharSequence constraint) {
-      String filterString = constraint.toString().toLowerCase();
-
-      int count = originalData.size();
-      List<SysItem> filteredList = new ArrayList<>(count);
-
-      for (SysItem sysItem : originalData) {
-        String title = sysItem.getTitle();
-        String body = sysItem.getBody();
-
-        if (StringUtils.containsIgnoreCaseTrimmed(title, filterString) ||
-            StringUtils.containsIgnoreCaseTrimmed(body, filterString)) {
-          filteredList.add(sysItem);
-        }
-      }
-
-      FilterResults results = new FilterResults();
-      results.values = filteredList;
-      results.count = filteredList.size();
-      return results;
-    }
-
-    @SuppressWarnings("unchecked")
-    @Override
-    protected void publishResults(CharSequence constraint, FilterResults results) {
-      filteredData = (List<SysItem>) results.values;
-      notifyDataSetChanged();
-      if (onItemsFilteredConsumer != null) {
-        onItemsFilteredConsumer.apply(filteredData);
-      }
-    }
   }
 
   public static class ViewHolder extends RecyclerView.ViewHolder {

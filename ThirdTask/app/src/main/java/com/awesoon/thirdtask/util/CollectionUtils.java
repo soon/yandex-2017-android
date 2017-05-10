@@ -8,6 +8,10 @@ import java.util.Collection;
 import java.util.List;
 
 public class CollectionUtils {
+  public static <T> boolean isEmpty(T[] array) {
+    return array == null || array.length == 0;
+  }
+
   public static <T> boolean isEmpty(Collection<T> collection) {
     return collection == null || collection.isEmpty();
   }

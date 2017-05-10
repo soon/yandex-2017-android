@@ -27,6 +27,7 @@ import com.awesoon.thirdtask.util.Consumer;
 import com.awesoon.thirdtask.util.ContentValuesBuilder;
 import com.awesoon.thirdtask.util.RowMapperAdapter;
 import com.awesoon.thirdtask.util.SqlUtils;
+import com.awesoon.thirdtask.util.StringUtils;
 
 import org.joda.time.DateTime;
 
@@ -451,13 +452,14 @@ public class DbHelper extends SQLiteOpenHelper {
     return SqlUtils.queryForList(db, sql, SysItemMapper.INSTANCE);
   }
 
-  public void findSysItemsAsync(final Pageable pageable, @Nullable final SysItemFilter filter,
+  public void findSysItemsAsync(final Pageable pageable, @Nullable final String searchText,
+                                @Nullable final SysItemFilter filter, final boolean countAllFilteredItems,
                                 Consumer<Page<SysItem>> successConsumer) {
     AsyncTaskBuilder
         .firstly(new AsyncTaskProducer<Page<SysItem>>() {
           @Override
           public Page<SysItem> doApply() {
-            return findSysItems(pageable, filter);
+            return findSysItems(pageable, searchText, filter, countAllFilteredItems);
           }
         }, successConsumer)
         .build().execute();
@@ -468,17 +470,20 @@ public class DbHelper extends SQLiteOpenHelper {
    *
    * @return A page of sys items.
    */
-  public FilteredPage<SysItem> findSysItems(Pageable pageable, @Nullable SysItemFilter filter) {
+  public FilteredPage<SysItem> findSysItems(Pageable pageable, @Nullable String searchText,
+                                            @Nullable SysItemFilter filter, boolean countAllFilteredItems) {
     Assert.notNull(pageable, "pageable must not be null");
 
     String originalSql = "SELECT * FROM " + SysItem.SysItemEntry.TABLE_NAME + " a";
 
     List<Object> args = new ArrayList<>();
 
-    String filteredSql = createFilteredSql(filter, originalSql, args);
+    String filteredSql = createFilteredSql(searchText, filter, originalSql, args);
 
     SQLiteDatabase db = getReadableDatabase();
-    Page<SysItem> queriedData = SqlUtils.queryForPage(db, filteredSql, pageable, SysItemMapper.INSTANCE, args);
+    Page<SysItem> queriedData = SqlUtils.queryForPage(
+        db, filteredSql, pageable, SysItemMapper.INSTANCE, countAllFilteredItems, args);
+
     int totalSourceElements = SqlUtils.queryCountAll(db, originalSql);
 
     return new FilteredPage<SysItem>()
@@ -486,13 +491,14 @@ public class DbHelper extends SQLiteOpenHelper {
         .setTotalPages(queriedData.getTotalPages())
         .setSize(queriedData.getSize())
         .setNumber(queriedData.getNumber())
-        .setTotalElements(queriedData.getTotalElements())
+        .setTotalElements(countAllFilteredItems ? queriedData.getTotalElements() : totalSourceElements)
         .setTotalSourceElements(totalSourceElements);
   }
 
   @NonNull
-  private String createFilteredSql(@Nullable SysItemFilter filter, String originalSql, List<Object> args) {
-    if (filter == null) {
+  private String createFilteredSql(@Nullable String searchText, @Nullable SysItemFilter filter,
+                                   String originalSql, List<Object> args) {
+    if (filter == null && StringUtils.isBlank(searchText)) {
       return originalSql;
     }
 
@@ -509,6 +515,19 @@ public class DbHelper extends SQLiteOpenHelper {
         SysItem.SysItemEntry.COLUMN_LAST_EDITED_TIME_TS, filter.getLastEditedTimeFilter(), args);
     appendConditionToWherePart(whereSb,
         SysItem.SysItemEntry.COLUMN_LAST_VIEWED_TIME_TS, filter.getLastViewedTimeFilter(), args);
+
+    if (!StringUtils.isBlank(searchText)) {
+      String likeSearchString = createEscapedLikeString(searchText);
+      if (whereSb.length() > 0) {
+        whereSb.append(" AND");
+      }
+      whereSb.append(" (a.").append(SysItem.SysItemEntry.COLUMN_NAME_TITLE).append(" LIKE ? ESCAPE '\\'")
+          .append(" OR a.").append(SysItem.SysItemEntry.COLUMN_NAME_BODY).append(" LIKE ? ESCAPE '\\'")
+          .append(")");
+
+      args.add(likeSearchString);
+      args.add(likeSearchString);
+    }
 
     StringBuilder sqlSb = new StringBuilder(originalSql);
     if (whereSb.length() > 0) {
@@ -531,6 +550,13 @@ public class DbHelper extends SQLiteOpenHelper {
     }
 
     return sqlSb.toString();
+  }
+
+  private String createEscapedLikeString(String searchText) {
+    return "%" + searchText.trim()
+        .replace("\\", "\\\\")
+        .replace("%", "\\%")
+        .replace("_", "\\_") + "%";
   }
 
   private void appendSortFilterToOrderByPart(StringBuilder orderBySb, SortFilter sort) {

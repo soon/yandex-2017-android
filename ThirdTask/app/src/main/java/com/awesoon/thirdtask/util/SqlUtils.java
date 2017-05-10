@@ -46,6 +46,14 @@ public class SqlUtils {
     return makeCreateIndexSql(tableName, indexColumn, tableName + "_" + indexColumn + "_idx");
   }
 
+  public static List<String> makeCreateIndicesSql(String tableName, String... indexColumns) {
+    List<String> indices = new ArrayList<>();
+    for (String indexColumn : indexColumns) {
+      indices.add(makeCreateIndexSql(tableName, indexColumn));
+    }
+    return indices;
+  }
+
   public static AlterTableBuilder makeAlterTableBuilder(String tableName) {
     return new AlterTableBuilder(tableName);
   }

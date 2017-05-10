@@ -233,7 +233,8 @@ public final class SysItemRepository {
     return null;
   }
 
-  public static List<SysItem> generateNotes(DbHelper dbHelper, int itemsCount) {
+  public static List<SysItem> generateNotes(DbHelper dbHelper, int itemsCount, Consumer<Integer> onNoteGenerated,
+                                            Consumer<Integer> onNoteSaved) {
     Assert.notNull(dbHelper, "dbHelper must not be null");
     Assert.isTrue(itemsCount > 0, "itemsCount must be greater then zero");
 
@@ -255,9 +256,12 @@ public final class SysItemRepository {
           .setLastViewedTime(lastViewedTime)
           .setColor(BeautifulColors.getBeautifulColor());
       items.add(sysItem);
+      if (onNoteGenerated != null) {
+        onNoteGenerated.apply(i);
+      }
     }
 
-    List<SysItem> sysItems = dbHelper.addSysItems(items);
+    List<SysItem> sysItems = dbHelper.addSysItems(items, onNoteSaved);
     return sysItems;
   }
 

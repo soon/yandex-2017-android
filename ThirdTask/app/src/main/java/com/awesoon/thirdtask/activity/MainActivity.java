@@ -507,11 +507,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     NotesApplication app = (NotesApplication) getApplication();
-    DbHelper dbHelper = app.getDbHelper();
-    dbHelper.findAllSysItemsAsync(new Consumer<List<SysItem>>() {
+    final DbHelper dbHelper = app.getDbHelper();
+    AsyncTaskBuilder.firstly(new AsyncTaskProducer<Integer>() {
       @Override
-      public void apply(List<SysItem> items) {
-        if (items.isEmpty()) {
+      public Integer doApply() {
+        return dbHelper.countAllItems();
+      }
+    }, new Consumer<Integer>() {
+      @Override
+      public void apply(Integer size) {
+        if (size == 0) {
           new AlertDialog.Builder(MainActivity.this)
               .setTitle(R.string.you_do_not_have_notes)
               .setMessage(R.string.do_you_want_to_add_one)
@@ -527,7 +532,7 @@ public class MainActivity extends AppCompatActivity {
           openSelectFileToExportDialog();
         }
       }
-    });
+    }).build().execute();
   }
 
   private void handleExportNotesToFile(int resultCode, Intent data) {
@@ -594,18 +599,22 @@ public class MainActivity extends AppCompatActivity {
           return;
         }
 
-        dbHelper.findAllSysItemsAsync(new Consumer<List<SysItem>>() {
+        AsyncTaskBuilder.firstly(new AsyncTaskProducer<Integer>() {
           @Override
-          public void apply(final List<SysItem> items) {
-            if (items.isEmpty()) {
+          public Integer doApply() {
+            return dbHelper.countAllItems();
+          }
+        }, new Consumer<Integer>() {
+          @Override
+          public void apply(Integer size) {
+            if (size == 0) {
               replaceCurrentNotes(dbHelper, importedItems, exceptionConsumer);
               return;
             }
 
-            int currentItemsCount = items.size();
-            showRemoveCurrentNotesDialog(dbHelper, currentItemsCount, importedItems, exceptionConsumer);
+            showRemoveCurrentNotesDialog(dbHelper, size, importedItems, exceptionConsumer);
           }
-        });
+        }).build().execute();
       }
     }, exceptionConsumer);
   }

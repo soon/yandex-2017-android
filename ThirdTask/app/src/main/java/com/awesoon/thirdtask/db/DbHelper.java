@@ -431,24 +431,10 @@ public class DbHelper extends SQLiteOpenHelper {
     }
   }
 
-  /**
-   * Finds all sys item async.
-   *
-   * @param successConsumer A success consumer. Called when all items are retrieved from the db.
-   */
-  public void findAllSysItemsAsync(final Consumer<List<SysItem>> successConsumer) {
-    new AsyncTask<Void, Void, List<SysItem>>() {
-
-      @Override
-      protected List<SysItem> doInBackground(Void... params) {
-        return findAllSysItems();
-      }
-
-      @Override
-      protected void onPostExecute(List<SysItem> sysItems) {
-        successConsumer.apply(sysItems);
-      }
-    }.execute();
+  public int countAllItems() {
+    SQLiteDatabase db = getReadableDatabase();
+    String sql = String.format("SELECT * FROM %s a", SysItem.SysItemEntry.TABLE_NAME);
+    return SqlUtils.queryCountAll(db, sql);
   }
 
   /**

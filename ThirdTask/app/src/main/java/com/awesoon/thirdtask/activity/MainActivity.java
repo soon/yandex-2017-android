@@ -48,6 +48,8 @@ import com.awesoon.thirdtask.event.SysItemRemoveListener;
 import com.awesoon.thirdtask.repository.SysItemFilterRepository;
 import com.awesoon.thirdtask.repository.SysItemRepository;
 import com.awesoon.thirdtask.repository.filter.SysItemFilter;
+import com.awesoon.thirdtask.task.NotesToJsonExporterThread;
+import com.awesoon.thirdtask.util.Action;
 import com.awesoon.thirdtask.util.ActivityUtils;
 import com.awesoon.thirdtask.util.Assert;
 import com.awesoon.thirdtask.util.BeautifulColors;
@@ -81,6 +83,8 @@ public class MainActivity extends AppCompatActivity {
   public static final int SELECT_FILE_TO_EXPORT_REQUEST_CODE = 4;
   public static final int SELECT_FILE_TO_IMPORT_REQUEST_CODE = 5;
 
+  public static final int MAX_PERCENTAGE = 100;
+
   public static final String STATE_DEFAULT_ITEM_COLOR = makeExtraIdent("STATE_DEFAULT_ITEM_COLOR");
   public static final String STATE_FILTER_QUERY_TEXT = makeExtraIdent("STATE_FILTER_QUERY_TEXT");
 
@@ -93,6 +97,8 @@ public class MainActivity extends AppCompatActivity {
   private String searchToastMessage;
   private EndlessRecyclerViewScrollListener endlessRecyclerViewScrollListener;
   private ProgressBar elementsListProgressBar;
+  private NotesToJsonExporterThread notesToJsonExporterThread;
+  private NotificationManager notificationManager;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -141,8 +147,7 @@ public class MainActivity extends AppCompatActivity {
 
     initElementsList();
 
-    NotesApplication app = (NotesApplication) getApplication();
-    final DbHelper dbHelper = app.getDbHelper();
+    final DbHelper dbHelper = getDbHelper();
 
     GlobalDbState.subscribe(this, new DbStateChangeListener() {
       @Override
@@ -170,8 +175,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   private void removeAllNotes() {
-    NotesApplication app = (NotesApplication) getApplication();
-    final DbHelper dbHelper = app.getDbHelper();
+    final DbHelper dbHelper = getDbHelper();
     AsyncTaskBuilder.firstly(new AsyncTaskProducer<Integer>() {
       @Override
       public Integer doApply() {
@@ -202,7 +206,6 @@ public class MainActivity extends AppCompatActivity {
         .setPositiveButton(R.string.ok, null)
         .show();
 
-    NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
     NotificationCompat.Builder builder = new NotificationCompat.Builder(MainActivity.this);
     builder.setContentTitle(getString(R.string.notes_generation_title))
         .setContentText(getString(R.string.notes_generation_text))
@@ -353,6 +356,7 @@ public class MainActivity extends AppCompatActivity {
   protected void onDestroy() {
     super.onDestroy();
     GlobalDbState.unsubscribe(this);
+    notesToJsonExporterThread.quitSafely();
   }
 
   @Override
@@ -470,8 +474,7 @@ public class MainActivity extends AppCompatActivity {
    * Refreshes the list data.
    */
   private void refreshData() {
-    NotesApplication app = (NotesApplication) getApplication();
-    final DbHelper dbHelper = app.getDbHelper();
+    final DbHelper dbHelper = getDbHelper();
     refreshData(dbHelper);
   }
 
@@ -505,8 +508,7 @@ public class MainActivity extends AppCompatActivity {
       return;
     }
 
-    NotesApplication app = (NotesApplication) getApplication();
-    final DbHelper dbHelper = app.getDbHelper();
+    final DbHelper dbHelper = getDbHelper();
     AsyncTaskBuilder.firstly(new AsyncTaskProducer<Integer>() {
       @Override
       public Integer doApply() {
@@ -540,30 +542,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     Uri uri = data.getData();
-    NotesApplication app = (NotesApplication) getApplication();
-    final DbHelper dbHelper = app.getDbHelper();
-
-    SysItemRepository.storeAllItemsToFileAsync(dbHelper, getContentResolver(), uri, new Consumer<List<SysItem>>() {
-      @Override
-      public void apply(List<SysItem> items) {
-        String message = getResources()
-            .getQuantityString(R.plurals.notes_have_been_saved_message, items.size(), items.size());
-        new AlertDialog.Builder(MainActivity.this)
-            .setTitle(R.string.notes_have_been_saved_title)
-            .setMessage(message)
-            .setPositiveButton(R.string.ok, null)
-            .show();
-      }
-    }, new Consumer<Exception>() {
-      @Override
-      public void apply(Exception e) {
-        new AlertDialog.Builder(MainActivity.this)
-            .setTitle(R.string.notes_have_not_been_saved_title)
-            .setMessage(R.string.notes_have_not_been_saved_message)
-            .setPositiveButton(R.string.ok, null)
-            .show();
-      }
-    });
+    notesToJsonExporterThread.storeAllItemsToFile(getContentResolver(), uri);
   }
 
   private void handleImportNotesFromFile(int resultCode, Intent data) {
@@ -572,55 +551,25 @@ public class MainActivity extends AppCompatActivity {
     }
 
     final Uri uri = data.getData();
-    NotesApplication app = (NotesApplication) getApplication();
-    final DbHelper dbHelper = app.getDbHelper();
 
-    final Consumer<Exception> exceptionConsumer = new Consumer<Exception>() {
+    AsyncTaskBuilder.firstly(new AsyncTaskProducer<Integer>() {
       @Override
-      public void apply(Exception e) {
-        new AlertDialog.Builder(MainActivity.this)
-            .setTitle(R.string.error_occurred_while_importing_notes_title)
-            .setMessage(R.string.error_occurred_while_importing_notes_message)
-            .setPositiveButton(R.string.ok, null)
-            .show();
+      public Integer doApply() {
+        return getDbHelper().countAllItems();
       }
-    };
-
-    doImportNotesFromFile(uri, dbHelper, exceptionConsumer);
-  }
-
-  private void doImportNotesFromFile(Uri uri, final DbHelper dbHelper, final Consumer<Exception> exceptionConsumer) {
-    SysItemRepository.loadAllItemsFromFileAsync(getContentResolver(), uri, new Consumer<List<SysItem>>() {
+    }, new Consumer<Integer>() {
       @Override
-      public void apply(final List<SysItem> importedItems) {
-        if (importedItems == null || importedItems.isEmpty()) {
-          showThereAreNoNotesToImportDialog();
+      public void apply(Integer size) {
+        if (size == 0) {
+          notesToJsonExporterThread.loadAllItemsFromFile(getContentResolver(), uri);
           return;
         }
-
-        AsyncTaskBuilder.firstly(new AsyncTaskProducer<Integer>() {
-          @Override
-          public Integer doApply() {
-            return dbHelper.countAllItems();
-          }
-        }, new Consumer<Integer>() {
-          @Override
-          public void apply(Integer size) {
-            if (size == 0) {
-              replaceCurrentNotes(dbHelper, importedItems, exceptionConsumer);
-              return;
-            }
-
-            showRemoveCurrentNotesDialog(dbHelper, size, importedItems, exceptionConsumer);
-          }
-        }).build().execute();
+        showRemoveCurrentNotesDialog(size, uri);
       }
-    }, exceptionConsumer);
+    }).build().execute();
   }
 
-  private void showRemoveCurrentNotesDialog(final DbHelper dbHelper, int currentItemsCount,
-                                            final List<SysItem> importedItems,
-                                            final Consumer<Exception> exceptionConsumer) {
+  private void showRemoveCurrentNotesDialog(int currentItemsCount, final Uri uri) {
     String message = getResources()
         .getQuantityString(R.plurals.are_you_sure_you_want_to_delete_n_notes, currentItemsCount, currentItemsCount);
     new AlertDialog.Builder(MainActivity.this)
@@ -629,38 +578,11 @@ public class MainActivity extends AppCompatActivity {
         .setPositiveButton(R.string.delete, new DialogInterface.OnClickListener() {
           @Override
           public void onClick(DialogInterface dialog, int which) {
-            replaceCurrentNotes(dbHelper, importedItems, exceptionConsumer);
+            notesToJsonExporterThread.loadAllItemsFromFile(getContentResolver(), uri);
           }
         })
         .setNegativeButton(R.string.cancel, null)
         .show();
-  }
-
-  private void replaceCurrentNotes(DbHelper dbHelper, List<SysItem> importedItems,
-                                   Consumer<Exception> exceptionConsumer) {
-
-    dbHelper.replaceAllSysItemsAsync(importedItems, new Consumer<List<SysItem>>() {
-      @Override
-      public void apply(List<SysItem> sysItems) {
-        String message = getResources()
-            .getQuantityString(R.plurals.notes_have_been_imported_message, sysItems.size(), sysItems.size());
-
-        new AlertDialog.Builder(MainActivity.this)
-            .setTitle(R.string.notes_have_been_imported_title)
-            .setMessage(message)
-            .setPositiveButton(R.string.ok, null)
-            .show();
-      }
-    }, exceptionConsumer);
-  }
-
-  private void showThereAreNoNotesToImportDialog() {
-    new AlertDialog.Builder(MainActivity.this)
-        .setTitle(R.string.unable_to_find_notes_to_import_title)
-        .setMessage(R.string.unable_to_find_notes_to_import_message)
-        .setPositiveButton(R.string.ok, null)
-        .show();
-    return;
   }
 
   private void openSelectFileToExportDialog() {
@@ -691,8 +613,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   private void initElementsList() {
-    NotesApplication app = (NotesApplication) getApplication();
-    final DbHelper dbHelper = app.getDbHelper();
+    final DbHelper dbHelper = getDbHelper();
 
     sysItemsAdapter = new SysItemsAdapter(this, R.layout.element_view, new ArrayList<SysItem>(),
         R.string.remove_sys_item_dialog_message, R.string.yes, R.string.no);
@@ -734,6 +655,11 @@ public class MainActivity extends AppCompatActivity {
     };
 
     elementsList.addOnScrollListener(endlessRecyclerViewScrollListener);
+  }
+
+  private DbHelper getDbHelper() {
+    NotesApplication app = (NotesApplication) getApplication();
+    return app.getDbHelper();
   }
 
   private void showFoundNItemsToast(int size) {
@@ -779,6 +705,157 @@ public class MainActivity extends AppCompatActivity {
     drawerNavView = ActivityUtils.findViewById(this, R.id.drawer_nav_view, "R.id.drawer_nav_view");
     elementsListProgressBar = ActivityUtils.findViewById(this, R.id.elements_list_progress_bar,
         "R.id.elements_list_progress_bar");
+
+    notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+    notesToJsonExporterThread = new NotesToJsonExporterThread(getDbHelper(),
+        new NotesToJsonExporterThread.Listener()
+            .setOnImportLoadingFromFile(new Action() {
+              @Override
+              public void call() {
+                NotificationCompat.Builder builder = new NotificationCompat.Builder(MainActivity.this);
+                builder.setSmallIcon(R.drawable.ic_note_add_white_24dp);
+                builder.setContentTitle(getString(R.string.notes_importing_title));
+                builder.setContentText(getString(R.string.notes_importing_reading_file) + " 0%");
+                builder.setProgress(MAX_PERCENTAGE, 0, true);
+                notificationManager.notify(NotesApplication.NOTES_IMPORT_NOTIFICATION_ID, builder.build());
+              }
+            })
+            .setOnImportLoadedFromFile(new Consumer<List<SysItem>>() {
+              @Override
+              public void apply(List<SysItem> sysItems) {
+                NotificationCompat.Builder builder = new NotificationCompat.Builder(MainActivity.this);
+                builder.setSmallIcon(R.drawable.ic_note_add_white_24dp);
+                builder.setContentTitle(getString(R.string.notes_importing_title));
+                builder.setContentText(getString(R.string.notes_saving_progress) + " 0%");
+                builder.setProgress(MAX_PERCENTAGE, 0, false);
+                notificationManager.notify(NotesApplication.NOTES_IMPORT_NOTIFICATION_ID, builder.build());
+              }
+            })
+            .setOnImportNoteSaved(new Consumer<NotesToJsonExporterThread.SavedTotalPair>() {
+              @Override
+              public void apply(NotesToJsonExporterThread.SavedTotalPair pair) {
+                if (pair.getSaved() % 100 == 0) {
+                  int percentage = NumberUtils.getPercentage(pair.getSaved(), pair.getTotal());
+                  NotificationCompat.Builder builder = new NotificationCompat.Builder(MainActivity.this);
+                  builder.setSmallIcon(R.drawable.ic_note_add_white_24dp);
+                  builder.setContentTitle(getString(R.string.notes_importing_title));
+                  builder.setContentText(getString(R.string.notes_saving_progress) + " " + percentage + "%");
+                  builder.setProgress(MAX_PERCENTAGE, percentage, false);
+                  notificationManager.notify(NotesApplication.NOTES_IMPORT_NOTIFICATION_ID, builder.build());
+                }
+              }
+            })
+            .setOnImportCompleted(new Consumer<List<SysItem>>() {
+              @Override
+              public void apply(List<SysItem> sysItems) {
+                String message;
+                if (sysItems.size() < 1000) {
+                  message = getResources()
+                      .getQuantityString(R.plurals.notes_have_been_imported_message, sysItems.size(), sysItems.size());
+                } else {
+                  String shortSize = NumberUtils.makeShortString(sysItems.size());
+                  message = getResources()
+                      .getString(R.string.notes_have_been_imported_message_short_number, shortSize);
+                }
+
+                NotificationCompat.Builder builder = new NotificationCompat.Builder(MainActivity.this);
+                builder.setSmallIcon(R.drawable.ic_note_add_white_24dp);
+                builder.setContentTitle(getString(R.string.notes_have_been_imported_title));
+                builder.setContentText(message);
+                builder.setProgress(MAX_PERCENTAGE, MAX_PERCENTAGE, false);
+                notificationManager.notify(NotesApplication.NOTES_IMPORT_NOTIFICATION_ID, builder.build());
+
+                new AlertDialog.Builder(MainActivity.this)
+                    .setTitle(R.string.notes_have_been_imported_title)
+                    .setMessage(message)
+                    .setPositiveButton(R.string.ok, null)
+                    .show();
+              }
+            })
+            .setOnImportErrorOccurred(new Consumer<Exception>() {
+              @Override
+              public void apply(Exception e) {
+                NotificationCompat.Builder builder = new NotificationCompat.Builder(MainActivity.this);
+                builder.setSmallIcon(R.drawable.ic_note_add_white_24dp);
+                builder.setContentTitle(getString(R.string.notes_importing_title));
+                builder.setContentText(getString(R.string.error_occurred_while_importing_notes_message));
+                builder.setProgress(MAX_PERCENTAGE, MAX_PERCENTAGE, false);
+                notificationManager.notify(NotesApplication.NOTES_IMPORT_NOTIFICATION_ID, builder.build());
+
+                new AlertDialog.Builder(MainActivity.this)
+                    .setTitle(R.string.error_occurred_while_importing_notes_title)
+                    .setMessage(R.string.error_occurred_while_importing_notes_message)
+                    .setPositiveButton(R.string.ok, null)
+                    .show();
+              }
+            })
+            .setOnExportLoadingFromDb(new Action() {
+              @Override
+              public void call() {
+                NotificationCompat.Builder builder = new NotificationCompat.Builder(MainActivity.this);
+                builder.setSmallIcon(R.drawable.ic_note_add_white_24dp);
+                builder.setContentTitle(getString(R.string.notes_exporting_title));
+                builder.setContentText(getString(R.string.notes_exporting_loading_from_db));
+                builder.setProgress(MAX_PERCENTAGE, 0, true);
+                notificationManager.notify(NotesApplication.NOTES_EXPORT_NOTIFICATION_ID, builder.build());
+              }
+            })
+            .setOnExportSavingToFile(new Consumer<List<SysItem>>() {
+              @Override
+              public void apply(List<SysItem> sysItems) {
+                NotificationCompat.Builder builder = new NotificationCompat.Builder(MainActivity.this);
+                builder.setSmallIcon(R.drawable.ic_note_add_white_24dp);
+                builder.setContentTitle(getString(R.string.notes_exporting_title));
+                builder.setContentText(getString(R.string.notes_exporting_loading_from_db));
+                builder.setProgress(MAX_PERCENTAGE, 0, true);
+                notificationManager.notify(NotesApplication.NOTES_EXPORT_NOTIFICATION_ID, builder.build());
+              }
+            })
+            .setOnExportCompleted(new Consumer<List<SysItem>>() {
+              @Override
+              public void apply(List<SysItem> sysItems) {
+                String message;
+                if (sysItems.size() < 1000) {
+                  message = getResources()
+                      .getQuantityString(R.plurals.notes_have_been_saved_message, sysItems.size(), sysItems.size());
+                } else {
+                  String shortSize = NumberUtils.makeShortString(sysItems.size());
+                  message = getResources()
+                      .getString(R.string.notes_have_been_saved_message_short_number, shortSize);
+                }
+
+                NotificationCompat.Builder builder = new NotificationCompat.Builder(MainActivity.this);
+                builder.setSmallIcon(R.drawable.ic_note_add_white_24dp);
+                builder.setContentTitle(getString(R.string.notes_have_been_saved_title));
+                builder.setContentText(message);
+                builder.setProgress(MAX_PERCENTAGE, MAX_PERCENTAGE, false);
+                notificationManager.notify(NotesApplication.NOTES_EXPORT_NOTIFICATION_ID, builder.build());
+
+                new AlertDialog.Builder(MainActivity.this)
+                    .setTitle(R.string.notes_have_been_saved_title)
+                    .setMessage(message)
+                    .setPositiveButton(R.string.ok, null)
+                    .show();
+              }
+            })
+            .setOnExportErrorOccurred(new Consumer<Exception>() {
+              @Override
+              public void apply(Exception e) {
+                NotificationCompat.Builder builder = new NotificationCompat.Builder(MainActivity.this);
+                builder.setSmallIcon(R.drawable.ic_note_add_white_24dp);
+                builder.setContentTitle(getString(R.string.notes_exporting_title));
+                builder.setContentText(getString(R.string.error_occurred_while_exporting_notes_message));
+                builder.setProgress(MAX_PERCENTAGE, MAX_PERCENTAGE, false);
+                notificationManager.notify(NotesApplication.NOTES_EXPORT_NOTIFICATION_ID, builder.build());
+
+                new AlertDialog.Builder(MainActivity.this)
+                    .setTitle(R.string.notes_have_not_been_saved_title)
+                    .setMessage(R.string.notes_have_not_been_saved_message)
+                    .setPositiveButton(R.string.ok, null)
+                    .show();
+              }
+            }));
+    notesToJsonExporterThread.start();
   }
 
   private void applyFilterText(String text) {
@@ -1001,33 +1078,29 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onPreExecute() {
-      notificationBuilder.setProgress(100, 0, false);
+      notificationBuilder.setProgress(MAX_PERCENTAGE, 0, false);
       notificationManager.notify(ID, notificationBuilder.build());
     }
 
     @Override
     protected void onProgressUpdate(ProgressUpdate... values) {
       notificationBuilder.setContentText(values[0].title);
-      notificationBuilder.setProgress(100, values[0].percentage, false);
+      notificationBuilder.setProgress(MAX_PERCENTAGE, values[0].percentage, false);
       notificationManager.notify(ID, notificationBuilder.build());
     }
 
     private void onNoteGenerated(int noteNumber) {
       if (noteNumber % 1000 == 0) {
-        int percentage = getPercentage(noteNumber) / 2;
+        int percentage = NumberUtils.getPercentage(noteNumber, itemsCount) / 2;
         publishProgress(new ProgressUpdate(notesGenerationProgress + " " + percentage + "%", percentage));
       }
     }
 
     private void onNoteSaved(int noteNumber) {
       if (noteNumber % 1000 == 0) {
-        int percentage = getPercentage(noteNumber) / 2 + 50;
+        int percentage = NumberUtils.getPercentage(noteNumber, itemsCount) / 2 + 50;
         publishProgress(new ProgressUpdate(notesSavingProgress + " " + percentage + "%", percentage));
       }
-    }
-
-    private int getPercentage(int noteNumber) {
-      return (int) ((double) noteNumber / itemsCount * 100);
     }
 
     @Override

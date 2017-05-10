@@ -4,58 +4,74 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.support.annotation.LayoutRes;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.support.annotation.StringRes;
 import android.support.v7.app.AlertDialog;
+import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
+import android.widget.Filter;
+import android.widget.Filterable;
 import android.widget.TextView;
 
 import com.awesoon.thirdtask.R;
 import com.awesoon.thirdtask.domain.SysItem;
 import com.awesoon.thirdtask.event.SysItemRemoveListener;
 import com.awesoon.thirdtask.util.Assert;
+import com.awesoon.thirdtask.util.Consumer;
+import com.awesoon.thirdtask.util.ViewUtils;
+
+import net.danlew.android.joda.DateUtils;
+
+import org.joda.time.DateTime;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class SysItemsAdapter extends ArrayAdapter<SysItem> {
-  private final List<SysItem> data;
+public class SysItemsAdapter extends RecyclerView.Adapter<SysItemsAdapter.ViewHolder> implements Filterable {
+  private final Object dataLock = new Object();
+
+  private final List<SysItem> originalData;
+  private final Context context;
+  private List<SysItem> filteredData;
   private final List<SysItemRemoveListener> listeners = new ArrayList<>();
   private final int removeDialogMessageResource;
   private final int yesResource;
   private final int noResource;
+  private final int viewResource;
+  private Consumer<SysItem> onItemClickListener;
 
   public SysItemsAdapter(@NonNull Context context, @LayoutRes int resource, @NonNull List<SysItem> objects,
                          @StringRes int removeDialogMessageResource, @StringRes int yesResource,
                          @StringRes int noResource) {
-    super(context, resource, objects);
-    this.data = objects;
+    this.context = context;
+    this.viewResource = resource;
+    this.originalData = new ArrayList<>(objects);
+    this.filteredData = new ArrayList<>(objects);
     this.removeDialogMessageResource = removeDialogMessageResource;
     this.yesResource = yesResource;
     this.noResource = noResource;
   }
 
-  @NonNull
   @Override
-  public View getView(final int position, @Nullable View convertView, @NonNull ViewGroup parent) {
-    ViewHolder holder;
+  public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+    View v = LayoutInflater.from(parent.getContext()).inflate(viewResource, parent, false);
 
-    if (convertView == null) {
-      LayoutInflater inflater = LayoutInflater.from(getContext());
-      convertView = inflater.inflate(R.layout.element_view, null);
-      holder = new ViewHolder();
-      holder.titleTextView = (TextView) convertView.findViewById(R.id.element_title);
-      holder.bodyTextView = (TextView) convertView.findViewById(R.id.element_body);
-      holder.elementColorView = (ElementColorView) convertView.findViewById(R.id.element_color);
-      holder.removeElementButton = convertView.findViewById(R.id.remove_element);
-      convertView.setTag(holder);
-    } else {
-      holder = (ViewHolder) convertView.getTag();
-    }
+    ViewHolder vh = new ViewHolder(v);
 
+    vh.titleTextView = ViewUtils.findViewById(v, R.id.element_title, "R.id.element_title");
+    vh.bodyTextView = ViewUtils.findViewById(v, R.id.element_body, "R.id.element_body");
+    vh.createdTextView = ViewUtils.findViewById(v, R.id.element_created_time, "R.id.element_created_time");
+    vh.lastEditedTextView = ViewUtils.findViewById(v, R.id.element_last_updated_time, "R.id.element_last_updated_time");
+    vh.lastViewedTextView = ViewUtils.findViewById(v, R.id.element_last_viewed_time, "R.id.element_last_viewed_time");
+    vh.elementColorView = ViewUtils.findViewById(v, R.id.element_color, "R.id.element_color");
+    vh.removeElementButton = ViewUtils.findViewById(v, R.id.remove_element, "R.id.remove_element");
+
+    return vh;
+  }
+
+  @Override
+  public void onBindViewHolder(final ViewHolder holder, int position) {
     final SysItem sysItem = getItem(position);
     Assert.notNull(sysItem, "sysItem must not be null");
 
@@ -63,30 +79,76 @@ public class SysItemsAdapter extends ArrayAdapter<SysItem> {
     holder.bodyTextView.setText(sysItem.getBody());
     holder.elementColorView.setColor(sysItem.getColor());
 
-    final SysItem item = data.get(position);
-    if (item.getId() == null) {
+    setDateTime(sysItem.getCreatedTime(), holder.createdTextView);
+    setDateTime(sysItem.getLastEditedTime(), holder.lastEditedTextView);
+    setDateTime(sysItem.getLastViewedTime(), holder.lastViewedTextView);
+
+    if (sysItem.getId() == null) {
       holder.removeElementButton.setVisibility(View.GONE);
     } else {
       holder.removeElementButton.setVisibility(View.VISIBLE);
       holder.removeElementButton.setOnClickListener(new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-          handleElementRemoving(sysItem, position);
+          handleElementRemoving(sysItem, holder.getAdapterPosition());
+        }
+      });
+      holder.itemView.setOnClickListener(new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+          if (onItemClickListener != null) {
+            int position = holder.getAdapterPosition();
+            SysItem item = getItem(position);
+            onItemClickListener.apply(item);
+          }
         }
       });
     }
+  }
 
-    return convertView;
+  public SysItem getItem(int position) {
+    return filteredData.get(position);
+  }
+
+  @Override
+  public int getItemCount() {
+    return filteredData.size();
+  }
+
+  @Override
+  public Filter getFilter() {
+    return null;
+  }
+
+  public Context getContext() {
+    return context;
+  }
+
+  public void addOnSysItemRemoveListener(SysItemRemoveListener listener) {
+    listeners.add(listener);
+  }
+
+  private void setDateTime(DateTime dateTime, TextView textView) {
+    if (dateTime == null) {
+      textView.setVisibility(View.GONE);
+    } else {
+      textView.setVisibility(View.VISIBLE);
+      textView.setText(formatDateTime(dateTime));
+    }
+  }
+
+  private String formatDateTime(DateTime dateTime) {
+    Assert.notNull(dateTime, "dateTime must not be null");
+    return DateUtils.getRelativeTimeSpanString(getContext(), dateTime, false).toString();
   }
 
   private void handleElementRemoving(final SysItem sysItem, final int position) {
     DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
       @Override
       public void onClick(DialogInterface dialog, int which) {
-        switch (which){
+        switch (which) {
           case DialogInterface.BUTTON_POSITIVE:
             removeItemOnPosition(position);
-            notifyDataSetChanged();
             for (SysItemRemoveListener listener : listeners) {
               listener.onSysItemRemove(sysItem, position);
             }
@@ -105,24 +167,52 @@ public class SysItemsAdapter extends ArrayAdapter<SysItem> {
         .show();
   }
 
-  @Override
-  public long getItemId(int position) {
-    return super.getItemId(position);
-  }
+  private void removeItemOnPosition(int position) {
+    synchronized (dataLock) {
+      Assert.isTrue(position >= 0 && position < filteredData.size(),
+          "Unable to remove element with " + position + " position. " +
+              "It should be in range [0; " + filteredData.size() + ")");
 
-  public void addOnSysItemRemoveListener(SysItemRemoveListener listener) {
-    listeners.add(listener);
-  }
+      SysItem sysItem = filteredData.get(position);
+      int originalPosition = originalData.indexOf(sysItem);
+      Assert.isTrue(originalPosition >= 0, "Unable to find " + sysItem + " in the original data list");
 
-  public void removeItemOnPosition(int position) {
-    if (position >= 0 && position < data.size()) {
-      data.remove(position);
+      filteredData.remove(position);
+      originalData.remove(position);
     }
+    notifyDataSetChanged();
   }
 
-  private static class ViewHolder {
+  public void clear() {
+    synchronized (dataLock) {
+      filteredData.clear();
+      originalData.clear();
+    }
+    notifyDataSetChanged();
+  }
+
+  public void addAll(List<SysItem> items) {
+    synchronized (dataLock) {
+      filteredData.addAll(items);
+      originalData.addAll(items);
+    }
+    notifyDataSetChanged();
+  }
+
+  public void addOnItemClickListener(Consumer<SysItem> consumer) {
+    onItemClickListener = consumer;
+  }
+
+  public static class ViewHolder extends RecyclerView.ViewHolder {
+    public ViewHolder(View itemView) {
+      super(itemView);
+    }
+
     private TextView titleTextView;
     private TextView bodyTextView;
+    private TextView createdTextView;
+    private TextView lastEditedTextView;
+    private TextView lastViewedTextView;
     private ElementColorView elementColorView;
     private View removeElementButton;
   }

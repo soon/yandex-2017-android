@@ -4,8 +4,20 @@ import android.os.Parcel;
 import android.os.Parcelable;
 import android.provider.BaseColumns;
 
+import com.awesoon.thirdtask.json.HexColor;
+import com.awesoon.thirdtask.json.adapter.ColorAdapter;
+import com.awesoon.thirdtask.json.adapter.DateTimeAdapter;
+import com.awesoon.thirdtask.util.JsonUtils;
 import com.awesoon.thirdtask.util.SqlUtils;
+import com.squareup.moshi.Json;
+import com.squareup.moshi.Moshi;
 
+import org.joda.time.DateTime;
+
+import java.io.IOException;
+import java.util.List;
+
+import static com.awesoon.thirdtask.util.SqlUtils.dateTimeField;
 import static com.awesoon.thirdtask.util.SqlUtils.intField;
 import static com.awesoon.thirdtask.util.SqlUtils.pkIntAutoincrement;
 import static com.awesoon.thirdtask.util.SqlUtils.textField;
@@ -15,23 +27,117 @@ public class SysItem implements Parcelable {
       pkIntAutoincrement(SysItemEntry.COLUMN_NAME_ID),
       textField(SysItemEntry.COLUMN_NAME_TITLE).setNull(false),
       textField(SysItemEntry.COLUMN_NAME_BODY).setNull(false),
-      intField(SysItemEntry.COLUMN_NAME_COLOR).setNull(false)
+      intField(SysItemEntry.COLUMN_NAME_COLOR).setNull(false),
+      dateTimeField(SysItemEntry.COLUMN_CREATED_TIME).setNull(false),
+      intField(SysItemEntry.COLUMN_CREATED_TIME_TS).setNull(false),
+      dateTimeField(SysItemEntry.COLUMN_LAST_EDITED_TIME).setNull(false),
+      intField(SysItemEntry.COLUMN_LAST_EDITED_TIME_TS).setNull(false),
+      dateTimeField(SysItemEntry.COLUMN_LAST_VIEWED_TIME).setNull(false),
+      intField(SysItemEntry.COLUMN_LAST_VIEWED_TIME_TS).setNull(false)
   );
+
+  public static final String[] INDICES = new String[] {
+      SqlUtils.makeCreateIndexSql(SysItemEntry.TABLE_NAME, SysItemEntry.COLUMN_NAME_TITLE),
+      SqlUtils.makeCreateIndexSql(SysItemEntry.TABLE_NAME, SysItemEntry.COLUMN_NAME_BODY),
+      SqlUtils.makeCreateIndexSql(SysItemEntry.TABLE_NAME, SysItemEntry.COLUMN_NAME_COLOR),
+      SqlUtils.makeCreateIndexSql(SysItemEntry.TABLE_NAME, SysItemEntry.COLUMN_CREATED_TIME_TS),
+      SqlUtils.makeCreateIndexSql(SysItemEntry.TABLE_NAME, SysItemEntry.COLUMN_LAST_EDITED_TIME_TS),
+      SqlUtils.makeCreateIndexSql(SysItemEntry.TABLE_NAME, SysItemEntry.COLUMN_LAST_VIEWED_TIME_TS),
+  };
 
   public static final String SQL_DROP_TABLE = SqlUtils.makeDropTableIfExistsSql(SysItemEntry.TABLE_NAME);
 
   private Long id;
   private String title;
+  @Json(name = "description")
   private String body;
+  @HexColor
   private int color;
+  @Json(name = "created")
+  private DateTime createdTime;
+  @Json(name = "edited")
+  private DateTime lastEditedTime;
+  @Json(name = "viewed")
+  private DateTime lastViewedTime;
 
   public SysItem() {
+  }
+
+  public SysItem(String title, String body, int color, DateTime createdTime, DateTime lastEditedTime,
+                 DateTime lastViewedTime) {
+    this.title = title;
+    this.body = body;
+    this.color = color;
+    this.createdTime = createdTime;
+    this.lastEditedTime = lastEditedTime;
+    this.lastViewedTime = lastViewedTime;
   }
 
   private SysItem(Parcel in) {
     title = in.readString();
     body = in.readString();
     color = in.readInt();
+  }
+
+  /**
+   * Parses a list of items from the given json string.
+   *
+   * @param json A json string.
+   * @return A list of parsed items.
+   * @throws IOException When the parser is unable to process the json.
+   */
+  public static List<SysItem> parseJsonToList(String json) throws IOException {
+    Moshi moshi = new Moshi.Builder()
+        .add(new ColorAdapter())
+        .add(new DateTimeAdapter())
+        .build();
+
+    return JsonUtils.parseList(moshi, json, SysItem.class);
+  }
+
+  /**
+   * Parses an item from the given json string.
+   *
+   * @param json A json string.
+   * @return A parsed item.
+   * @throws IOException When the parser is unable to process the json.
+   */
+  public static SysItem parseJson(String json) throws IOException {
+    Moshi moshi = new Moshi.Builder()
+        .add(new ColorAdapter())
+        .add(new DateTimeAdapter())
+        .build();
+
+    return JsonUtils.parseSingleObject(moshi, json, SysItem.class);
+  }
+
+  /**
+   * Converts current object to a json representation.
+   *
+   * @return A json representation.
+   */
+  public String toJson() {
+    Moshi moshi = new Moshi.Builder()
+        .add(new ColorAdapter())
+        .add(new DateTimeAdapter())
+        .build();
+
+    return JsonUtils.writeSingleObject(moshi, this, SysItem.class);
+  }
+
+  /**
+   * Converts a list of items into a list of
+   *
+   * @param items A list of items to convert to json.
+   * @return A json representation of the given items list.
+   */
+  public static String toJson(List<SysItem> items) {
+    Moshi moshi = new Moshi.Builder()
+        .add(new ColorAdapter())
+        .add(new DateTimeAdapter())
+        .build();
+
+    return JsonUtils.writeList(moshi, items, SysItem.class);
   }
 
   public Long getId() {
@@ -67,6 +173,33 @@ public class SysItem implements Parcelable {
 
   public SysItem setColor(int color) {
     this.color = color;
+    return this;
+  }
+
+  public DateTime getCreatedTime() {
+    return createdTime;
+  }
+
+  public SysItem setCreatedTime(DateTime createdTime) {
+    this.createdTime = createdTime;
+    return this;
+  }
+
+  public DateTime getLastEditedTime() {
+    return lastEditedTime;
+  }
+
+  public SysItem setLastEditedTime(DateTime lastEditedTime) {
+    this.lastEditedTime = lastEditedTime;
+    return this;
+  }
+
+  public DateTime getLastViewedTime() {
+    return lastViewedTime;
+  }
+
+  public SysItem setLastViewedTime(DateTime lastViewedTime) {
+    this.lastViewedTime = lastViewedTime;
     return this;
   }
 
@@ -109,5 +242,11 @@ public class SysItem implements Parcelable {
     public static final String COLUMN_NAME_TITLE = "title";
     public static final String COLUMN_NAME_BODY = "body";
     public static final String COLUMN_NAME_COLOR = "color";
+    public static final String COLUMN_CREATED_TIME = "created_time";
+    public static final String COLUMN_CREATED_TIME_TS = "created_time_ts";
+    public static final String COLUMN_LAST_EDITED_TIME = "last_edited_time";
+    public static final String COLUMN_LAST_EDITED_TIME_TS = "last_edited_time_ts";
+    public static final String COLUMN_LAST_VIEWED_TIME = "last_viewed_time";
+    public static final String COLUMN_LAST_VIEWED_TIME_TS = "last_viewed_time_ts";
   }
 }

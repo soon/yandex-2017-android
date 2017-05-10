@@ -1,8 +1,9 @@
 <resources>
-  <string name="app_name">Third Task</string>
-  <string name="title_activity_element_editor">ElementEditorActivity</string>
+  <string name="app_name">Заметки</string>
+  <string name="title_activity_element_editor">Редактирование заметки</string>
   <string name="element_editor_default_title">Новая заметка</string>
   <string name="title_activity_color_picker">Выбор цвета</string>
+  <string name="title_activity_filter_editor">Настройка фильтра</string>
 
   <string name="title_edit_text_hint">Название</string>
   <string name="title_edit_text_error">Введите название</string>
@@ -12,13 +13,190 @@
   <string name="save_element">Сохранить</string>
 
   <string name="default_sys_item_title">Тут совсем пусто…</string>
-  <string name="default_sys_item_body">Коснись меня, чтобы добавить заметку!</string>
+  <string name="default_sys_item_body">Коснись меня, чтобы создать заметку!</string>
 
   <string name="remove_sys_item_dialog_message">Вы действительно хотите удалить заметку?</string>
+  <string name="ok">OK</string>
   <string name="yes">Да</string>
   <string name="no">Нет</string>
 
   <string name="move_back_dialog_message">
     Вы действительно хотите вернуться? Все изменения будут утеряны.
   </string>
+
+  <string name="edit_filter">Редакировать фильтр</string>
+  <string name="filter_name_hint">Название фильтра</string>
+  <string name="created_date_start_hint">Дата создания (начало)</string>
+  <string name="created_date_end_hint">Дата создания (конец)</string>
+  <string name="edited_date_start_hint">Дата редактирования (начало)</string>
+  <string name="edited_date_end_hint">Дата редактирования (конец)</string>
+  <string name="viewed_date_start_hint">Дата просмотра (начало)</string>
+  <string name="viewed_date_end_hint">Дата просмотра (конец)</string>
+
+  <string name="export_notes_to_file">Экспорт заметок в файл</string>
+  <string name="import_notes_from_file">Импорт заметок из файла</string>
+
+  <string name="notes_have_not_been_saved_title">Не удалось экспортировать заметки</string>
+  <string name="notes_have_not_been_saved_message">
+    Пожалуйста, убедитесь, что имя файла выбрано верно
+  </string>
+
+  <string name="you_do_not_have_notes">У вас нет заметок</string>
+  <string name="do_you_want_to_add_one">Хотите добавить новую заметку?</string>
+  <string name="add">Добавить</string>
+  <string name="cancel">Отмена</string>
+
+  <string name="notes_have_been_saved_title">Заметки успешно экспортированы</string>
+
+  <plurals name="notes_have_been_saved_message">
+    <item quantity="one">Экспортирована %d заметка</item>
+    <item quantity="few">Экспортированы %d заметки</item>
+    <item quantity="other">Экспортировано %d заметок</item>
+  </plurals>
+
+  <string name="notes_have_been_saved_message_short_number">Экспортировано %s заметок</string>
+
+  <string name="all_notes_will_be_deleted">Все текущие заметки будут удалены</string>
+  <plurals name="are_you_sure_you_want_to_delete_n_notes">
+    <item quantity="one">Вы действительно хотите удалить %d заметку?</item>
+    <item quantity="few">Вы действительно хотите удалить %d заметки?</item>
+    <item quantity="other">Вы действительно хотите удалить %d заметок?</item>
+  </plurals>
+  <string name="delete">Удалить</string>
+
+  <string name="notes_have_been_imported_title">Заметки успешно импортированы</string>
+
+  <plurals name="notes_have_been_imported_message">
+    <item quantity="one">Импортирована %d заметка</item>
+    <item quantity="few">Импортированы %d заметки</item>
+    <item quantity="other">Импортировано %d заметок</item>
+  </plurals>
+
+  <string name="notes_have_been_imported_message_short_number">Импортировано %s заметок</string>
+
+  <string name="unable_to_find_notes_to_import_title">Не найдено заметок для импорта</string>
+  <string name="unable_to_find_notes_to_import_message">
+    Импортирование заметок отменено
+  </string>
+
+  <string name="error_occurred_while_importing_notes_title">Ошибка при импорте заметок</string>
+  <string name="error_occurred_while_importing_notes_message">
+    Произошла ошибка в процессе импорта заметок
+  </string>
+
+  <string name="error_occurred_while_exporting_notes_message">
+    Произошла ошибка в процессе импорта заметок
+  </string>
+
+  <string name="created_time_info">Заметка создана %1$s</string>
+  <string name="last_edited_time_info">Последний раз отредактирована %1$s</string>
+  <string name="last_viewed_time_info">Последний раз просмотрена %1$s</string>
+
+  <string name="search_title">Поиск</string>
+  <string name="search_hint">Поиск…</string>
+  <string name="add_order">Добавить сортировку</string>
+  <string name="sort_order">Порядок сортировки</string>
+
+  <string name="add_color">Добавить цвет</string>
+
+  <string-array name="sortable_sys_item_fields">
+    <item>Название</item>
+    <item>Описание</item>
+    <item>Дата создания</item>
+    <item>Дата редактирования</item>
+    <item>Дата просмотра</item>
+  </string-array>
+
+  <!-- should match com.awesoon.thirdtask.repository.filter.FilteredColumn -->
+  <string-array name="sortable_sys_item_fields_values">
+    <item>TITLE</item>
+    <item>BODY</item>
+    <item>CREATED</item>
+    <item>EDITED</item>
+    <item>VIEWED</item>
+  </string-array>
+
+  <string-array name="sort_directions">
+    <item>По возрастанию</item>
+    <item>По убыванию</item>
+  </string-array>
+
+  <string-array name="date_sort_directions">
+    <item>Сначала старые</item>
+    <item>Сначала новые</item>
+  </string-array>
+
+  <string-array name="sort_order_values">
+    <item>ASC</item>
+    <item>DESC</item>
+  </string-array>
+
+  <plurals name="some_notes_are_hidden">
+    <item quantity="one">Фильтрами скрыта %d заметка</item>
+    <item quantity="few">Фильтрами скрыты %d заметки</item>
+    <item quantity="other">Фильтрами скрыто %d заметок</item>
+  </plurals>
+
+  <string name="some_notes_are_hidden_short_number">Фильтрами скрыто %s заметок</string>
+
+  <string name="empty_filter_name">Пустой</string>
+  <string name="no_filter_name">Нет фильтра</string>
+
+  <string name="title_sort_name">Сортировка по названию</string>
+  <string name="body_sort_name">Сортировка по описанию</string>
+  <string name="created_sort_name">Сортировка по дате создания</string>
+  <string name="edited_sort_name">Сортировка по дате редактирования</string>
+  <string name="viewed_sort_name">Сортировка по дате просмотра</string>
+
+  <string name="color_filter_name">Фильтр по цвету</string>
+  <string name="date_filter_name">Фильтр по дате</string>
+
+  <string name="select_filter">Выбрать фильтр</string>
+  <string name="remove_filter">Удалить фильтр</string>
+  <string name="add_filter">Добавить фильтр</string>
+
+  <string name="remove">Удалить</string>
+
+  <string name="remove_filters_title">Удаление фильтров</string>
+
+  <plurals name="are_you_sure_you_want_to_delete_n_items">
+    <item quantity="one">Вы действительно хотите удалить %d фильтр?</item>
+    <item quantity="few">Вы действительно хотите удалить %d фильтра?</item>
+    <item quantity="other">Вы действительно хотите удалить %d фильтров?</item>
+  </plurals>
+
+  <string name="you_do_not_have_filters">У вас нет фильтров</string>
+  <string name="do_you_want_to_add_one_filter">Хотите добавить новый фильтр?</string>
+  <string name="create_100_000_notes">100 000 заметок</string>
+  <string name="remove_all_notes">Удалить все заметки</string>
+
+  <plurals name="found_n_notes">
+    <item quantity="zero">Найдено %d заметок</item>
+    <item quantity="one">Найдена %d заметка</item>
+    <item quantity="few">Найдено %d заметки</item>
+    <item quantity="other">Найдено %d заметок</item>
+  </plurals>
+
+  <string name="n_notes_title">Заметки (%s)</string>
+
+  <plurals name="removed_n_notes">
+    <item quantity="one">Удалена %d заметка</item>
+    <item quantity="few">Удалены %d заметки</item>
+    <item quantity="other">Удалено %d заметок</item>
+  </plurals>
+
+  <string name="started_notes_generation">Запущена генерация заметок</string>
+  <string name="notes_generation_title">Генерация заметок</string>
+  <string name="notes_generation_text">Запущена генерация заметок</string>
+  <string name="notes_generation_progress">Генерация заметок</string>
+  <string name="notes_saving_progress">Сохранение заметок</string>
+  <string name="generated_n_notes">Сгенерировано %s заметок</string>
+  <string name="notes_generation_failed">Не удалось сгенерировать заметки</string>
+
+  <string name="notes_importing_reading_file">Загрузка из файла</string>
+  <string name="notes_exporting_title">Экспорт заметок</string>
+  <string name="notes_importing_title">Импорт заметок</string>
+
+  <string name="notes_exporting_loading_from_db">Подготовка к экспорту</string>
+  <string name="notes_exporting_storing_to_file">Сохранение заметок</string>
 </resources>

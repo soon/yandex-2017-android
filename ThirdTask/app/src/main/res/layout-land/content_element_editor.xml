@@ -55,5 +55,35 @@
       android:layout_weight="1"
       android:hint="@string/body_edit_text_hint"
       android:inputType="text|textMultiLine"/>
+
+    <TextView
+      android:id="@+id/created_time"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:layout_weight="1"
+      android:drawableLeft="@drawable/ic_add_black_16dp"
+      android:drawablePadding="4dp"
+      android:freezesText="true"
+      android:paddingTop="@dimen/content_element_editor_time_padding_top"/>
+
+    <TextView
+      android:id="@+id/last_updated_time"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:layout_weight="1"
+      android:drawableLeft="@drawable/ic_edit_black_16dp"
+      android:drawablePadding="4dp"
+      android:freezesText="true"
+      android:paddingTop="@dimen/content_element_editor_time_padding_top"/>
+
+    <TextView
+      android:id="@+id/last_viewed_time"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:layout_weight="1"
+      android:drawableLeft="@drawable/ic_eye_black_16dp"
+      android:drawablePadding="4dp"
+      android:freezesText="true"
+      android:paddingTop="@dimen/content_element_editor_time_padding_top"/>
   </LinearLayout>
 </android.support.constraint.ConstraintLayout>

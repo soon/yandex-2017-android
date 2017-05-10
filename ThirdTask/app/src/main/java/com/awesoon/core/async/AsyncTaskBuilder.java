@@ -20,11 +20,11 @@ public class AsyncTaskBuilder<T, R> {
     return setGlobalListenersAndBuild(null, null);
   }
 
-  public static <T, R> AsyncTaskBuilder<T, R> firstly(AsyncTaskAction<T, R> action) {
+  public static <T, R> AsyncTaskBuilder<T, R> firstly(AbstractAsyncTaskAction<T, R> action) {
     return firstly(action, null, null);
   }
 
-  public static <T, R> AsyncTaskBuilder<T, R> firstly(AsyncTaskAction<T, R> action, final Consumer<R> onSuccess) {
+  public static <T, R> AsyncTaskBuilder<T, R> firstly(AbstractAsyncTaskAction<T, R> action, final Consumer<R> onSuccess) {
     return firstly(action, new SuccessConsumer<R>() {
       @Override
       public void apply(R data) {
@@ -33,14 +33,14 @@ public class AsyncTaskBuilder<T, R> {
     }, null);
   }
 
-  public static <T, R> AsyncTaskBuilder<T, R> firstly(AsyncTaskAction<T, R> action,
+  public static <T, R> AsyncTaskBuilder<T, R> firstly(AbstractAsyncTaskAction<T, R> action,
                                                       @Nullable SuccessConsumer<R> onSuccess,
                                                       @Nullable ExceptionConsumer onError) {
     return new AsyncTaskBuilder<T, R>()
         .addSubTask(new AsyncSubTask<>(action, onSuccess, onError));
   }
 
-  public <U> AsyncTaskBuilder<T, U> then(AsyncTaskAction<R, U> action, @Nullable SuccessConsumer<U> onSuccess,
+  public <U> AsyncTaskBuilder<T, U> then(AbstractAsyncTaskAction<R, U> action, @Nullable SuccessConsumer<U> onSuccess,
                                          @Nullable ExceptionConsumer onError) {
     return (AsyncTaskBuilder<T, U>) addSubTask(new AsyncSubTask<>(action, onSuccess, onError));
   }

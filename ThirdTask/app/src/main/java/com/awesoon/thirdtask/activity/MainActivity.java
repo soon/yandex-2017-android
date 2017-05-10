@@ -10,6 +10,7 @@ import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.MenuItemCompat;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
@@ -25,6 +26,9 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
 
+import com.awesoon.core.async.AsyncTaskBuilder;
+import com.awesoon.core.async.AsyncTaskProducer;
+import com.awesoon.core.sql.FilteredPage;
 import com.awesoon.core.sql.Page;
 import com.awesoon.core.sql.PageRequest;
 import com.awesoon.thirdtask.NotesApplication;
@@ -35,7 +39,6 @@ import com.awesoon.thirdtask.db.GlobalDbState;
 import com.awesoon.thirdtask.domain.SysItem;
 import com.awesoon.thirdtask.event.DbStateChangeListener;
 import com.awesoon.thirdtask.event.SysItemRemoveListener;
-import com.awesoon.thirdtask.repository.FilteredItemsContainer;
 import com.awesoon.thirdtask.repository.SysItemFilterRepository;
 import com.awesoon.thirdtask.repository.SysItemRepository;
 import com.awesoon.thirdtask.repository.filter.SysItemFilter;
@@ -46,6 +49,7 @@ import com.awesoon.thirdtask.util.BiPredicate;
 import com.awesoon.thirdtask.util.CollectionUtils;
 import com.awesoon.thirdtask.util.Consumer;
 import com.awesoon.thirdtask.util.Function;
+import com.awesoon.thirdtask.util.NumberUtils;
 import com.awesoon.thirdtask.util.PermissionUtils;
 import com.awesoon.thirdtask.util.StringUtils;
 import com.awesoon.thirdtask.view.SysItemsAdapter;
@@ -63,6 +67,7 @@ import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 public class MainActivity extends AppCompatActivity {
   private static final String TAG = "MainActivity";
   private static final int SEARCH_TOAST_TOP_OFFSET_DPI = 64;
+  public static final int NOTES_PAGE_SIZE = 25;
 
   public static final int ADD_NEW_SYS_ITEM_REQUEST_CODE = 1;
   public static final int EDIT_EXISTING_SYS_ITEM_REQUEST_CODE = 2;
@@ -80,6 +85,7 @@ public class MainActivity extends AppCompatActivity {
   private String filterQueryText;
   private Toast searchToast;
   private String searchToastMessage;
+  private EndlessRecyclerViewScrollListener endlessRecyclerViewScrollListener;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -87,10 +93,10 @@ public class MainActivity extends AppCompatActivity {
     setContentView(R.layout.activity_main);
 
     initMembers();
-    initState(savedInstanceState);
-
     initToolbar();
     initFab();
+
+    initState(savedInstanceState);
 
     drawerNavView.setNavigationItemSelectedListener(new NavigationView.OnNavigationItemSelectedListener() {
       @Override
@@ -114,6 +120,9 @@ public class MainActivity extends AppCompatActivity {
             return true;
           case R.id.generate_notes:
             generateNotes();
+            return true;
+          case R.id.remove_all_notes:
+            removeAllNotes();
             return true;
         }
 
@@ -151,11 +160,47 @@ public class MainActivity extends AppCompatActivity {
     refreshData(dbHelper);
   }
 
+  private void removeAllNotes() {
+    NotesApplication app = (NotesApplication) getApplication();
+    final DbHelper dbHelper = app.getDbHelper();
+    AsyncTaskBuilder.firstly(new AsyncTaskProducer<Integer>() {
+      @Override
+      public Integer doApply() {
+        return dbHelper.removeAllSysItems();
+      }
+    }, new Consumer<Integer>() {
+      @Override
+      public void apply(Integer removedNotesCount) {
+        Assert.notNull(removedNotesCount, "removedNotesCount must not be null");
+        refreshData(dbHelper);
+        showAllNotesRemovedDialog(removedNotesCount);
+      }
+    }).build().execute();
+  }
+
+  private void showAllNotesRemovedDialog(int removedNotesCount) {
+    String message = getResources()
+        .getQuantityString(R.plurals.removed_n_notes, removedNotesCount, removedNotesCount);
+    new AlertDialog.Builder(this)
+        .setTitle(message)
+        .setPositiveButton(R.string.ok, null)
+        .show();
+  }
+
   private void generateNotes() {
     NotesApplication app = (NotesApplication) getApplication();
     final DbHelper dbHelper = app.getDbHelper();
-    List<SysItem> sysItems = SysItemRepository.generateNotes(dbHelper, 100);
-    refreshData(dbHelper);
+    AsyncTaskBuilder.firstly(new AsyncTaskProducer<List<SysItem>>() {
+      @Override
+      public List<SysItem> doApply() {
+        return SysItemRepository.generateNotes(dbHelper, 100_000);
+      }
+    }, new Consumer<List<SysItem>>() {
+      @Override
+      public void apply(List<SysItem> sysItems) {
+        refreshData(dbHelper);
+      }
+    }).build().execute();
   }
 
   private void showRemoveFiltersDialog() {
@@ -673,10 +718,11 @@ public class MainActivity extends AppCompatActivity {
 
     final LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
     elementsList.setLayoutManager(linearLayoutManager);
-    EndlessRecyclerViewScrollListener scrollListener = new EndlessRecyclerViewScrollListener(linearLayoutManager) {
+    endlessRecyclerViewScrollListener = new EndlessRecyclerViewScrollListener(linearLayoutManager) {
       @Override
       public void doLoadItems(int page, int totalItemsCount, RecyclerView view) {
-        dbHelper.findSysItemsAsync(new PageRequest(page, 25), new Consumer<Page<SysItem>>() {
+        SysItemFilter filter = SysItemFilterRepository.getCurrentFilter(MainActivity.this);
+        dbHelper.findSysItemsAsync(new PageRequest(page, NOTES_PAGE_SIZE), filter, new Consumer<Page<SysItem>>() {
           @Override
           public void apply(Page<SysItem> sysItemPage) {
             if (!sysItemPage.isEmpty()) {
@@ -687,7 +733,7 @@ public class MainActivity extends AppCompatActivity {
       }
     };
 
-    elementsList.addOnScrollListener(scrollListener);
+    elementsList.addOnScrollListener(endlessRecyclerViewScrollListener);
   }
 
   private void initFab() {
@@ -734,6 +780,8 @@ public class MainActivity extends AppCompatActivity {
     } else {
       sysItemsAdapter.addAll(sysItems);
     }
+
+    endlessRecyclerViewScrollListener.clear();
   }
 
   /**
@@ -781,15 +829,21 @@ public class MainActivity extends AppCompatActivity {
    *
    * @param items Items.
    */
-  private void setSysItems(FilteredItemsContainer items) {
-    List<SysItem> filteredItems = items.getFilteredItems();
-    List<SysItem> originalItems = items.getOriginalItems();
+  private void setSysItems(FilteredPage<SysItem> items) {
+    List<SysItem> filteredItems = items.getData();
     if (filteredItems != null) {
-      int delta = originalItems.size() - filteredItems.size();
+      int delta = items.getTotalSourceElements() - items.getTotalElements();
 
       if (delta > 0) {
         Context context = getApplicationContext();
-        String message = getResources().getQuantityString(R.plurals.some_notes_are_hidden, delta, delta);
+        String message;
+        if (delta >= 1000) {
+          String shortDelta = NumberUtils.makeShortString(delta);
+          message = getResources().getString(R.string.some_notes_are_hidden_short_number, shortDelta);
+        } else {
+          message = getResources().getQuantityString(R.plurals.some_notes_are_hidden, delta, delta);
+        }
+
         int duration = Toast.LENGTH_SHORT;
         Toast toast = Toast.makeText(context, message, duration);
         toast.show();
@@ -797,6 +851,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     updateListData(filteredItems);
+    setTotalNotesCount(items.getTotalElements());
+  }
+
+  private void setTotalNotesCount(int totalNotesCount) {
+    String title = getResources().getQuantityString(R.plurals.n_notes_title,
+        totalNotesCount, NumberUtils.makeShortString(totalNotesCount));
+
+    ActionBar actionBar = getSupportActionBar();
+    Assert.notNull(actionBar, "Unable to find action bar");
+    actionBar.setTitle(title);
   }
 
   /**
@@ -851,7 +915,7 @@ public class MainActivity extends AppCompatActivity {
   /**
    * Retrieves all sys items from the database. Calls setSysItems once finished.
    */
-  private static class GetAllSysItemsTask extends AsyncTask<Void, Void, FilteredItemsContainer> {
+  private static class GetAllSysItemsTask extends AsyncTask<Void, Void, FilteredPage<SysItem>> {
     private MainActivity activity;
     private DbHelper dbHelper;
     private SysItemFilter filter;
@@ -862,16 +926,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    protected FilteredItemsContainer doInBackground(Void... params) {
-      Page<SysItem> sysItems = dbHelper.findSysItems(new PageRequest(0, 25));
-      return new FilteredItemsContainer(sysItems.getData(), sysItems.getData());
-//      filter = SysItemFilterRepository.getCurrentFilter(activity);
-//      FilteredItemsContainer filteredItems = SysItemRepository.getAllItemsFiltered(dbHelper, filter);
-//      return filteredItems;
+    protected FilteredPage<SysItem> doInBackground(Void... params) {
+      filter = SysItemFilterRepository.getCurrentFilter(activity);
+      FilteredPage<SysItem> page = dbHelper.findSysItems(new PageRequest(0, 25), filter);
+      return page;
     }
 
     @Override
-    protected void onPostExecute(final FilteredItemsContainer items) {
+    protected void onPostExecute(final FilteredPage<SysItem> items) {
       activity.setSysItems(items);
     }
   }

@@ -31,10 +31,19 @@
       android:id="@+id/drawer_remove_filters"
       android:icon="@drawable/ic_remove_circle_black_24dp"
       android:title="@string/remove_filter"/>
+  </group>
+  <group
+    android:id="@+id/new_notes_group"
+    android:checkableBehavior="single">
     <item
       android:checked="true"
       android:id="@+id/generate_notes"
+      android:icon="@drawable/ic_add_black_24dp"
+      android:title="@string/create_100_000_notes"/>
+    <item
+      android:checked="true"
+      android:id="@+id/remove_all_notes"
       android:icon="@drawable/ic_remove_circle_black_24dp"
-      android:title="100 000 заметок"/>
+      android:title="@string/remove_all_notes"/>
   </group>
 </menu>

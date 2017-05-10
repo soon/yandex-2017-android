@@ -1,24 +1,24 @@
 package com.awesoon.core.async;
 
 public class AsyncSubTask<T, R> {
-  private AsyncTaskAction<T, R> action;
+  private AbstractAsyncTaskAction<T, R> action;
   private SuccessConsumer<R> onSuccess;
   private ExceptionConsumer onError;
 
   public AsyncSubTask() {
   }
 
-  public AsyncSubTask(AsyncTaskAction<T, R> action, SuccessConsumer<R> onSuccess, ExceptionConsumer onError) {
+  public AsyncSubTask(AbstractAsyncTaskAction<T, R> action, SuccessConsumer<R> onSuccess, ExceptionConsumer onError) {
     this.action = action;
     this.onSuccess = onSuccess;
     this.onError = onError;
   }
 
-  public AsyncTaskAction<T, R> getAction() {
+  public AbstractAsyncTaskAction<T, R> getAction() {
     return action;
   }
 
-  public AsyncSubTask<T, R> setAction(AsyncTaskAction<T, R> action) {
+  public AsyncSubTask<T, R> setAction(AbstractAsyncTaskAction<T, R> action) {
     this.action = action;
     return this;
   }

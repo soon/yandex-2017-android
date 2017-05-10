@@ -3,10 +3,13 @@ package com.awesoon.thirdtask.util;
 import android.support.annotation.Nullable;
 
 import java.math.BigDecimal;
+import java.text.DecimalFormat;
 import java.util.Random;
 
 
 public class NumberUtils {
+  private static final DecimalFormat SHORT_STRING_DECIMAL_FORMATTER = new DecimalFormat("#.#");
+
   @Nullable
   public static BigDecimal parseBigDecimal(@Nullable Object o) {
     if (o == null) {
@@ -34,5 +37,18 @@ public class NumberUtils {
   public static int nextRandomInt(Random rnd, int start, int endExclusive) {
     Assert.isTrue(endExclusive > start, "endExclusive should be greater than start");
     return rnd.nextInt(endExclusive - start) + start;
+  }
+
+  public static String makeShortString(int number) {
+    String[] suffixes = {"", "K", "M"};
+    int suffixIndex = 0;
+    double resultNumber = number;
+
+    while (resultNumber >= 1000 && suffixIndex < suffixes.length - 1) {
+      resultNumber /= 1000;
+      suffixIndex++;
+    }
+
+    return SHORT_STRING_DECIMAL_FORMATTER.format(resultNumber) + suffixes[suffixIndex];
   }
 }

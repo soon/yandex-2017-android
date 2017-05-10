@@ -85,7 +85,7 @@
   </string>
 
   <string name="error_occurred_while_exporting_notes_message">
-    Произошла ошибка в процессе импорта заметок
+    Произошла ошибка в процессе экспорта заметок
   </string>
 
   <string name="created_time_info">Заметка создана %1$s</string>

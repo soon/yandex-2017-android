@@ -806,7 +806,7 @@ public class MainActivity extends AppCompatActivity {
                 NotificationCompat.Builder builder = new NotificationCompat.Builder(MainActivity.this);
                 builder.setSmallIcon(R.drawable.ic_note_add_white_24dp);
                 builder.setContentTitle(getString(R.string.notes_exporting_title));
-                builder.setContentText(getString(R.string.notes_exporting_loading_from_db));
+                builder.setContentText(getString(R.string.notes_exporting_storing_to_file));
                 builder.setProgress(MAX_PERCENTAGE, 0, true);
                 notificationManager.notify(NotesApplication.NOTES_EXPORT_NOTIFICATION_ID, builder.build());
               }

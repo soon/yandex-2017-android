@@ -94,7 +94,9 @@ public class DbHelper extends SQLiteOpenHelper {
         }
       case DATABASE_VERSION_2:
         doUpgrade2To3(db);
-        break;
+        if (newVersion == DATABASE_VERSION_3) {
+          break;
+        }
       default:
         throw new IllegalArgumentException(
             "Unknown old DB version " + oldVersion + ", max DB version is " + DATABASE_VERSION);
@@ -138,16 +140,39 @@ public class DbHelper extends SQLiteOpenHelper {
   }
 
   private void doUpgrade2To3(SQLiteDatabase db) {
-    String titleIndex = SqlUtils.makeCreateIndexSql(
-        SysItem.SysItemEntry.TABLE_NAME, SysItem.SysItemEntry.COLUMN_NAME_TITLE);
-    String bodyIndex = SqlUtils.makeCreateIndexSql(
-        SysItem.SysItemEntry.TABLE_NAME, SysItem.SysItemEntry.COLUMN_NAME_BODY);
-    String colorIndex = SqlUtils.makeCreateIndexSql(
-        SysItem.SysItemEntry.TABLE_NAME, SysItem.SysItemEntry.COLUMN_NAME_COLOR);
+    List<String> newFields = SqlUtils.makeAlterTableBuilder(SysItem.SysItemEntry.TABLE_NAME)
+        .addColumn(intField(SysItem.SysItemEntry.COLUMN_CREATED_TIME_TS))
+        .addColumn(intField(SysItem.SysItemEntry.COLUMN_LAST_EDITED_TIME_TS))
+        .addColumn(intField(SysItem.SysItemEntry.COLUMN_LAST_VIEWED_TIME_TS))
+        .build();
+    for (String sql : newFields) {
+      db.execSQL(sql);
+    }
 
-    db.execSQL(titleIndex);
-    db.execSQL(bodyIndex);
-    db.execSQL(colorIndex);
+    List<SysItem> sysItems = findAllSysItems();
+    for (SysItem item : sysItems) {
+      ContentValues values = new ContentValuesBuilder()
+          .put(SysItem.SysItemEntry.COLUMN_CREATED_TIME_TS, item.getCreatedTime().getMillis())
+          .put(SysItem.SysItemEntry.COLUMN_LAST_EDITED_TIME_TS, item.getLastEditedTime().getMillis())
+          .put(SysItem.SysItemEntry.COLUMN_LAST_VIEWED_TIME_TS, item.getLastViewedTime().getMillis())
+          .build();
+      int updatedRows = db.update(SysItem.SysItemEntry.TABLE_NAME, values,
+          SysItem.SysItemEntry.COLUMN_NAME_ID + " = ?", new String[]{String.valueOf(item.getId())});
+      validateUpdatedObjectThrowing(updatedRows, item);
+    }
+
+    List<String> indices = SqlUtils.makeCreateIndicesSql(SysItem.SysItemEntry.TABLE_NAME,
+        SysItem.SysItemEntry.COLUMN_NAME_TITLE,
+        SysItem.SysItemEntry.COLUMN_NAME_BODY,
+        SysItem.SysItemEntry.COLUMN_NAME_COLOR,
+        SysItem.SysItemEntry.COLUMN_CREATED_TIME_TS,
+        SysItem.SysItemEntry.COLUMN_LAST_EDITED_TIME_TS,
+        SysItem.SysItemEntry.COLUMN_LAST_VIEWED_TIME_TS
+    );
+
+    for (String index : indices) {
+      db.execSQL(index);
+    }
   }
 
   /**
@@ -265,12 +290,23 @@ public class DbHelper extends SQLiteOpenHelper {
    * @return Added items.
    */
   public List<SysItem> addSysItems(List<SysItem> items) {
+    return addSysItems(items, (Consumer<Integer>) null);
+  }
+
+  /**
+   * Adds sys items to the db.
+   *
+   * @param items An items to add.
+   * @return Added items.
+   */
+  public List<SysItem> addSysItems(List<SysItem> items, @Nullable Consumer<Integer> onNoteSaved) {
     Assert.notNull(items, "items must not be null");
 
     SavingOptions savingOptions = SavingOptions.getDefault()
         .setOverwriteCreatedTime(false)
         .setOverwriteLastEditedTime(false)
-        .setOverwriteLastViewedTime(false);
+        .setOverwriteLastViewedTime(false)
+        .setOnNoteSaved(onNoteSaved);
     return addSysItems(items, savingOptions);
   }
 
@@ -291,9 +327,13 @@ public class DbHelper extends SQLiteOpenHelper {
 
     try {
       db.beginTransaction();
-      for (SysItem item : items) {
+      for (int i = 0; i < items.size(); i++) {
+        SysItem item = items.get(i);
         item.setId(null);
         saveSysItemInternal(item, savingOptions);
+        if (savingOptions.getOnNotesSaved() != null) {
+          savingOptions.getOnNotesSaved().apply(i);
+        }
       }
       db.setTransactionSuccessful();
       GlobalDbState.notifySysItemsAdded(items);
@@ -353,8 +393,11 @@ public class DbHelper extends SQLiteOpenHelper {
         .put(SysItem.SysItemEntry.COLUMN_NAME_BODY, item.getBody())
         .put(SysItem.SysItemEntry.COLUMN_NAME_COLOR, item.getColor())
         .put(SysItem.SysItemEntry.COLUMN_CREATED_TIME, item.getCreatedTime())
+        .put(SysItem.SysItemEntry.COLUMN_CREATED_TIME_TS, item.getCreatedTime().getMillis())
         .put(SysItem.SysItemEntry.COLUMN_LAST_EDITED_TIME, item.getLastEditedTime())
+        .put(SysItem.SysItemEntry.COLUMN_LAST_EDITED_TIME_TS, item.getLastEditedTime().getMillis())
         .put(SysItem.SysItemEntry.COLUMN_LAST_VIEWED_TIME, item.getLastViewedTime())
+        .put(SysItem.SysItemEntry.COLUMN_LAST_VIEWED_TIME_TS, item.getLastViewedTime().getMillis())
         .build();
 
     if (item.getId() == null) {
@@ -474,13 +517,16 @@ public class DbHelper extends SQLiteOpenHelper {
       args.addAll(filter.getColors());
     }
 
-    appendConditionToWherePart(whereSb, filter.getCreatedTimeFilter());
-    appendConditionToWherePart(whereSb, filter.getLastEditedTimeFilter());
-    appendConditionToWherePart(whereSb, filter.getLastViewedTimeFilter());
+    appendConditionToWherePart(whereSb,
+        SysItem.SysItemEntry.COLUMN_CREATED_TIME_TS, filter.getCreatedTimeFilter(), args);
+    appendConditionToWherePart(whereSb,
+        SysItem.SysItemEntry.COLUMN_LAST_EDITED_TIME_TS, filter.getLastEditedTimeFilter(), args);
+    appendConditionToWherePart(whereSb,
+        SysItem.SysItemEntry.COLUMN_LAST_VIEWED_TIME_TS, filter.getLastViewedTimeFilter(), args);
 
     StringBuilder sqlSb = new StringBuilder(originalSql);
     if (whereSb.length() > 0) {
-      sqlSb.append(" WHERE ").append(whereSb);
+      sqlSb.append(" WHERE").append(whereSb);
     }
 
     StringBuilder orderBySb = new StringBuilder();
@@ -491,11 +537,11 @@ public class DbHelper extends SQLiteOpenHelper {
       }
     }
 
-    sqlSb.append(" ORDER BY ");
+    sqlSb.append(" ORDER BY");
     if (orderBySb.length() > 0) {
       sqlSb.append(orderBySb);
     } else {
-      sqlSb.append("a.").append(SysItem.SysItemEntry.COLUMN_NAME_TITLE);
+      sqlSb.append(" a.").append(SysItem.SysItemEntry.COLUMN_NAME_TITLE);
     }
 
     return sqlSb.toString();
@@ -507,10 +553,10 @@ public class DbHelper extends SQLiteOpenHelper {
     }
 
     if (orderBySb.length() > 0) {
-      orderBySb.append(", ");
+      orderBySb.append(",");
     }
 
-    orderBySb.append("a.");
+    orderBySb.append(" a.");
     switch (sort.getFilteredColumn()) {
       case TITLE:
         orderBySb.append(SysItem.SysItemEntry.COLUMN_NAME_TITLE);
@@ -519,21 +565,41 @@ public class DbHelper extends SQLiteOpenHelper {
         orderBySb.append(SysItem.SysItemEntry.COLUMN_NAME_BODY);
         break;
       case CREATED:
-        orderBySb.append(SysItem.SysItemEntry.COLUMN_CREATED_TIME);
+        orderBySb.append(SysItem.SysItemEntry.COLUMN_CREATED_TIME_TS);
         break;
       case EDITED:
-        orderBySb.append(SysItem.SysItemEntry.COLUMN_LAST_EDITED_TIME);
+        orderBySb.append(SysItem.SysItemEntry.COLUMN_LAST_EDITED_TIME_TS);
         break;
       case VIEWED:
-        orderBySb.append(SysItem.SysItemEntry.COLUMN_LAST_VIEWED_TIME);
+        orderBySb.append(SysItem.SysItemEntry.COLUMN_LAST_VIEWED_TIME_TS);
         break;
     }
 
-    orderBySb.append(" ").append(sort.isAsc() ? " ASC" : " DESC");
+    orderBySb.append(sort.isAsc() ? " ASC" : " DESC");
   }
 
-  private void appendConditionToWherePart(StringBuilder whereSb, DatePeriodFilter lastEditedTimeFilter) {
-    // todo
+  private void appendConditionToWherePart(StringBuilder whereSb, String columnName, DatePeriodFilter filter,
+                                          List<Object> args) {
+    if (filter.isEmpty()) {
+      return;
+    }
+
+    appendTimeConditionToWherePart(whereSb, columnName, filter.getFrom(), args);
+    appendTimeConditionToWherePart(whereSb, columnName, filter.getTo(), args);
+  }
+
+  private void appendTimeConditionToWherePart(StringBuilder whereSb, String columnName, DateTime from,
+                                              List<Object> args) {
+    if (from == null) {
+      return;
+    }
+
+    if (whereSb.length() > 0) {
+      whereSb.append(" AND");
+    }
+    whereSb.append(" a.").append(columnName)
+        .append(" >= ?");
+    args.add(from.getMillis());
   }
 
   /**
@@ -674,6 +740,7 @@ public class DbHelper extends SQLiteOpenHelper {
     private boolean overwriteCreatedTime;
     private boolean overwriteLastEditedTime;
     private boolean overwriteLastViewedTime;
+    private Consumer<Integer> onNotesSaved;
 
     public static SavingOptions getDefault() {
       return new SavingOptions()
@@ -735,6 +802,15 @@ public class DbHelper extends SQLiteOpenHelper {
 
     public SavingOptions setOverwriteLastViewedTime(boolean overwriteLastViewedTime) {
       this.overwriteLastViewedTime = overwriteLastViewedTime;
+      return this;
+    }
+
+    public Consumer<Integer> getOnNotesSaved() {
+      return onNotesSaved;
+    }
+
+    public SavingOptions setOnNoteSaved(Consumer<Integer> onNotesSaved) {
+      this.onNotesSaved = onNotesSaved;
       return this;
     }
   }

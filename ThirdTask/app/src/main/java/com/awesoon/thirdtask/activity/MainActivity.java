@@ -1,11 +1,13 @@
 package com.awesoon.thirdtask.activity;
 
+import android.app.NotificationManager;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
@@ -13,6 +15,7 @@ import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.app.NotificationCompat;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.SearchView;
@@ -188,19 +191,21 @@ public class MainActivity extends AppCompatActivity {
   }
 
   private void generateNotes() {
+    new AlertDialog.Builder(this)
+        .setTitle(getString(R.string.started_notes_generation))
+        .setPositiveButton(R.string.ok, null)
+        .show();
+
+    NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+    NotificationCompat.Builder builder = new NotificationCompat.Builder(MainActivity.this);
+    builder.setContentTitle(getString(R.string.notes_generation_title))
+        .setContentText(getString(R.string.notes_generation_text))
+        .setSmallIcon(R.drawable.ic_note_add_white_24dp);
+
     NotesApplication app = (NotesApplication) getApplication();
-    final DbHelper dbHelper = app.getDbHelper();
-    AsyncTaskBuilder.firstly(new AsyncTaskProducer<List<SysItem>>() {
-      @Override
-      public List<SysItem> doApply() {
-        return SysItemRepository.generateNotes(dbHelper, 100_000);
-      }
-    }, new Consumer<List<SysItem>>() {
-      @Override
-      public void apply(List<SysItem> sysItems) {
-        refreshData(dbHelper);
-      }
-    }).build().execute();
+    DbHelper dbHelper = app.getDbHelper();
+    new SysItemsGenerator(notificationManager, builder, this, dbHelper,
+        getString(R.string.notes_generation_progress), getString(R.string.notes_saving_progress), 100_000).execute();
   }
 
   private void showRemoveFiltersDialog() {
@@ -855,8 +860,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   private void setTotalNotesCount(int totalNotesCount) {
-    String title = getResources().getQuantityString(R.plurals.n_notes_title,
-        totalNotesCount, NumberUtils.makeShortString(totalNotesCount));
+    String title = getResources().getString(R.string.n_notes_title, NumberUtils.makeShortString(totalNotesCount));
 
     ActionBar actionBar = getSupportActionBar();
     Assert.notNull(actionBar, "Unable to find action bar");
@@ -935,6 +939,113 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPostExecute(final FilteredPage<SysItem> items) {
       activity.setSysItems(items);
+    }
+  }
+
+  private class SysItemsGenerator extends AsyncTask<Void, SysItemsGenerator.ProgressUpdate, Integer> {
+    private static final String TAG = "SysItemsGenerator";
+
+    private final NotificationManager notificationManager;
+    private final NotificationCompat.Builder notificationBuilder;
+    private final MainActivity mainActivity;
+    private final DbHelper dbHelper;
+    private final String notesGenerationProgress;
+    private final String notesSavingProgress;
+    private static final int ID = NotesApplication.NOTES_GENERATOR_NOTIFICATION_ID;
+    private final int itemsCount;
+
+    public SysItemsGenerator(NotificationManager notificationManager, NotificationCompat.Builder notificationBuilder,
+                             MainActivity mainActivity, DbHelper dbHelper, String notesGenerationProgress,
+                             String notesSavingProgress, int itemsCount) {
+      this.notificationManager = notificationManager;
+      this.notificationBuilder = notificationBuilder;
+      this.mainActivity = mainActivity;
+      this.dbHelper = dbHelper;
+      this.notesGenerationProgress = notesGenerationProgress;
+      this.notesSavingProgress = notesSavingProgress;
+      this.itemsCount = itemsCount;
+    }
+
+    @Override
+    protected void onPreExecute() {
+      notificationBuilder.setProgress(100, 0, false);
+      notificationManager.notify(ID, notificationBuilder.build());
+    }
+
+    @Override
+    protected void onProgressUpdate(ProgressUpdate... values) {
+      notificationBuilder.setContentText(values[0].title);
+      notificationBuilder.setProgress(100, values[0].percentage, false);
+      notificationManager.notify(ID, notificationBuilder.build());
+    }
+
+    private void onNoteGenerated(int noteNumber) {
+      if (noteNumber % 1000 == 0) {
+        int percentage = getPercentage(noteNumber) / 2;
+        publishProgress(new ProgressUpdate(notesGenerationProgress + " " + percentage + "%", percentage));
+      }
+    }
+
+    private void onNoteSaved(int noteNumber) {
+      if (noteNumber % 1000 == 0) {
+        int percentage = getPercentage(noteNumber) / 2 + 50;
+        publishProgress(new ProgressUpdate(notesSavingProgress + " " + percentage + "%", percentage));
+      }
+    }
+
+    private int getPercentage(int noteNumber) {
+      return (int) ((double) noteNumber / itemsCount * 100);
+    }
+
+    @Override
+    protected Integer doInBackground(Void... params) {
+      try {
+        return doGenerateItems();
+      } catch (Exception e) {
+        Log.e(TAG, "Unable to generate notes", e);
+        return null;
+      }
+    }
+
+    @NonNull
+    private Integer doGenerateItems() {
+      List<SysItem> generatedItems = SysItemRepository.generateNotes(dbHelper, itemsCount, new Consumer<Integer>() {
+        @Override
+        public void apply(Integer noteNumber) {
+          onNoteGenerated(noteNumber);
+        }
+      }, new Consumer<Integer>() {
+        @Override
+        public void apply(Integer noteNumber) {
+          onNoteSaved(noteNumber);
+        }
+      });
+      return generatedItems.size();
+    }
+
+    @Override
+    protected void onPostExecute(Integer result) {
+      String message;
+      if (result != null) {
+        message = mainActivity.getString(R.string.generated_n_notes, NumberUtils.makeShortString(result));
+      } else {
+        message = mainActivity.getString(R.string.notes_generation_failed);
+      }
+
+      notificationBuilder.setContentText(message);
+      notificationBuilder.setProgress(0, 0, false);
+      notificationManager.notify(ID, notificationBuilder.build());
+      mainActivity.refreshData();
+    }
+
+    public class ProgressUpdate {
+      public String title;
+      public int percentage;
+
+      public ProgressUpdate(String title, int percentage) {
+        this.title = title;
+        this.percentage = percentage;
+      }
     }
   }
 }

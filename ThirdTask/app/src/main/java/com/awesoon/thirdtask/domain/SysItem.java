@@ -29,14 +29,20 @@ public class SysItem implements Parcelable {
       textField(SysItemEntry.COLUMN_NAME_BODY).setNull(false),
       intField(SysItemEntry.COLUMN_NAME_COLOR).setNull(false),
       dateTimeField(SysItemEntry.COLUMN_CREATED_TIME).setNull(false),
+      intField(SysItemEntry.COLUMN_CREATED_TIME_TS).setNull(false),
       dateTimeField(SysItemEntry.COLUMN_LAST_EDITED_TIME).setNull(false),
-      dateTimeField(SysItemEntry.COLUMN_LAST_VIEWED_TIME).setNull(false)
+      intField(SysItemEntry.COLUMN_LAST_EDITED_TIME_TS).setNull(false),
+      dateTimeField(SysItemEntry.COLUMN_LAST_VIEWED_TIME).setNull(false),
+      intField(SysItemEntry.COLUMN_LAST_VIEWED_TIME_TS).setNull(false)
   );
 
   public static final String[] INDICES = new String[] {
-      SqlUtils.makeCreateIndexSql(SysItem.SysItemEntry.TABLE_NAME, SysItem.SysItemEntry.COLUMN_NAME_TITLE),
-      SqlUtils.makeCreateIndexSql(SysItem.SysItemEntry.TABLE_NAME, SysItem.SysItemEntry.COLUMN_NAME_BODY),
-      SqlUtils.makeCreateIndexSql(SysItem.SysItemEntry.TABLE_NAME, SysItem.SysItemEntry.COLUMN_NAME_COLOR)
+      SqlUtils.makeCreateIndexSql(SysItemEntry.TABLE_NAME, SysItemEntry.COLUMN_NAME_TITLE),
+      SqlUtils.makeCreateIndexSql(SysItemEntry.TABLE_NAME, SysItemEntry.COLUMN_NAME_BODY),
+      SqlUtils.makeCreateIndexSql(SysItemEntry.TABLE_NAME, SysItemEntry.COLUMN_NAME_COLOR),
+      SqlUtils.makeCreateIndexSql(SysItemEntry.TABLE_NAME, SysItemEntry.COLUMN_CREATED_TIME_TS),
+      SqlUtils.makeCreateIndexSql(SysItemEntry.TABLE_NAME, SysItemEntry.COLUMN_LAST_EDITED_TIME_TS),
+      SqlUtils.makeCreateIndexSql(SysItemEntry.TABLE_NAME, SysItemEntry.COLUMN_LAST_VIEWED_TIME_TS),
   };
 
   public static final String SQL_DROP_TABLE = SqlUtils.makeDropTableIfExistsSql(SysItemEntry.TABLE_NAME);
@@ -237,7 +243,10 @@ public class SysItem implements Parcelable {
     public static final String COLUMN_NAME_BODY = "body";
     public static final String COLUMN_NAME_COLOR = "color";
     public static final String COLUMN_CREATED_TIME = "created_time";
+    public static final String COLUMN_CREATED_TIME_TS = "created_time_ts";
     public static final String COLUMN_LAST_EDITED_TIME = "last_edited_time";
+    public static final String COLUMN_LAST_EDITED_TIME_TS = "last_edited_time_ts";
     public static final String COLUMN_LAST_VIEWED_TIME = "last_viewed_time";
+    public static final String COLUMN_LAST_VIEWED_TIME_TS = "last_viewed_time_ts";
   }
 }

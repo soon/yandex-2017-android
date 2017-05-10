@@ -169,14 +169,19 @@
     <item quantity="other">Найдено %d заметок</item>
   </plurals>
 
-  <plurals name="n_notes_title">
-    <item quantity="zero">Заметки </item>
-    <item quantity="other">Заметки (%s)</item>
-  </plurals>
+  <string name="n_notes_title">Заметки (%s)</string>
 
   <plurals name="removed_n_notes">
     <item quantity="one">Удалена %d заметка</item>
     <item quantity="few">Удалены %d заметки</item>
     <item quantity="other">Удалено %d заметок</item>
   </plurals>
+
+  <string name="started_notes_generation">Запущена генерация заметок</string>
+  <string name="notes_generation_title">Генерация заметок</string>
+  <string name="notes_generation_text">Запущена генерация заметок</string>
+  <string name="notes_generation_progress">Генерация заметок</string>
+  <string name="notes_saving_progress">Сохранение заметок</string>
+  <string name="generated_n_notes">Сгенерировано %s заметок</string>
+  <string name="notes_generation_failed">Не удалось сгенерировать заметки</string>
 </resources>

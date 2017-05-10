@@ -27,6 +27,8 @@ import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.Window;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import com.awesoon.core.async.AsyncTaskBuilder;
@@ -36,6 +38,7 @@ import com.awesoon.core.sql.Page;
 import com.awesoon.core.sql.PageRequest;
 import com.awesoon.thirdtask.NotesApplication;
 import com.awesoon.thirdtask.R;
+import com.awesoon.thirdtask.activity.listener.DebouncedQueryTextListener;
 import com.awesoon.thirdtask.activity.listener.EndlessRecyclerViewScrollListener;
 import com.awesoon.thirdtask.db.DbHelper;
 import com.awesoon.thirdtask.db.GlobalDbState;
@@ -89,10 +92,13 @@ public class MainActivity extends AppCompatActivity {
   private Toast searchToast;
   private String searchToastMessage;
   private EndlessRecyclerViewScrollListener endlessRecyclerViewScrollListener;
+  private ProgressBar elementsListProgressBar;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+    requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
+
     setContentView(R.layout.activity_main);
 
     initMembers();
@@ -380,17 +386,10 @@ public class MainActivity extends AppCompatActivity {
     final SearchView searchView = (SearchView) searchViewMenuItem.getActionView();
 
     searchView.setQueryHint(getResources().getString(R.string.search_hint));
-    searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+    searchView.setOnQueryTextListener(new DebouncedQueryTextListener(500) {
       @Override
-      public boolean onQueryTextSubmit(String query) {
+      public void debouncedQueryChangedOrSubmitted(String query) {
         applyFilterText(query);
-        return true;
-      }
-
-      @Override
-      public boolean onQueryTextChange(String newText) {
-        applyFilterText(newText);
-        return false;
       }
     });
 
@@ -696,23 +695,7 @@ public class MainActivity extends AppCompatActivity {
     final DbHelper dbHelper = app.getDbHelper();
 
     sysItemsAdapter = new SysItemsAdapter(this, R.layout.element_view, new ArrayList<SysItem>(),
-        R.string.remove_sys_item_dialog_message, R.string.yes, R.string.no, new Consumer<List<SysItem>>() {
-      @Override
-      public void apply(final List<SysItem> sysItems) {
-        runOnUiThread(new Runnable() {
-          @Override
-          public void run() {
-            int size = CollectionUtils.size(sysItems);
-            if (size == 1 && sysItems.get(0).getId() == null) {
-              // workaround for a "there are no notes" note.
-              size = 0;
-            }
-            String message = getResources().getQuantityString(R.plurals.found_n_notes, size, size);
-            setSearchToastMessage(message);
-          }
-        });
-      }
-    });
+        R.string.remove_sys_item_dialog_message, R.string.yes, R.string.no);
 
     sysItemsAdapter.addOnSysItemRemoveListener(new SysItemRemoveListener() {
       @Override
@@ -735,19 +718,45 @@ public class MainActivity extends AppCompatActivity {
     endlessRecyclerViewScrollListener = new EndlessRecyclerViewScrollListener(linearLayoutManager) {
       @Override
       public void doLoadItems(int page, int totalItemsCount, RecyclerView view) {
+        showItemsLoadingProgress();
         SysItemFilter filter = SysItemFilterRepository.getCurrentFilter(MainActivity.this);
-        dbHelper.findSysItemsAsync(new PageRequest(page, NOTES_PAGE_SIZE), filter, new Consumer<Page<SysItem>>() {
-          @Override
-          public void apply(Page<SysItem> sysItemPage) {
-            if (!sysItemPage.isEmpty()) {
-              sysItemsAdapter.addAll(sysItemPage.getData());
-            }
-          }
-        });
+        dbHelper.findSysItemsAsync(new PageRequest(page, NOTES_PAGE_SIZE), filterQueryText, filter, false,
+            new Consumer<Page<SysItem>>() {
+              @Override
+              public void apply(Page<SysItem> sysItemPage) {
+                if (!sysItemPage.isEmpty()) {
+                  sysItemsAdapter.addAll(sysItemPage.getData());
+                }
+                hideItemsLoadingProgress();
+              }
+            });
       }
     };
 
     elementsList.addOnScrollListener(endlessRecyclerViewScrollListener);
+  }
+
+  private void showFoundNItemsToast(int size) {
+    String message = getResources().getQuantityString(R.plurals.found_n_notes, size, size);
+    setSearchToastMessage(message);
+  }
+
+  private void hideItemsLoadingProgress() {
+    runOnUiThread(new Runnable() {
+      @Override
+      public void run() {
+        elementsListProgressBar.setVisibility(View.GONE);
+      }
+    });
+  }
+
+  private void showItemsLoadingProgress() {
+    runOnUiThread(new Runnable() {
+      @Override
+      public void run() {
+        elementsListProgressBar.setVisibility(View.VISIBLE);
+      }
+    });
   }
 
   private void initFab() {
@@ -768,16 +777,18 @@ public class MainActivity extends AppCompatActivity {
   private void initMembers() {
     elementsList = ActivityUtils.findViewById(this, R.id.elements_list, "R.id.elements_list");
     drawerNavView = ActivityUtils.findViewById(this, R.id.drawer_nav_view, "R.id.drawer_nav_view");
+    elementsListProgressBar = ActivityUtils.findViewById(this, R.id.elements_list_progress_bar,
+        "R.id.elements_list_progress_bar");
   }
 
   private void applyFilterText(String text) {
     if (TextUtils.isEmpty(text)) {
-      sysItemsAdapter.getFilter().filter("");
       filterQueryText = null;
     } else {
-      sysItemsAdapter.getFilter().filter(text);
       filterQueryText = text;
     }
+
+    refreshData();
   }
 
   /**
@@ -841,14 +852,16 @@ public class MainActivity extends AppCompatActivity {
   /**
    * Sets new sys items to the list view.
    *
-   * @param items Items.
+   * @param page Items.
    */
-  private void setSysItems(FilteredPage<SysItem> items) {
-    List<SysItem> filteredItems = items.getData();
-    if (filteredItems != null) {
-      int delta = items.getTotalSourceElements() - items.getTotalElements();
+  private void setSysItems(FilteredPage<SysItem> page) {
+    List<SysItem> filteredItems = page.getData();
+    if (filteredItems != null && page.getNumber() == 0) {
+      int delta = page.getTotalSourceElements() - page.getTotalElements();
 
-      if (delta > 0) {
+      if (!StringUtils.isBlank(filterQueryText)) {
+        showFoundNItemsToast(page.getTotalElements());
+      } else if (delta > 0) {
         Context context = getApplicationContext();
         String message;
         if (delta >= 1000) {
@@ -865,15 +878,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     updateListData(filteredItems);
-    setTotalNotesCount(items.getTotalElements());
+    setTotalNotesCount(page.getTotalElements());
   }
 
   private void setTotalNotesCount(int totalNotesCount) {
     String title = getResources().getString(R.string.n_notes_title, NumberUtils.makeShortString(totalNotesCount));
 
     ActionBar actionBar = getSupportActionBar();
-    Assert.notNull(actionBar, "Unable to find action bar");
-    actionBar.setTitle(title);
+    if (actionBar != null) {
+      actionBar.setTitle(title);
+    }
   }
 
   /**
@@ -932,22 +946,32 @@ public class MainActivity extends AppCompatActivity {
     private MainActivity activity;
     private DbHelper dbHelper;
     private SysItemFilter filter;
+    private String filterQueryText;
 
     public GetAllSysItemsTask(MainActivity activity, DbHelper dbHelper) {
       this.activity = activity;
       this.dbHelper = dbHelper;
+      this.filterQueryText = activity.filterQueryText;
+    }
+
+    @Override
+    protected void onPreExecute() {
+      activity.showItemsLoadingProgress();
     }
 
     @Override
     protected FilteredPage<SysItem> doInBackground(Void... params) {
       filter = SysItemFilterRepository.getCurrentFilter(activity);
-      FilteredPage<SysItem> page = dbHelper.findSysItems(new PageRequest(0, 25), filter);
+      FilteredPage<SysItem> page = dbHelper.findSysItems(new PageRequest(0, 25), filterQueryText, filter, true);
       return page;
     }
 
     @Override
     protected void onPostExecute(final FilteredPage<SysItem> items) {
-      activity.setSysItems(items);
+      if (Objects.equals(activity.filterQueryText, filterQueryText)) {
+        activity.setSysItems(items);
+        activity.hideItemsLoadingProgress();
+      }
     }
   }
 

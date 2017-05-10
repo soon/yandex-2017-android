@@ -3,6 +3,7 @@ package com.awesoon.thirdtask.util;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.support.annotation.Nullable;
+import android.util.Log;
 
 import com.awesoon.core.sql.Page;
 import com.awesoon.core.sql.Pageable;
@@ -11,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SqlUtils {
+  private static final String TAG = "SqlUtils";
   public static final String INTEGER_TYPE = "INTEGER";
   public static final String TEXT_TYPE = "TEXT";
 
@@ -136,7 +138,7 @@ public class SqlUtils {
    */
   public static <T> T queryForObject(SQLiteDatabase db, String sql, RowMapper<T> rowMapper,
                                      Object... selectionArgs) {
-    List<T> data = queryForList(db, sql, rowMapper, selectionArgs);
+    List<T> data = queryForList(db, sql, rowMapper, false, selectionArgs);
     return data.isEmpty() ? null : data.get(0);
   }
 
@@ -152,7 +154,7 @@ public class SqlUtils {
    */
   public static <T> T queryForObject(SQLiteDatabase db, String sql, RowMapper<T> rowMapper,
                                      String... selectionArgs) {
-    List<T> data = queryForList(db, sql, rowMapper, selectionArgs);
+    List<T> data = queryForList(db, sql, rowMapper, false, selectionArgs);
     return data.isEmpty() ? null : data.get(0);
   }
 
@@ -166,9 +168,26 @@ public class SqlUtils {
    * @param <T>           A row type.
    * @return A list of selected rows.
    */
+  public static <T> List<T> queryForList(SQLiteDatabase db, String sql, RowMapper<T> rowMapper,
+                                         Object... selectionArgs) {
+    return queryForList(db, sql, rowMapper, true, selectionArgs);
+  }
+
+  /**
+   * Executes given sql and retrieves data using the given row mapper.
+   *
+   * @param db            Db connection.
+   * @param sql           Sql to execute.
+   * @param rowMapper     Row mapper.
+   * @param countAllFilteredItems Whether the additional COUNT(*) query should be performed.
+   * @param selectionArgs Selection arguments. Nullable.
+   * @param <T>           A row type.
+   * @return A list of selected rows.
+   */
   public static <T> List<T> queryForList(SQLiteDatabase db, String sql,
-                                         RowMapper<T> rowMapper, Object... selectionArgs) {
-    return queryForList(db, sql, rowMapper, convertToStringArgs(selectionArgs));
+                                         RowMapper<T> rowMapper, boolean countAllFilteredItems,
+                                         Object... selectionArgs) {
+    return queryForList(db, sql, rowMapper, countAllFilteredItems, convertToStringArgs(selectionArgs));
   }
 
   @Nullable
@@ -191,13 +210,15 @@ public class SqlUtils {
    * @param db            Db connection.
    * @param sql           Sql to execute.
    * @param rowMapper     Row mapper.
+   * @param countAllFilteredItems Whether the additional COUNT(*) query should be performed.
    * @param selectionArgs Selection arguments. Nullable.
    * @param <T>           A row type.
    * @return A list of selected rows.
    */
   public static <T> List<T> queryForList(SQLiteDatabase db, String sql,
-                                         RowMapper<T> rowMapper, String... selectionArgs) {
-    Page<T> page = queryForPage(db, sql, null, rowMapper, selectionArgs);
+                                         RowMapper<T> rowMapper, boolean countAllFilteredItems,
+                                         String... selectionArgs) {
+    Page<T> page = queryForPage(db, sql, null, rowMapper, countAllFilteredItems, selectionArgs);
     return page.getData();
   }
 
@@ -208,14 +229,16 @@ public class SqlUtils {
    * @param sql           Sql to execute.
    * @param pageable      Pagination options. Nullable.
    * @param rowMapper     Row mapper.
+   * @param countAllFilteredItems Whether the additional COUNT(*) query should be performed.
    * @param selectionArgs Selection arguments. Nullable.
    * @param <T>           A row type.
    * @return A page of selected rows.
    */
   public static <T> Page<T> queryForPage(SQLiteDatabase db, String sql, @Nullable Pageable pageable,
-                                         RowMapper<T> rowMapper, List<Object> selectionArgs) {
+                                         RowMapper<T> rowMapper, boolean countAllFilteredItems,
+                                         List<Object> selectionArgs) {
     Object[] argsArray = CollectionUtils.toArray(selectionArgs, Object.class);
-    return queryForPage(db, sql, pageable, rowMapper, argsArray);
+    return queryForPage(db, sql, pageable, rowMapper, countAllFilteredItems, argsArray);
   }
 
   /**
@@ -225,34 +248,40 @@ public class SqlUtils {
    * @param sql           Sql to execute.
    * @param pageable      Pagination options. Nullable.
    * @param rowMapper     Row mapper.
+   * @param countAllFilteredItems Whether the additional COUNT(*) query should be performed.
    * @param selectionArgs Selection arguments. Nullable.
    * @param <T>           A row type.
    * @return A page of selected rows.
    */
   public static <T> Page<T> queryForPage(SQLiteDatabase db, String sql, @Nullable Pageable pageable,
-                                         RowMapper<T> rowMapper, Object... selectionArgs) {
-    return queryForPage(db, sql, pageable, rowMapper, convertToStringArgs(selectionArgs));
+                                         RowMapper<T> rowMapper, boolean countAllFilteredItems,
+                                         Object... selectionArgs) {
+    return queryForPage(db, sql, pageable, rowMapper, countAllFilteredItems, convertToStringArgs(selectionArgs));
   }
 
   /**
    * Executes given sql and retrieves page of data using the given row mapper.
    *
-   * @param db            Db connection.
-   * @param sql           Sql to execute.
-   * @param pageable      Pagination options. Nullable.
-   * @param rowMapper     Row mapper.
-   * @param selectionArgs Selection arguments. Nullable.
-   * @param <T>           A row type.
+   * @param db                    Db connection.
+   * @param sql                   Sql to execute.
+   * @param pageable              Pagination options. Nullable.
+   * @param rowMapper             Row mapper.
+   * @param countAllFilteredItems Whether the additional COUNT(*) query should be performed.
+   * @param selectionArgs         Selection arguments. Nullable.
+   * @param <T>                   A row type.
    * @return A page of selected rows.
    */
   public static <T> Page<T> queryForPage(SQLiteDatabase db, String sql, @Nullable Pageable pageable,
-                                         RowMapper<T> rowMapper, String... selectionArgs) {
+                                         RowMapper<T> rowMapper, boolean countAllFilteredItems,
+                                         String... selectionArgs) {
     List<T> rows = new ArrayList<>();
 
     String pagedSql = sql;
     if (pageable != null) {
       pagedSql += " LIMIT " + pageable.getOffset() + ", " + pageable.getPageSize();
     }
+
+    Log.d(TAG, "queryForPage: [" + pagedSql + "], args: [" + concatenateAllStringArgs(selectionArgs) + "]");
 
     try (Cursor cursor = db.rawQuery(pagedSql, selectionArgs)) {
       int rowNumber = 0;
@@ -265,7 +294,7 @@ public class SqlUtils {
     }
 
     int totalElementsCount;
-    if (pageable != null) {
+    if (pageable != null && countAllFilteredItems) {
       totalElementsCount = queryCountAll(db, sql, selectionArgs);
     } else {
       totalElementsCount = rows.size();
@@ -291,17 +320,35 @@ public class SqlUtils {
     return page;
   }
 
+  private static String concatenateAllStringArgs(String... args) {
+    if (CollectionUtils.isEmpty(args)) {
+      return "";
+    }
+
+    StringBuilder sb = new StringBuilder();
+    String separator = "";
+    for (int i = 0; i < args.length; i++) {
+      String arg = args[i];
+      sb.append(separator).append(i + 1).append("=").append(arg);
+      separator = ", ";
+    }
+
+    return sb.toString();
+  }
+
   /**
    * Executes given sql and retrieves data using the given row mapper.
    *
    * @param db        Db connection.
    * @param sql       Sql to execute.
    * @param rowMapper Row mapper.
+   * @param countAllFilteredItems Whether the additional COUNT(*) query should be performed.
    * @param <T>       A row type.
    * @return A list of selected rows.
    */
-  public static <T> List<T> queryForList(SQLiteDatabase db, String sql, RowMapper<T> rowMapper) {
-    return queryForList(db, sql, rowMapper, (String[]) null);
+  public static <T> List<T> queryForList(SQLiteDatabase db, String sql, RowMapper<T> rowMapper,
+                                         boolean countAllFilteredItems) {
+    return queryForList(db, sql, rowMapper, countAllFilteredItems, (String[]) null);
   }
 
   public static int queryCountAll(SQLiteDatabase db, String sql, String... selectionArgs) {

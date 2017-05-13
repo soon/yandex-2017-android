@@ -46,8 +46,9 @@ public class DbHelper extends SQLiteOpenHelper {
   public static final int DATABASE_VERSION_1 = 1;
   public static final int DATABASE_VERSION_2 = 2;
   public static final int DATABASE_VERSION_3 = 3;
+  public static final int DATABASE_VERSION_4 = 4;
 
-  public static final int DATABASE_VERSION = DATABASE_VERSION_3;
+  public static final int DATABASE_VERSION = DATABASE_VERSION_4;
   public static final String DATABASE_NAME = "ThirdTask.db";
 
   public DbHelper(Context context) {
@@ -96,6 +97,11 @@ public class DbHelper extends SQLiteOpenHelper {
       case DATABASE_VERSION_2:
         doUpgrade2To3(db);
         if (newVersion == DATABASE_VERSION_3) {
+          break;
+        }
+      case DATABASE_VERSION_3:
+        doUpgrade3To4(db);
+        if (newVersion == DATABASE_VERSION_4) {
           break;
         }
       default:
@@ -173,6 +179,15 @@ public class DbHelper extends SQLiteOpenHelper {
 
     for (String index : indices) {
       db.execSQL(index);
+    }
+  }
+
+  private void doUpgrade3To4(SQLiteDatabase db) {
+    List<String> newFields = SqlUtils.makeAlterTableBuilder(SysItem.SysItemEntry.TABLE_NAME)
+        .addColumn(textField(SysItem.SysItemEntry.COLUMN_IMAGE_URL))
+        .build();
+    for (String sql : newFields) {
+      db.execSQL(sql);
     }
   }
 
@@ -399,6 +414,7 @@ public class DbHelper extends SQLiteOpenHelper {
         .put(SysItem.SysItemEntry.COLUMN_LAST_EDITED_TIME_TS, item.getLastEditedTime().getMillis())
         .put(SysItem.SysItemEntry.COLUMN_LAST_VIEWED_TIME, item.getLastViewedTime())
         .put(SysItem.SysItemEntry.COLUMN_LAST_VIEWED_TIME_TS, item.getLastViewedTime().getMillis())
+        .put(SysItem.SysItemEntry.COLUMN_IMAGE_URL, item.getImageUrl())
         .build();
 
     if (item.getId() == null) {
@@ -741,6 +757,7 @@ public class DbHelper extends SQLiteOpenHelper {
       sysItem.setCreatedTime(getDateTime(cursor, SysItem.SysItemEntry.COLUMN_CREATED_TIME));
       sysItem.setLastEditedTime(getDateTime(cursor, SysItem.SysItemEntry.COLUMN_LAST_EDITED_TIME));
       sysItem.setLastViewedTime(getDateTime(cursor, SysItem.SysItemEntry.COLUMN_LAST_VIEWED_TIME));
+      sysItem.setImageUrl(tryGetString(cursor, SysItem.SysItemEntry.COLUMN_IMAGE_URL));
       return sysItem;
     }
   }

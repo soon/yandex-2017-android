@@ -33,7 +33,8 @@ public class SysItem implements Parcelable {
       dateTimeField(SysItemEntry.COLUMN_LAST_EDITED_TIME).setNull(false),
       intField(SysItemEntry.COLUMN_LAST_EDITED_TIME_TS).setNull(false),
       dateTimeField(SysItemEntry.COLUMN_LAST_VIEWED_TIME).setNull(false),
-      intField(SysItemEntry.COLUMN_LAST_VIEWED_TIME_TS).setNull(false)
+      intField(SysItemEntry.COLUMN_LAST_VIEWED_TIME_TS).setNull(false),
+      textField(SysItemEntry.COLUMN_IMAGE_URL).setNull(true)
   );
 
   public static final String[] INDICES = new String[] {
@@ -59,6 +60,8 @@ public class SysItem implements Parcelable {
   private DateTime lastEditedTime;
   @Json(name = "viewed")
   private DateTime lastViewedTime;
+  @Json(name = "imageUrl")
+  private String imageUrl;
 
   public SysItem() {
   }
@@ -203,6 +206,15 @@ public class SysItem implements Parcelable {
     return this;
   }
 
+  public String getImageUrl() {
+    return imageUrl;
+  }
+
+  public SysItem setImageUrl(String imageUrl) {
+    this.imageUrl = imageUrl;
+    return this;
+  }
+
   @Override
   public String toString() {
     return "SysItem{" +
@@ -248,5 +260,6 @@ public class SysItem implements Parcelable {
     public static final String COLUMN_LAST_EDITED_TIME_TS = "last_edited_time_ts";
     public static final String COLUMN_LAST_VIEWED_TIME = "last_viewed_time";
     public static final String COLUMN_LAST_VIEWED_TIME_TS = "last_viewed_time_ts";
+    public static final String COLUMN_IMAGE_URL = "image_url";
   }
 }

@@ -5,4 +5,5 @@
   <dimen name="edit_color_view_width">40dp</dimen>
   <dimen name="form_margin">16dp</dimen>
   <dimen name="content_element_editor_time_padding_top">16dp</dimen>
+  <dimen name="editor_image_height">128dp</dimen>
 </resources>

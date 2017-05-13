@@ -56,7 +56,7 @@ public class DbHelperUpgradeTest {
   }
 
   @Test
-  public void testUpgrade1to2__setDateTime() throws Exception {
+  public void testUpgradeFrom1_setDateTime() throws Exception {
     // given
     dbHelper.installSpecificDbVersionInternal(DbHelper.DATABASE_VERSION_1);
     SQLiteDatabase db = dbHelper.getWritableDatabase();
@@ -68,7 +68,7 @@ public class DbHelperUpgradeTest {
     db.insert(SysItem.SysItemEntry.TABLE_NAME, null, values);
 
     // when
-    dbHelper.performUpgradeInternal(DbHelper.DATABASE_VERSION_1, DbHelper.DATABASE_VERSION_2);
+    dbHelper.performUpgradeInternal(DbHelper.DATABASE_VERSION_1, DbHelper.DATABASE_VERSION);
 
     // then
     List<SysItem> sysItems = dbHelper.findAllSysItems();
@@ -86,14 +86,14 @@ public class DbHelperUpgradeTest {
     dbHelper.installSpecificDbVersionInternal(DbHelper.DATABASE_VERSION_1);
 
     // when
-    dbHelper.performUpgradeInternal(DbHelper.DATABASE_VERSION_1, DbHelper.DATABASE_VERSION_2 + 1);
+    dbHelper.performUpgradeInternal(DbHelper.DATABASE_VERSION_1, DbHelper.DATABASE_VERSION_3);
 
     // then
     // no exceptions expected
   }
 
   @Test
-  public void testUpgrade2to3__checkDateTimeTs() throws Exception {
+  public void testUpgradeFrom2__checkDateTimeTs() throws Exception {
     // given
     dbHelper.installSpecificDbVersionInternal(DbHelper.DATABASE_VERSION_2);
     SQLiteDatabase db = dbHelper.getWritableDatabase();
@@ -111,7 +111,7 @@ public class DbHelperUpgradeTest {
     db.insert(SysItem.SysItemEntry.TABLE_NAME, null, values);
 
     // when
-    dbHelper.performUpgradeInternal(DbHelper.DATABASE_VERSION_2, DbHelper.DATABASE_VERSION_3);
+    dbHelper.performUpgradeInternal(DbHelper.DATABASE_VERSION_2, DbHelper.DATABASE_VERSION);
 
     // then
     String sql = String.format("SELECT a.%s, a.%s, a.%s FROM %s a",
@@ -132,5 +132,18 @@ public class DbHelperUpgradeTest {
     assertThat(ts.get(0), is(created.getMillis()));
     assertThat(ts.get(1), is(edited.getMillis()));
     assertThat(ts.get(2), is(viewed.getMillis()));
+  }
+
+
+  @Test
+  public void testUpgrade3to4() throws Exception {
+    // given
+    dbHelper.installSpecificDbVersionInternal(DbHelper.DATABASE_VERSION_3);
+
+    // when
+    dbHelper.performUpgradeInternal(DbHelper.DATABASE_VERSION_3, DbHelper.DATABASE_VERSION_4);
+
+    // then
+    // no exceptions expected
   }
 }

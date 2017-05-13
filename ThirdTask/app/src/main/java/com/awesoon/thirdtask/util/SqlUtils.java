@@ -41,7 +41,7 @@ public class SqlUtils {
   }
 
   public static String makeCreateIndexSql(String tableName, String indexColumn, String indexName) {
-    return String.format("CREATE INDEX %s ON %s (%s)", indexColumn, tableName, indexColumn);
+    return String.format("CREATE INDEX %s ON %s (%s)", indexName, tableName, indexColumn);
   }
 
   public static String makeCreateIndexSql(String tableName, String indexColumn) {

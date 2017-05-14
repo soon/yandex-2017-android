@@ -34,7 +34,10 @@ public class SysItem implements Parcelable {
       intField(SysItemEntry.COLUMN_LAST_EDITED_TIME_TS).setNull(false),
       dateTimeField(SysItemEntry.COLUMN_LAST_VIEWED_TIME).setNull(false),
       intField(SysItemEntry.COLUMN_LAST_VIEWED_TIME_TS).setNull(false),
-      textField(SysItemEntry.COLUMN_IMAGE_URL).setNull(true)
+      textField(SysItemEntry.COLUMN_IMAGE_URL).setNull(true),
+      intField(SysItemEntry.COLUMN_REMOTE_ID).setNull(true).setUnique(true),
+      intField(SysItemEntry.COLUMN_SYNCED).setNull(true),
+      intField(SysItemEntry.COLUMN_USER_ID).setNull(true)
   );
 
   public static final String[] INDICES = new String[] {
@@ -44,6 +47,9 @@ public class SysItem implements Parcelable {
       SqlUtils.makeCreateIndexSql(SysItemEntry.TABLE_NAME, SysItemEntry.COLUMN_CREATED_TIME_TS),
       SqlUtils.makeCreateIndexSql(SysItemEntry.TABLE_NAME, SysItemEntry.COLUMN_LAST_EDITED_TIME_TS),
       SqlUtils.makeCreateIndexSql(SysItemEntry.TABLE_NAME, SysItemEntry.COLUMN_LAST_VIEWED_TIME_TS),
+      SqlUtils.makeCreateIndexSql(SysItemEntry.TABLE_NAME, SysItemEntry.COLUMN_REMOTE_ID),
+      SqlUtils.makeCreateIndexSql(SysItemEntry.TABLE_NAME, SysItemEntry.COLUMN_SYNCED),
+      SqlUtils.makeCreateIndexSql(SysItemEntry.TABLE_NAME, SysItemEntry.COLUMN_USER_ID),
   };
 
   public static final String SQL_DROP_TABLE = SqlUtils.makeDropTableIfExistsSql(SysItemEntry.TABLE_NAME);
@@ -62,6 +68,10 @@ public class SysItem implements Parcelable {
   private DateTime lastViewedTime;
   @Json(name = "imageUrl")
   private String imageUrl;
+
+  private Long remoteId;
+  private boolean synced;
+  private Long userId;
 
   public SysItem() {
   }
@@ -215,6 +225,33 @@ public class SysItem implements Parcelable {
     return this;
   }
 
+  public Long getRemoteId() {
+    return remoteId;
+  }
+
+  public SysItem setRemoteId(Long remoteId) {
+    this.remoteId = remoteId;
+    return this;
+  }
+
+  public boolean isSynced() {
+    return synced;
+  }
+
+  public SysItem setSynced(boolean synced) {
+    this.synced = synced;
+    return this;
+  }
+
+  public Long getUserId() {
+    return userId;
+  }
+
+  public SysItem setUserId(Long userId) {
+    this.userId = userId;
+    return this;
+  }
+
   @Override
   public String toString() {
     return "SysItem{" +
@@ -261,5 +298,8 @@ public class SysItem implements Parcelable {
     public static final String COLUMN_LAST_VIEWED_TIME = "last_viewed_time";
     public static final String COLUMN_LAST_VIEWED_TIME_TS = "last_viewed_time_ts";
     public static final String COLUMN_IMAGE_URL = "image_url";
+    public static final String COLUMN_REMOTE_ID = "remote_id";
+    public static final String COLUMN_SYNCED = "synced";
+    public static final String COLUMN_USER_ID = "user_id";
   }
 }

@@ -14,6 +14,20 @@ public abstract class RowMapperAdapter<T> implements RowMapper<T> {
     return cursor.getLong(cursor.getColumnIndexOrThrow(columnName));
   }
 
+  public Long tryGetLong(Cursor cursor, int columnIndex) {
+    if (columnIndex < 0) {
+      return null;
+    }
+    if (cursor.isNull(columnIndex)) {
+      return null;
+    }
+    return cursor.getLong(columnIndex);
+  }
+
+  public Long tryGetLong(Cursor cursor, String columnName) {
+    return tryGetLong(cursor, cursor.getColumnIndex(columnName));
+  }
+
   public String getString(Cursor cursor, String columnName) {
     return cursor.getString(cursor.getColumnIndexOrThrow(columnName));
   }
@@ -24,6 +38,20 @@ public abstract class RowMapperAdapter<T> implements RowMapper<T> {
       return null;
     }
     return cursor.getString(columnIndex);
+  }
+
+  public boolean tryGetBoolean(Cursor cursor, int columnIndex, boolean defaultValue) {
+    if (columnIndex < 0) {
+      return defaultValue;
+    }
+    if (cursor.isNull(columnIndex)) {
+      return defaultValue;
+    }
+    return cursor.getLong(columnIndex) != 0;
+  }
+
+  public boolean tryGetBoolean(Cursor cursor, String columnName, boolean defaultValue) {
+    return tryGetBoolean(cursor, cursor.getColumnIndex(columnName), defaultValue);
   }
 
   public DateTime getDateTime(Cursor cursor, String columnName) {

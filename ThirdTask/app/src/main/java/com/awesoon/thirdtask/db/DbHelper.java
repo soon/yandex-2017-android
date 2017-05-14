@@ -47,8 +47,9 @@ public class DbHelper extends SQLiteOpenHelper {
   public static final int DATABASE_VERSION_2 = 2;
   public static final int DATABASE_VERSION_3 = 3;
   public static final int DATABASE_VERSION_4 = 4;
+  public static final int DATABASE_VERSION_5 = 5;
 
-  public static final int DATABASE_VERSION = DATABASE_VERSION_4;
+  public static final int DATABASE_VERSION = DATABASE_VERSION_5;
   public static final String DATABASE_NAME = "ThirdTask.db";
 
   public DbHelper(Context context) {
@@ -102,6 +103,11 @@ public class DbHelper extends SQLiteOpenHelper {
       case DATABASE_VERSION_3:
         doUpgrade3To4(db);
         if (newVersion == DATABASE_VERSION_4) {
+          break;
+        }
+      case DATABASE_VERSION_4:
+        doUpgrade4To5(db);
+        if (newVersion == DATABASE_VERSION_5) {
           break;
         }
       default:
@@ -189,6 +195,36 @@ public class DbHelper extends SQLiteOpenHelper {
     for (String sql : newFields) {
       db.execSQL(sql);
     }
+  }
+
+  private void doUpgrade4To5(SQLiteDatabase db) {
+    List<String> newFields = SqlUtils.makeAlterTableBuilder(SysItem.SysItemEntry.TABLE_NAME)
+        .addColumn(intField(SysItem.SysItemEntry.COLUMN_REMOTE_ID))
+        .addColumn(intField(SysItem.SysItemEntry.COLUMN_SYNCED))
+        .addColumn(intField(SysItem.SysItemEntry.COLUMN_USER_ID))
+        .build();
+    for (String sql : newFields) {
+      db.execSQL(sql);
+    }
+
+    List<String> indices = SqlUtils.makeCreateIndicesSql(SysItem.SysItemEntry.TABLE_NAME,
+        SysItem.SysItemEntry.COLUMN_REMOTE_ID,
+        SysItem.SysItemEntry.COLUMN_SYNCED,
+        SysItem.SysItemEntry.COLUMN_USER_ID
+    );
+    for (String index : indices) {
+      db.execSQL(index);
+    }
+
+    final long defaultUserId = 0;
+    ContentValues values = new ContentValuesBuilder()
+        .put(SysItem.SysItemEntry.COLUMN_USER_ID, defaultUserId)
+        .build();
+    db.update(SysItem.SysItemEntry.TABLE_NAME, values, null, null);
+
+    String uniqueIndex = SqlUtils.makeCreateIndexSql(SysItem.SysItemEntry.TABLE_NAME,
+        SysItem.SysItemEntry.COLUMN_REMOTE_ID, SysItem.SysItemEntry.COLUMN_REMOTE_ID + "_uniq", true);
+    db.execSQL(uniqueIndex);
   }
 
   /**
@@ -415,6 +451,9 @@ public class DbHelper extends SQLiteOpenHelper {
         .put(SysItem.SysItemEntry.COLUMN_LAST_VIEWED_TIME, item.getLastViewedTime())
         .put(SysItem.SysItemEntry.COLUMN_LAST_VIEWED_TIME_TS, item.getLastViewedTime().getMillis())
         .put(SysItem.SysItemEntry.COLUMN_IMAGE_URL, item.getImageUrl())
+        .put(SysItem.SysItemEntry.COLUMN_REMOTE_ID, item.getRemoteId())
+        .put(SysItem.SysItemEntry.COLUMN_SYNCED, item.isSynced())
+        .put(SysItem.SysItemEntry.COLUMN_USER_ID, item.getUserId())
         .build();
 
     if (item.getId() == null) {
@@ -758,6 +797,9 @@ public class DbHelper extends SQLiteOpenHelper {
       sysItem.setLastEditedTime(getDateTime(cursor, SysItem.SysItemEntry.COLUMN_LAST_EDITED_TIME));
       sysItem.setLastViewedTime(getDateTime(cursor, SysItem.SysItemEntry.COLUMN_LAST_VIEWED_TIME));
       sysItem.setImageUrl(tryGetString(cursor, SysItem.SysItemEntry.COLUMN_IMAGE_URL));
+      sysItem.setRemoteId(tryGetLong(cursor, SysItem.SysItemEntry.COLUMN_REMOTE_ID));
+      sysItem.setSynced(tryGetBoolean(cursor, SysItem.SysItemEntry.COLUMN_SYNCED, false));
+      sysItem.setUserId(tryGetLong(cursor, SysItem.SysItemEntry.COLUMN_USER_ID));
       return sysItem;
     }
   }

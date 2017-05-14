@@ -1,15 +1,15 @@
 package com.awesoon.thirdtask.web.rest.dto;
 
 public class BaseNotesBackendDto<T> {
-  private NotesBackendStatus status;
+  private String status;
   private String error;
   private T data;
 
-  public NotesBackendStatus getStatus() {
+  public String getStatus() {
     return status;
   }
 
-  public BaseNotesBackendDto setStatus(NotesBackendStatus status) {
+  public BaseNotesBackendDto setStatus(String status) {
     this.status = status;
     return this;
   }
@@ -33,6 +33,6 @@ public class BaseNotesBackendDto<T> {
   }
 
   public boolean isOk() {
-    return status == NotesBackendStatus.OK;
+    return "ok".equalsIgnoreCase(status);
   }
 }

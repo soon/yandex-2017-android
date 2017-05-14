@@ -1,6 +1,7 @@
 package com.awesoon.core.async;
 
 import android.os.AsyncTask;
+import android.util.Log;
 
 import com.awesoon.thirdtask.util.Assert;
 import com.awesoon.thirdtask.util.CollectionUtils;
@@ -8,6 +9,8 @@ import com.awesoon.thirdtask.util.CollectionUtils;
 import java.util.List;
 
 public class PipedAsyncTask<T, R> extends AsyncTask<T, PipedAsyncTaskProgress, R> {
+  private static final String TAG = "PipedAsyncTask";
+
   private List<AsyncSubTask> subTasks;
   private SuccessConsumer<R> onSuccess;
   private ExceptionConsumer onError;
@@ -41,6 +44,7 @@ public class PipedAsyncTask<T, R> extends AsyncTask<T, PipedAsyncTaskProgress, R
         inputData = action.apply(inputData);
         publishProgress(new PipedAsyncTaskProgressSuccess(subTask, inputData));
       } catch (Exception e) {
+        Log.e(TAG, "Unable to execute piped async task", e);
         publishProgress(new PipedAsyncTaskProgressError(subTask, e));
         exception = e;
         return null;

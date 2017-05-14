@@ -24,11 +24,16 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import com.awesoon.core.async.AsyncTaskBuilder;
+import com.awesoon.core.async.AsyncTaskConsumer;
+import com.awesoon.core.async.AsyncTaskProducer;
 import com.awesoon.thirdtask.NotesApplication;
 import com.awesoon.thirdtask.R;
 import com.awesoon.thirdtask.adapter.text.TextWatcherAdapter;
 import com.awesoon.thirdtask.db.DbHelper;
 import com.awesoon.thirdtask.domain.SysItem;
+import com.awesoon.thirdtask.service.SyncService;
+import com.awesoon.thirdtask.service.container.SyncOptions;
 import com.awesoon.thirdtask.util.ActivityUtils;
 import com.awesoon.thirdtask.util.Assert;
 import com.awesoon.thirdtask.util.BeautifulColors;
@@ -42,6 +47,10 @@ import net.danlew.android.joda.DateUtils;
 import org.joda.time.DateTime;
 
 import java.util.Objects;
+
+import javax.inject.Inject;
+
+import dagger.android.AndroidInjection;
 
 public class ElementEditorActivity extends AppCompatActivity {
   private static final String TAG = "ElementEditorActivity";
@@ -66,6 +75,9 @@ public class ElementEditorActivity extends AppCompatActivity {
   private ImageView imageView;
   private ProgressBar imageProgressLoader;
 
+  @Inject
+  SyncService syncService;
+
   /**
    * Creates intent instance for starting this activity.
    *
@@ -83,7 +95,9 @@ public class ElementEditorActivity extends AppCompatActivity {
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
+    AndroidInjection.inject(this);
     super.onCreate(savedInstanceState);
+
     setContentView(R.layout.activity_element_editor);
     overridePendingTransition(R.anim.trans_left_in, R.anim.trans_left_out);
 
@@ -144,6 +158,11 @@ public class ElementEditorActivity extends AppCompatActivity {
     });
 
     initializeEditorContent(savedInstanceState);
+  }
+
+  @Override
+  protected void onDestroy() {
+    super.onDestroy();
   }
 
   @Override
@@ -436,7 +455,20 @@ public class ElementEditorActivity extends AppCompatActivity {
     sysItem.setImageUrl(imageUrlEditText.getText().toString().trim());
 
     NotesApplication app = (NotesApplication) getApplication();
-    DbHelper dbHelper = app.getDbHelper();
+    final DbHelper dbHelper = app.getDbHelper();
+
+    AsyncTaskBuilder.firstly(new AsyncTaskProducer<SysItem>() {
+      @Override
+      public SysItem doApply() {
+        return dbHelper.saveSysItem(sysItem);
+      }
+    }).then(new AsyncTaskConsumer<SysItem>() {
+      @Override
+      protected void doApply(SysItem note) {
+        syncService.syncWithRemote(note.getId(),
+            new SyncOptions().setOverwriteOptions(SyncOptions.Overwrite.OVERWRITE_REMOTE));
+      }
+    }).build().execute();
 
     new SaveSysItemTask(dbHelper).execute(sysItem);
   }

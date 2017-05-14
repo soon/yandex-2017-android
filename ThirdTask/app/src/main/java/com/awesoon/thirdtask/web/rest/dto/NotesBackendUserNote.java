@@ -8,6 +8,8 @@ public class NotesBackendUserNote {
   private String created;
   private String edited;
   private String viewed;
+  private String imageUrl;
+  private String extra;
 
   public Long getId() {
     return id;
@@ -69,6 +71,24 @@ public class NotesBackendUserNote {
 
   public NotesBackendUserNote setViewed(String viewed) {
     this.viewed = viewed;
+    return this;
+  }
+
+  public String getImageUrl() {
+    return imageUrl;
+  }
+
+  public NotesBackendUserNote setImageUrl(String imageUrl) {
+    this.imageUrl = imageUrl;
+    return this;
+  }
+
+  public String getExtra() {
+    return extra;
+  }
+
+  public NotesBackendUserNote setExtra(String extra) {
+    this.extra = extra;
     return this;
   }
 }

@@ -34,6 +34,14 @@ public class ContentValuesBuilder {
     }
   }
 
+  public ContentValuesBuilder put(String key, Boolean value) {
+    if (value == null) {
+      return put(key, (Long) null);
+    } else {
+      return put(key, value ? 1 : 0);
+    }
+  }
+
   public ContentValues build() {
     return values;
   }

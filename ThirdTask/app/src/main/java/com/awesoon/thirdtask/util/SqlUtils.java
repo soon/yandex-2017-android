@@ -40,8 +40,16 @@ public class SqlUtils {
     return sqlBuilder.toString();
   }
 
+  public static String makeCreateIndexSql(String tableName, String indexColumn, String indexName, boolean unique) {
+    if (unique) {
+      return String.format("CREATE UNIQUE INDEX %s ON %s (%s)", indexName, tableName, indexColumn);
+    } else {
+      return String.format("CREATE INDEX %s ON %s (%s)", indexName, tableName, indexColumn);
+    }
+  }
+
   public static String makeCreateIndexSql(String tableName, String indexColumn, String indexName) {
-    return String.format("CREATE INDEX %s ON %s (%s)", indexName, tableName, indexColumn);
+    return makeCreateIndexSql(tableName, indexColumn, indexName, false);
   }
 
   public static String makeCreateIndexSql(String tableName, String indexColumn) {

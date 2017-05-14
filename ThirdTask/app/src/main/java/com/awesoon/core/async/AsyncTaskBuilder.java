@@ -40,6 +40,10 @@ public class AsyncTaskBuilder<T, R> {
         .addSubTask(new AsyncSubTask<>(action, onSuccess, onError));
   }
 
+  public <U> AsyncTaskBuilder<T, U> then(AbstractAsyncTaskAction<R, U> action) {
+    return then(action, null, null);
+  }
+
   public <U> AsyncTaskBuilder<T, U> then(AbstractAsyncTaskAction<R, U> action, @Nullable SuccessConsumer<U> onSuccess,
                                          @Nullable ExceptionConsumer onError) {
     return (AsyncTaskBuilder<T, U>) addSubTask(new AsyncSubTask<>(action, onSuccess, onError));

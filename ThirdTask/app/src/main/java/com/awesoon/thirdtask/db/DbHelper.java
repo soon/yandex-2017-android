@@ -382,7 +382,7 @@ public class DbHelper extends SQLiteOpenHelper {
       for (int i = 0; i < items.size(); i++) {
         SysItem item = items.get(i);
         item.setId(null);
-        saveSysItemInternal(item, savingOptions);
+        saveSysItem(item, savingOptions);
         if (savingOptions.getOnNotesSaved() != null) {
           savingOptions.getOnNotesSaved().apply(i);
         }
@@ -414,7 +414,15 @@ public class DbHelper extends SQLiteOpenHelper {
    * @return Added item.
    */
   public SysItem saveSysItem(SysItem item) {
-    return saveSysItemInternal(item, SavingOptions.getDefault());
+    return saveSysItem(item, SavingOptions.getDefault());
+  }
+
+  public SysItem saveSysItemDoesNotNotify(SysItem item) {
+    return saveSysItem(item, SavingOptions.withoutNotifications());
+  }
+
+  public SysItem saveSysItemNotifySyncedOnly(SysItem item) {
+    return saveSysItem(item, SavingOptions.withoutNotifications().setNotifySynced(true));
   }
 
   /**
@@ -424,7 +432,7 @@ public class DbHelper extends SQLiteOpenHelper {
    * @param options Saving options.
    * @return Saved item.
    */
-  private SysItem saveSysItemInternal(SysItem item, SavingOptions options) {
+  public SysItem saveSysItem(SysItem item, SavingOptions options) {
     SQLiteDatabase db = options.getDb();
     if (db == null) {
       db = getWritableDatabase();
@@ -469,6 +477,14 @@ public class DbHelper extends SQLiteOpenHelper {
       validateUpdatedObjectThrowing(updatedRows, item);
       if (options.isNotifyItemUpdated()) {
         GlobalDbState.notifySysItemUpdated(item);
+      }
+    }
+
+    if (options.isNotifySynced()) {
+      if (item.isSynced()) {
+        GlobalDbState.notifySysItemSynced(item);
+      } else {
+        GlobalDbState.notifySysItemNotSynced(item);
       }
     }
 
@@ -683,7 +699,7 @@ public class DbHelper extends SQLiteOpenHelper {
 
     SysItem sysItem = SqlUtils.queryForObject(db, sql, SysItemMapper.INSTANCE, id);
     if (sysItem != null) {
-      saveSysItemInternal(sysItem, new SavingOptions().setOverwriteLastViewedTime(true));
+      saveSysItem(sysItem, new SavingOptions().setOverwriteLastViewedTime(true));
     }
     return sysItem;
   }
@@ -811,6 +827,7 @@ public class DbHelper extends SQLiteOpenHelper {
     private boolean overwriteCreatedTime;
     private boolean overwriteLastEditedTime;
     private boolean overwriteLastViewedTime;
+    private boolean notifySynced;
     private Consumer<Integer> onNotesSaved;
 
     public static SavingOptions getDefault() {
@@ -819,7 +836,18 @@ public class DbHelper extends SQLiteOpenHelper {
           .setNotifyItemUpdated(true)
           .setOverwriteCreatedTime(true)
           .setOverwriteLastEditedTime(true)
-          .setOverwriteLastViewedTime(true);
+          .setOverwriteLastViewedTime(true)
+          .setNotifySynced(false);
+    }
+
+    public static SavingOptions withoutNotifications() {
+      return new SavingOptions()
+          .setNotifyItemInserted(false)
+          .setNotifyItemUpdated(false)
+          .setOverwriteCreatedTime(false)
+          .setOverwriteLastEditedTime(false)
+          .setOverwriteLastViewedTime(false)
+          .setNotifySynced(false);
     }
 
     public SQLiteDatabase getDb() {
@@ -882,6 +910,15 @@ public class DbHelper extends SQLiteOpenHelper {
 
     public SavingOptions setOnNoteSaved(Consumer<Integer> onNotesSaved) {
       this.onNotesSaved = onNotesSaved;
+      return this;
+    }
+
+    public boolean isNotifySynced() {
+      return notifySynced;
+    }
+
+    public SavingOptions setNotifySynced(boolean notifySynced) {
+      this.notifySynced = notifySynced;
       return this;
     }
   }

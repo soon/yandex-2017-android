@@ -49,7 +49,7 @@ public class SyncService {
     if (sysItem.getUserId() == null) {
       long currentUserId = userService.getCurrentUserId();
       userService.setCurrentUserId(currentUserId);
-      dbHelper.saveSysItem(sysItem);
+      dbHelper.saveSysItemDoesNotNotify(sysItem);
     }
 
     if (syncOptions.getOverwriteOptions() == null) {
@@ -86,7 +86,7 @@ public class SyncService {
                 .setImageUrl(data.getImageUrl())
                 .setSynced(true)
                 .setRemoteId(data.getId());
-            dbHelper.saveSysItem(sysItem);
+            dbHelper.saveSysItemNotifySyncedOnly(sysItem);
           }
 
           @Override
@@ -94,7 +94,7 @@ public class SyncService {
                                 @NonNull Throwable t) {
             Log.e(TAG, "Error", t);
             sysItem.setSynced(false);
-            dbHelper.saveSysItem(sysItem);
+            dbHelper.saveSysItemNotifySyncedOnly(sysItem);
           }
         });
   }
@@ -120,7 +120,7 @@ public class SyncService {
             if (response.isSuccessful() && body != null && body.isOk()) {
               sysItem.setRemoteId(body.getData())
                   .setSynced(true);
-              dbHelper.saveSysItem(sysItem);
+              dbHelper.saveSysItemNotifySyncedOnly(sysItem);
             }
           }
 
@@ -129,7 +129,7 @@ public class SyncService {
                                 @NonNull Throwable t) {
             Log.e(TAG, "Unable to create user note", t);
             sysItem.setSynced(false);
-            dbHelper.saveSysItem(sysItem);
+            dbHelper.saveSysItemNotifySyncedOnly(sysItem);
           }
         });
   }
@@ -144,7 +144,7 @@ public class SyncService {
             EditUserNoteResponseDto body = response.body();
             if (response.isSuccessful() && body != null && body.isOk()) {
               sysItem.setSynced(true);
-              dbHelper.saveSysItem(sysItem);
+              dbHelper.saveSysItemNotifySyncedOnly(sysItem);
             }
           }
 
@@ -152,7 +152,7 @@ public class SyncService {
           public void onFailure(@NonNull Call<EditUserNoteResponseDto> call, @NonNull Throwable t) {
             Log.e(TAG, "Unable to update user note", t);
             sysItem.setSynced(false);
-            dbHelper.saveSysItem(sysItem);
+            dbHelper.saveSysItemNotifySyncedOnly(sysItem);
           }
         });
   }
@@ -164,8 +164,9 @@ public class SyncService {
         .setDescription(sysItem.getBody())
         .setColor(ColorUtils.toHexString(sysItem.getColor()))
         .setImageUrl(sysItem.getImageUrl())
+        .setCreated(sysItem.getCreatedTime().toString())
+        .setEdited(sysItem.getLastEditedTime().toString())
+        .setViewed(sysItem.getLastViewedTime().toString())
         .setExtra("Здесь могла быть ваша реклама");
-
-    // todo created edited viewed
   }
 }

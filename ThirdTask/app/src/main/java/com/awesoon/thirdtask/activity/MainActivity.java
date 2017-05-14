@@ -27,7 +27,6 @@ import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.Window;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
@@ -43,7 +42,7 @@ import com.awesoon.thirdtask.activity.listener.EndlessRecyclerViewScrollListener
 import com.awesoon.thirdtask.db.DbHelper;
 import com.awesoon.thirdtask.db.GlobalDbState;
 import com.awesoon.thirdtask.domain.SysItem;
-import com.awesoon.thirdtask.event.DbStateChangeListener;
+import com.awesoon.thirdtask.event.DbStateChangeListenerAdapter;
 import com.awesoon.thirdtask.event.SysItemRemoveListener;
 import com.awesoon.thirdtask.repository.SysItemFilterRepository;
 import com.awesoon.thirdtask.repository.SysItemRepository;
@@ -103,7 +102,6 @@ public class MainActivity extends AppCompatActivity {
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-    requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
 
     setContentView(R.layout.activity_main);
 
@@ -149,7 +147,7 @@ public class MainActivity extends AppCompatActivity {
 
     final DbHelper dbHelper = getDbHelper();
 
-    GlobalDbState.subscribe(this, new DbStateChangeListener() {
+    GlobalDbState.subscribe(this, new DbStateChangeListenerAdapter() {
       @Override
       public void onSysItemAdded(SysItem sysItem) {
         refreshData(dbHelper);
@@ -168,6 +166,26 @@ public class MainActivity extends AppCompatActivity {
       @Override
       public void onSysItemsAdded(List<SysItem> sysItems) {
         refreshData(dbHelper);
+      }
+
+      @Override
+      public void onSysItemSynced(SysItem sysItem) {
+        runOnUiThread(new Runnable() {
+          @Override
+          public void run() {
+            Toast.makeText(MainActivity.this, "Заметка синхронизирована", Toast.LENGTH_SHORT).show();
+          }
+        });
+      }
+
+      @Override
+      public void onSysItemNotSynced(SysItem sysItem) {
+        runOnUiThread(new Runnable() {
+          @Override
+          public void run() {
+            Toast.makeText(MainActivity.this, "Заметка не синхронизирована", Toast.LENGTH_SHORT).show();
+          }
+        });
       }
     });
 

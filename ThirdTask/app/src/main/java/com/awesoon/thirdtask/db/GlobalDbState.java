@@ -93,6 +93,25 @@ public class GlobalDbState {
     });
   }
 
+  public static void notifySysItemSynced(final SysItem item) {
+    runForEachListener(new Consumer<DbStateChangeListener>() {
+      @Override
+      public void accept(DbStateChangeListener listener) {
+        listener.onSysItemSynced(item);
+      }
+    });
+  }
+
+  public static void notifySysItemNotSynced(final SysItem item) {
+    runForEachListener(new Consumer<DbStateChangeListener>() {
+      @Override
+      public void accept(DbStateChangeListener listener) {
+        listener.onSysItemNotSynced(item);
+      }
+    });
+  }
+
+
   /**
    * Executes the given action for each listener.
    *

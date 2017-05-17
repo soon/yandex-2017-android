@@ -7,10 +7,6 @@ import java.util.List;
 public interface DbStateChangeListener {
   void onSysItemAdded(SysItem sysItem);
 
-  void onSysItemSynced(SysItem sysItem);
-
-  void onSysItemNotSynced(SysItem sysItem);
-
   void onSysItemUpdated(SysItem sysItem);
 
   void onSysItemDeleted(Long id);

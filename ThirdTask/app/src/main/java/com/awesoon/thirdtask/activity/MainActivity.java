@@ -47,6 +47,9 @@ import com.awesoon.thirdtask.event.SysItemRemoveListener;
 import com.awesoon.thirdtask.repository.SysItemFilterRepository;
 import com.awesoon.thirdtask.repository.SysItemRepository;
 import com.awesoon.thirdtask.repository.filter.SysItemFilter;
+import com.awesoon.thirdtask.service.SyncService;
+import com.awesoon.thirdtask.service.UserService;
+import com.awesoon.thirdtask.service.container.SyncOptions;
 import com.awesoon.thirdtask.task.NotesToJsonExporterThread;
 import com.awesoon.thirdtask.util.Action;
 import com.awesoon.thirdtask.util.ActivityUtils;
@@ -67,6 +70,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+
+import javax.inject.Inject;
+
+import dagger.android.AndroidInjection;
 
 import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
@@ -99,8 +106,15 @@ public class MainActivity extends AppCompatActivity {
   private NotesToJsonExporterThread notesToJsonExporterThread;
   private NotificationManager notificationManager;
 
+  @Inject
+  SyncService syncService;
+
+  @Inject
+  UserService userService;
+
   @Override
   protected void onCreate(Bundle savedInstanceState) {
+    AndroidInjection.inject(this);
     super.onCreate(savedInstanceState);
 
     setContentView(R.layout.activity_main);
@@ -160,44 +174,28 @@ public class MainActivity extends AppCompatActivity {
 
       @Override
       public void onSysItemDeleted(Long id) {
-        refreshData(dbHelper);
+        // the note already removed from the list (handled by the adapter)
+        // we have to update counts
+        refreshData(dbHelper, new RefreshOptions().setUpdateData(false));
       }
 
       @Override
       public void onSysItemsAdded(List<SysItem> sysItems) {
         refreshData(dbHelper);
       }
-
-      @Override
-      public void onSysItemSynced(SysItem sysItem) {
-        runOnUiThread(new Runnable() {
-          @Override
-          public void run() {
-            Toast.makeText(MainActivity.this, "Заметка синхронизирована", Toast.LENGTH_SHORT).show();
-          }
-        });
-      }
-
-      @Override
-      public void onSysItemNotSynced(SysItem sysItem) {
-        runOnUiThread(new Runnable() {
-          @Override
-          public void run() {
-            Toast.makeText(MainActivity.this, "Заметка не синхронизирована", Toast.LENGTH_SHORT).show();
-          }
-        });
-      }
     });
 
     refreshData(dbHelper);
+    syncAllNotes();
   }
 
   private void removeAllNotes() {
     final DbHelper dbHelper = getDbHelper();
+    final long userId = userService.getCurrentUserId();
     AsyncTaskBuilder.firstly(new AsyncTaskProducer<Integer>() {
       @Override
       public Integer doApply() {
-        return dbHelper.removeAllSysItems();
+        return dbHelper.removeSysItemsByUserId(userId);
       }
     }, new Consumer<Integer>() {
       @Override
@@ -502,8 +500,19 @@ public class MainActivity extends AppCompatActivity {
    * @param dbHelper A db helper.
    */
   private void refreshData(DbHelper dbHelper) {
-    new GetAllSysItemsTask(MainActivity.this, dbHelper).execute();
+    refreshData(dbHelper, RefreshOptions.getDefault());
   }
+
+  /**
+   * Refreshes the list data.
+   *
+   * @param dbHelper       A db helper.
+   * @param refreshOptions Refresh options.
+   */
+  private void refreshData(DbHelper dbHelper, RefreshOptions refreshOptions) {
+    new GetAllSysItemsTask(MainActivity.this, dbHelper, refreshOptions).execute();
+  }
+
 
   /**
    * Loads notes from the file.
@@ -659,7 +668,8 @@ public class MainActivity extends AppCompatActivity {
       public void doLoadItems(int page, int totalItemsCount, RecyclerView view) {
         showItemsLoadingProgress();
         SysItemFilter filter = SysItemFilterRepository.getCurrentFilter(MainActivity.this);
-        dbHelper.findSysItemsAsync(new PageRequest(page, NOTES_PAGE_SIZE), filterQueryText, filter, false,
+        long userId = userService.getCurrentUserId();
+        dbHelper.findSysItemsAsync(userId, new PageRequest(page, NOTES_PAGE_SIZE), filterQueryText, filter, false,
             new Consumer<Page<SysItem>>() {
               @Override
               public void apply(Page<SysItem> sysItemPage) {
@@ -947,9 +957,10 @@ public class MainActivity extends AppCompatActivity {
   /**
    * Sets new sys items to the list view.
    *
-   * @param page Items.
+   * @param page           Items.
+   * @param refreshOptions Refresh options.
    */
-  private void setSysItems(FilteredPage<SysItem> page) {
+  private void setSysItems(FilteredPage<SysItem> page, RefreshOptions refreshOptions) {
     List<SysItem> filteredItems = page.getData();
     if (filteredItems != null && page.getNumber() == 0) {
       int delta = page.getTotalSourceElements() - page.getTotalElements();
@@ -972,7 +983,10 @@ public class MainActivity extends AppCompatActivity {
       }
     }
 
-    updateListData(filteredItems);
+    if (refreshOptions != null && (refreshOptions.isUpdateData() || filteredItems.isEmpty())) {
+      updateListData(filteredItems);
+    }
+
     setTotalNotesCount(page.getTotalElements());
   }
 
@@ -1034,6 +1048,29 @@ public class MainActivity extends AppCompatActivity {
     }
   }
 
+  public void syncAllNotes() {
+    AsyncTaskBuilder.firstly(new AsyncTaskProducer<SyncService.SyncResult>() {
+      @Override
+      public SyncService.SyncResult doApply() {
+        return syncService.syncAllNotes(new SyncOptions());
+      }
+    }, new Consumer<SyncService.SyncResult>() {
+      @Override
+      public void apply(SyncService.SyncResult syncResult) {
+        if (syncResult.isFailure()) {
+          Toast.makeText(MainActivity.this, getString(R.string.notes_not_synced), Toast.LENGTH_SHORT).show();
+        }
+
+        if (syncResult.hasLocalChanges()) {
+          refreshData();
+          if (syncResult.isOk()) {
+            Toast.makeText(MainActivity.this, getString(R.string.notes_synced), Toast.LENGTH_SHORT).show();
+          }
+        }
+      }
+    }).build().execute();
+  }
+
   /**
    * Retrieves all sys items from the database. Calls setSysItems once finished.
    */
@@ -1042,11 +1079,13 @@ public class MainActivity extends AppCompatActivity {
     private DbHelper dbHelper;
     private SysItemFilter filter;
     private String filterQueryText;
+    private RefreshOptions refreshOptions;
 
-    public GetAllSysItemsTask(MainActivity activity, DbHelper dbHelper) {
+    public GetAllSysItemsTask(MainActivity activity, DbHelper dbHelper, RefreshOptions refreshOptions) {
       this.activity = activity;
       this.dbHelper = dbHelper;
       this.filterQueryText = activity.filterQueryText;
+      this.refreshOptions = refreshOptions;
     }
 
     @Override
@@ -1057,14 +1096,15 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected FilteredPage<SysItem> doInBackground(Void... params) {
       filter = SysItemFilterRepository.getCurrentFilter(activity);
-      FilteredPage<SysItem> page = dbHelper.findSysItems(new PageRequest(0, 25), filterQueryText, filter, true);
+      long userId = activity.userService.getCurrentUserId();
+      FilteredPage<SysItem> page = dbHelper.findSysItems(userId, new PageRequest(0, 25), filterQueryText, filter, true);
       return page;
     }
 
     @Override
     protected void onPostExecute(final FilteredPage<SysItem> items) {
       if (Objects.equals(activity.filterQueryText, filterQueryText)) {
-        activity.setSysItems(items);
+        activity.setSysItems(items, refreshOptions);
         activity.hideItemsLoadingProgress();
       }
     }
@@ -1170,6 +1210,23 @@ public class MainActivity extends AppCompatActivity {
         this.title = title;
         this.percentage = percentage;
       }
+    }
+  }
+
+  private static class RefreshOptions {
+    private boolean updateData;
+
+    public static RefreshOptions getDefault() {
+      return new RefreshOptions().setUpdateData(true);
+    }
+
+    public boolean isUpdateData() {
+      return updateData;
+    }
+
+    public RefreshOptions setUpdateData(boolean updateData) {
+      this.updateData = updateData;
+      return this;
     }
   }
 }

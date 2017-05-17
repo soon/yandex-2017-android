@@ -1,5 +1,7 @@
 package com.awesoon.thirdtask.db;
 
+import com.awesoon.core.sql.FilteredPage;
+import com.awesoon.core.sql.PageRequest;
 import com.awesoon.thirdtask.domain.SysItem;
 
 import org.joda.time.DateTime;
@@ -135,15 +137,20 @@ public class DbHelperTest extends BaseDbHelperTest {
   @Test
   public void testRemoveSysItemById() throws Exception {
     // given
-    dbHelper.addSysItem(new SysItem().setTitle("title 1").setBody("body 1").setColor(1234));
-    SysItem sysItem = dbHelper.addSysItem(new SysItem().setTitle("title 2").setBody("body 2").setColor(5678));
-    dbHelper.addSysItem(new SysItem().setTitle("title 3").setBody("body 3").setColor(9012));
+    dbHelper.addSysItem(new SysItem().setTitle("title 1").setBody("body 1").setColor(1234).setUserId(0L));
+    SysItem sysItem = dbHelper.addSysItem(
+        new SysItem().setTitle("title 2").setBody("body 2").setColor(5678).setUserId(0L));
+    dbHelper.addSysItem(new SysItem().setTitle("title 3").setBody("body 3").setColor(9012).setUserId(0L));
 
     // when
     dbHelper.removeSysItemById(sysItem.getId());
     List<SysItem> allSysItems = dbHelper.findAllSysItems();
+    FilteredPage<SysItem> activeSysItems = dbHelper.findSysItems(0L, new PageRequest(0, 10), null, null, false);
 
     // then
-    assertThat(allSysItems.size(), is(2));
+    assertThat(allSysItems.size(), is(3));
+    assertThat(activeSysItems.getData().size(), is(2));
+    assertThat(activeSysItems.getTotalElements(), is(2));
+    assertThat(activeSysItems.getTotalSourceElements(), is(2));
   }
 }

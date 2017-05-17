@@ -43,7 +43,7 @@ public class NotesToJsonExporterThread extends HandlerThread {
           if (listener != null && listener.onImportLoadedFromFile != null) {
             listener.onImportLoadedFromFile.apply(sysItems);
           }
-          dbHelper.removeAllSysItems();
+          dbHelper.forceRemoveAllSysItems();
           List<SysItem> savedSysItems = dbHelper.addSysItems(sysItems,
               listener == null ? null : new Consumer<Integer>() {
             @Override

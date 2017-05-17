@@ -14,6 +14,7 @@ import dagger.android.AndroidInjectionModule;
     DatabaseModule.class,
     ServiceModule.class,
     WebModule.class,
+    MainActivityModule.class,
     ElementEditorActivityModule.class
 })
 public interface NotesApplicationComponent {

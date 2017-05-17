@@ -177,6 +177,21 @@ public class SqlUtils {
    * @return A list of selected rows.
    */
   public static <T> List<T> queryForList(SQLiteDatabase db, String sql, RowMapper<T> rowMapper,
+                                         List<?> selectionArgs) {
+    return queryForList(db, sql, rowMapper, true, CollectionUtils.toArray(selectionArgs, Object.class));
+  }
+
+  /**
+   * Executes given sql and retrieves data using the given row mapper.
+   *
+   * @param db            Db connection.
+   * @param sql           Sql to execute.
+   * @param rowMapper     Row mapper.
+   * @param selectionArgs Selection arguments. Nullable.
+   * @param <T>           A row type.
+   * @return A list of selected rows.
+   */
+  public static <T> List<T> queryForList(SQLiteDatabase db, String sql, RowMapper<T> rowMapper,
                                          Object... selectionArgs) {
     return queryForList(db, sql, rowMapper, true, selectionArgs);
   }
@@ -206,7 +221,13 @@ public class SqlUtils {
 
     String[] args = new String[selectionArgs.length];
     for (int i = 0; i < args.length; i++) {
-      args[i] = selectionArgs[i] == null ? null : selectionArgs[i].toString();
+      if (selectionArgs[i] == null) {
+        args[i] = null;
+      } else if (selectionArgs[i] instanceof Boolean) {
+        args[i] = ((boolean) selectionArgs[i]) ? "1" : "0";
+      } else {
+        args[i] = selectionArgs[i].toString();
+      }
     }
 
     return args;
@@ -357,6 +378,16 @@ public class SqlUtils {
   public static <T> List<T> queryForList(SQLiteDatabase db, String sql, RowMapper<T> rowMapper,
                                          boolean countAllFilteredItems) {
     return queryForList(db, sql, rowMapper, countAllFilteredItems, (String[]) null);
+  }
+
+  public static int queryCountAll(SQLiteDatabase db, String sql, Object... args) {
+    String[] stringArgs = convertToStringArgs(args);
+    return queryCountAll(db, sql, stringArgs);
+  }
+
+  public static int queryCountAll(SQLiteDatabase db, String sql, List<Object> selectionArgs) {
+    Object[] args = CollectionUtils.toArray(selectionArgs, Object.class);
+    return queryCountAll(db, sql, args);
   }
 
   public static int queryCountAll(SQLiteDatabase db, String sql, String... selectionArgs) {

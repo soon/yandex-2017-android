@@ -35,4 +35,17 @@ public class BaseNotesBackendDto<T> {
   public boolean isOk() {
     return "ok".equalsIgnoreCase(status);
   }
+
+  public boolean isNotFound() {
+    return "not_found".equals(error);
+  }
+
+  @Override
+  public String toString() {
+    return "BaseNotesBackendDto{" +
+        "status='" + status + '\'' +
+        ", error='" + error + '\'' +
+        ", data=" + data +
+        '}';
+  }
 }

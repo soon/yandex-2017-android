@@ -198,7 +198,8 @@ public class SysItemsAdapter extends RecyclerView.Adapter<SysItemsAdapter.ViewHo
       filteredData.addAll(items);
       originalData.addAll(items);
     }
-    notifyItemRangeInserted(insertPosition, items.size());
+    notifyDataSetChanged();
+//    notifyItemRangeInserted(insertPosition, items.size());
   }
 
   public void addOnItemClickListener(Consumer<SysItem> consumer) {

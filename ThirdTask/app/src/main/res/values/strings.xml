@@ -200,4 +200,7 @@
 
   <string name="notes_exporting_loading_from_db">Подготовка к экспорту</string>
   <string name="notes_exporting_storing_to_file">Сохранение заметок</string>
+
+  <string name="notes_synced">Заметки синхронизированы</string>
+  <string name="notes_not_synced">Заметки не синхронизированы</string>
 </resources>

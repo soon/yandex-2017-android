@@ -32,6 +32,7 @@ import com.awesoon.thirdtask.util.StringUtils;
 import org.joda.time.DateTime;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import static com.awesoon.thirdtask.util.SqlUtils.dateTimeField;
@@ -48,8 +49,9 @@ public class DbHelper extends SQLiteOpenHelper {
   public static final int DATABASE_VERSION_3 = 3;
   public static final int DATABASE_VERSION_4 = 4;
   public static final int DATABASE_VERSION_5 = 5;
+  public static final int DATABASE_VERSION_6 = 6;
 
-  public static final int DATABASE_VERSION = DATABASE_VERSION_5;
+  public static final int DATABASE_VERSION = DATABASE_VERSION_6;
   public static final String DATABASE_NAME = "ThirdTask.db";
 
   public DbHelper(Context context) {
@@ -108,6 +110,11 @@ public class DbHelper extends SQLiteOpenHelper {
       case DATABASE_VERSION_4:
         doUpgrade4To5(db);
         if (newVersion == DATABASE_VERSION_5) {
+          break;
+        }
+      case DATABASE_VERSION_5:
+        doUpgrade5To6(db);
+        if (newVersion == DATABASE_VERSION_6) {
           break;
         }
       default:
@@ -221,10 +228,27 @@ public class DbHelper extends SQLiteOpenHelper {
         .put(SysItem.SysItemEntry.COLUMN_USER_ID, defaultUserId)
         .build();
     db.update(SysItem.SysItemEntry.TABLE_NAME, values, null, null);
+  }
 
-    String uniqueIndex = SqlUtils.makeCreateIndexSql(SysItem.SysItemEntry.TABLE_NAME,
-        SysItem.SysItemEntry.COLUMN_REMOTE_ID, SysItem.SysItemEntry.COLUMN_REMOTE_ID + "_uniq", true);
-    db.execSQL(uniqueIndex);
+  private void doUpgrade5To6(SQLiteDatabase db) {
+    List<String> newFields = SqlUtils.makeAlterTableBuilder(SysItem.SysItemEntry.TABLE_NAME)
+        .addColumn(intField(SysItem.SysItemEntry.COLUMN_STATUS))
+        .build();
+    for (String sql : newFields) {
+      db.execSQL(sql);
+    }
+
+    List<String> indices = SqlUtils.makeCreateIndicesSql(SysItem.SysItemEntry.TABLE_NAME,
+        SysItem.SysItemEntry.COLUMN_STATUS
+    );
+    for (String index : indices) {
+      db.execSQL(index);
+    }
+
+    ContentValues values = new ContentValuesBuilder()
+        .put(SysItem.SysItemEntry.COLUMN_STATUS, SysItem.STATUS_ACTIVE)
+        .build();
+    db.update(SysItem.SysItemEntry.TABLE_NAME, values, null, null);
   }
 
   /**
@@ -417,7 +441,7 @@ public class DbHelper extends SQLiteOpenHelper {
     return saveSysItem(item, SavingOptions.getDefault());
   }
 
-  public SysItem saveSysItemDoesNotNotify(SysItem item) {
+  public SysItem saveSysItemWithoutNotifications(SysItem item) {
     return saveSysItem(item, SavingOptions.withoutNotifications());
   }
 
@@ -448,6 +472,10 @@ public class DbHelper extends SQLiteOpenHelper {
       item.setLastViewedTime(DateTime.now());
     }
 
+    if (item.getStatus() == null) {
+      item.setStatus(SysItem.STATUS_ACTIVE);
+    }
+
     ContentValues values = new ContentValuesBuilder()
         .put(SysItem.SysItemEntry.COLUMN_NAME_TITLE, item.getTitle())
         .put(SysItem.SysItemEntry.COLUMN_NAME_BODY, item.getBody())
@@ -462,6 +490,7 @@ public class DbHelper extends SQLiteOpenHelper {
         .put(SysItem.SysItemEntry.COLUMN_REMOTE_ID, item.getRemoteId())
         .put(SysItem.SysItemEntry.COLUMN_SYNCED, item.isSynced())
         .put(SysItem.SysItemEntry.COLUMN_USER_ID, item.getUserId())
+        .put(SysItem.SysItemEntry.COLUMN_STATUS, item.getStatus())
         .build();
 
     if (item.getId() == null) {
@@ -480,15 +509,23 @@ public class DbHelper extends SQLiteOpenHelper {
       }
     }
 
-    if (options.isNotifySynced()) {
-      if (item.isSynced()) {
-        GlobalDbState.notifySysItemSynced(item);
-      } else {
-        GlobalDbState.notifySysItemNotSynced(item);
-      }
+    return item;
+  }
+
+  @Nullable
+  public SysItem createUnderlyingSysItemIfAbsent(@Nullable SysItem item) {
+    if (item == null || item.getRemoteId() == null) {
+      return null;
     }
 
-    return item;
+    List<SysItem> itemsWithSameRemoteId = findSysItemsByRemoteId(item.getRemoteId());
+    if (itemsWithSameRemoteId.size() != 1) {
+      return null;
+    }
+
+    item.setId(null);
+    item.setStatus(SysItem.STATUS_HIDDEN);
+    return saveSysItem(item, SavingOptions.withoutNotifications());
   }
 
   private void validateInsertedObjectThrowing(long id, Object o) {
@@ -523,17 +560,21 @@ public class DbHelper extends SQLiteOpenHelper {
     return SqlUtils.queryForList(db, sql, SysItemMapper.INSTANCE);
   }
 
-  public void findSysItemsAsync(final Pageable pageable, @Nullable final String searchText,
+  public void findSysItemsAsync(final long userId, final Pageable pageable, @Nullable final String searchText,
                                 @Nullable final SysItemFilter filter, final boolean countAllFilteredItems,
                                 Consumer<Page<SysItem>> successConsumer) {
     AsyncTaskBuilder
         .firstly(new AsyncTaskProducer<Page<SysItem>>() {
           @Override
           public Page<SysItem> doApply() {
-            return findSysItems(pageable, searchText, filter, countAllFilteredItems);
+            return findSysItems(userId, pageable, searchText, filter, countAllFilteredItems);
           }
         }, successConsumer)
         .build().execute();
+  }
+
+  public List<SysItem> findSysItemsByUserId(long userId) {
+    return findSysItems(userId, null, null, null, false).getData();
   }
 
   /**
@@ -541,21 +582,21 @@ public class DbHelper extends SQLiteOpenHelper {
    *
    * @return A page of sys items.
    */
-  public FilteredPage<SysItem> findSysItems(Pageable pageable, @Nullable String searchText,
+  public FilteredPage<SysItem> findSysItems(long userId, @Nullable Pageable pageable, @Nullable String searchText,
                                             @Nullable SysItemFilter filter, boolean countAllFilteredItems) {
-    Assert.notNull(pageable, "pageable must not be null");
-
     String originalSql = "SELECT * FROM " + SysItem.SysItemEntry.TABLE_NAME + " a";
 
     List<Object> args = new ArrayList<>();
 
-    String filteredSql = createFilteredSql(searchText, filter, originalSql, args);
+    String filteredSql = createFilteredSql(userId, searchText, filter, originalSql, args);
 
     SQLiteDatabase db = getReadableDatabase();
     Page<SysItem> queriedData = SqlUtils.queryForPage(
         db, filteredSql, pageable, SysItemMapper.INSTANCE, countAllFilteredItems, args);
 
-    int totalSourceElements = SqlUtils.queryCountAll(db, originalSql);
+    List<Object> countAllArgs = new ArrayList<>();
+    String countAllSql = appendOnlyActiveUserElementsCondition(userId, originalSql, countAllArgs);
+    int totalSourceElements = SqlUtils.queryCountAll(db, countAllSql, countAllArgs);
 
     return new FilteredPage<SysItem>()
         .setData(queriedData.getData())
@@ -566,11 +607,18 @@ public class DbHelper extends SQLiteOpenHelper {
         .setTotalSourceElements(totalSourceElements);
   }
 
+  public String appendOnlyActiveUserElementsCondition(long userId, String sql, List<Object> args) {
+    args.add(SysItem.STATUS_ACTIVE);
+    args.add(userId);
+    return sql + " WHERE a." + SysItem.SysItemEntry.COLUMN_STATUS + " = ? " +
+        "AND a." + SysItem.SysItemEntry.COLUMN_USER_ID + " = ?";
+  }
+
   @NonNull
-  private String createFilteredSql(@Nullable String searchText, @Nullable SysItemFilter filter,
+  private String createFilteredSql(long userId, @Nullable String searchText, @Nullable SysItemFilter filter,
                                    String originalSql, List<Object> args) {
     if (filter == null && StringUtils.isBlank(searchText)) {
-      return originalSql;
+      return appendOnlyActiveUserElementsCondition(userId, originalSql, args);
     }
 
     StringBuilder whereSb = new StringBuilder();
@@ -600,6 +648,9 @@ public class DbHelper extends SQLiteOpenHelper {
       args.add(likeSearchString);
     }
 
+    appendActiveFilterToWherePart(whereSb, args);
+    appendUserFilterToWherePart(whereSb, userId, args);
+
     StringBuilder sqlSb = new StringBuilder(originalSql);
     if (whereSb.length() > 0) {
       sqlSb.append(" WHERE").append(whereSb);
@@ -621,6 +672,24 @@ public class DbHelper extends SQLiteOpenHelper {
     }
 
     return sqlSb.toString();
+  }
+
+  private void appendUserFilterToWherePart(StringBuilder whereSb, long userId, List<Object> args) {
+    if (whereSb.length() > 0) {
+      whereSb.append(" AND");
+    }
+
+    whereSb.append(" a." + SysItem.SysItemEntry.COLUMN_USER_ID + " = ?");
+    args.add(userId);
+  }
+
+  private void appendActiveFilterToWherePart(StringBuilder whereSb, List<Object> args) {
+    if (whereSb.length() > 0) {
+      whereSb.append(" AND");
+    }
+
+    whereSb.append(" a." + SysItem.SysItemEntry.COLUMN_STATUS + " = ?");
+    args.add(SysItem.STATUS_ACTIVE);
   }
 
   private String createEscapedLikeString(String searchText) {
@@ -693,15 +762,49 @@ public class DbHelper extends SQLiteOpenHelper {
    */
   public SysItem findSysItemById(Long id) {
     SQLiteDatabase db = getReadableDatabase();
-    String sql = String.format("SELECT * FROM %s a WHERE a.%s = ?",
+    String sql = String.format("SELECT * FROM %s a WHERE a.%s = ? AND a.%s = ?",
         SysItem.SysItemEntry.TABLE_NAME,
-        SysItem.SysItemEntry.COLUMN_NAME_ID);
+        SysItem.SysItemEntry.COLUMN_NAME_ID,
+        SysItem.SysItemEntry.COLUMN_STATUS);
 
-    SysItem sysItem = SqlUtils.queryForObject(db, sql, SysItemMapper.INSTANCE, id);
+    SysItem sysItem = SqlUtils.queryForObject(db, sql, SysItemMapper.INSTANCE, id, SysItem.STATUS_ACTIVE);
     if (sysItem != null) {
       saveSysItem(sysItem, new SavingOptions().setOverwriteLastViewedTime(true));
     }
     return sysItem;
+  }
+
+  /**
+   * Finds a sys item by the remote id.
+   *
+   * @param remoteId Remote id.
+   * @return A list of SysItems with the given remote id.
+   */
+  @NonNull
+  public List<SysItem> findSysItemsByRemoteId(Long remoteId) {
+    SQLiteDatabase db = getReadableDatabase();
+    String sql = String.format("SELECT * FROM %s a WHERE a.%s = ?",
+        SysItem.SysItemEntry.TABLE_NAME,
+        SysItem.SysItemEntry.COLUMN_REMOTE_ID);
+
+    List<SysItem> sysItems = SqlUtils.queryForList(db, sql, SysItemMapper.INSTANCE, remoteId);
+    return sysItems;
+  }
+
+  /**
+   * Finds all unsynchronized sys items.
+   *
+   * @return A list of unsynchronized SysItems.
+   */
+  @NonNull
+  public List<SysItem> findUnsyncedSysItems() {
+    SQLiteDatabase db = getReadableDatabase();
+    String sql = String.format("SELECT * FROM %s a WHERE a.%s = ?",
+        SysItem.SysItemEntry.TABLE_NAME,
+        SysItem.SysItemEntry.COLUMN_SYNCED);
+
+    List<SysItem> sysItems = SqlUtils.queryForList(db, sql, SysItemMapper.INSTANCE, Collections.singletonList(false));
+    return sysItems;
   }
 
   /**
@@ -715,7 +818,7 @@ public class DbHelper extends SQLiteOpenHelper {
     new AsyncTask<Void, Void, Void>() {
       @Override
       protected Void doInBackground(Void... params) {
-        removeAllSysItems();
+        forceRemoveAllSysItems();
         return null;
       }
 
@@ -744,7 +847,7 @@ public class DbHelper extends SQLiteOpenHelper {
       @Override
       protected List<SysItem> doInBackground(Void... params) {
         try {
-          removeAllSysItems();
+          forceRemoveAllSysItems();
           return addSysItems(newItems);
         } catch (Exception e) {
           exception = e;
@@ -766,9 +869,55 @@ public class DbHelper extends SQLiteOpenHelper {
   /**
    * Removes all sys items from the db.
    */
-  public int removeAllSysItems() {
+  public int forceRemoveAllSysItems() {
     SQLiteDatabase db = getWritableDatabase();
     return db.delete(SysItem.SysItemEntry.TABLE_NAME, null, null);
+  }
+
+  /**
+   * Marks sys item with the given id as removed.
+   *
+   * @param userId User id.
+   */
+  public int removeSysItemsByUserId(Long userId) {
+    SQLiteDatabase db = getWritableDatabase();
+
+    ContentValues values = new ContentValuesBuilder()
+        .put(SysItem.SysItemEntry.COLUMN_STATUS, SysItem.STATUS_REMOVED)
+        .put(SysItem.SysItemEntry.COLUMN_SYNCED, false)
+        .build();
+    int deletedEntries = db.update(SysItem.SysItemEntry.TABLE_NAME,
+        values,
+        SysItem.SysItemEntry.COLUMN_USER_ID + " = ?",
+        new String[]{String.valueOf(userId)});
+
+    if (deletedEntries > 0) {
+      GlobalDbState.notifySysItemDeleted(null);
+    }
+
+    return deletedEntries;
+  }
+
+  /**
+   * Marks sys item with the given id as removed.
+   *
+   * @param id Sys item id.
+   */
+  public void removeSysItemById(Long id) {
+    SQLiteDatabase db = getWritableDatabase();
+
+    ContentValues values = new ContentValuesBuilder()
+        .put(SysItem.SysItemEntry.COLUMN_STATUS, SysItem.STATUS_REMOVED)
+        .put(SysItem.SysItemEntry.COLUMN_SYNCED, false)
+        .build();
+    int deletedEntries = db.update(SysItem.SysItemEntry.TABLE_NAME,
+        values,
+        SysItem.SysItemEntry.COLUMN_NAME_ID + " = ?",
+        new String[]{String.valueOf(id)});
+
+    if (deletedEntries > 0) {
+      GlobalDbState.notifySysItemDeleted(id);
+    }
   }
 
   /**
@@ -776,7 +925,7 @@ public class DbHelper extends SQLiteOpenHelper {
    *
    * @param id Sys item id.
    */
-  public void removeSysItemById(Long id) {
+  public void forceRemoveSysItemById(Long id) {
     SQLiteDatabase db = getWritableDatabase();
 
     int deletedEntries = db.delete(SysItem.SysItemEntry.TABLE_NAME,
@@ -786,6 +935,10 @@ public class DbHelper extends SQLiteOpenHelper {
     if (deletedEntries > 0) {
       GlobalDbState.notifySysItemDeleted(id);
     }
+  }
+
+  public void forceRemoveSysItem(SysItem sysItem) {
+    forceRemoveSysItemById(sysItem.getId());
   }
 
   private static class FavoriteColorMapper extends RowMapperAdapter<FavoriteColor> {
@@ -816,6 +969,7 @@ public class DbHelper extends SQLiteOpenHelper {
       sysItem.setRemoteId(tryGetLong(cursor, SysItem.SysItemEntry.COLUMN_REMOTE_ID));
       sysItem.setSynced(tryGetBoolean(cursor, SysItem.SysItemEntry.COLUMN_SYNCED, false));
       sysItem.setUserId(tryGetLong(cursor, SysItem.SysItemEntry.COLUMN_USER_ID));
+      sysItem.setStatus(tryGetLong(cursor, SysItem.SysItemEntry.COLUMN_STATUS));
       return sysItem;
     }
   }

@@ -18,7 +18,7 @@ public final class ColorUtils {
     }
 
     try {
-      return Integer.parseInt(hex, radix);
+      return (int) Long.parseLong(hex, radix);
     } catch (Exception e) {
       return 0;
     }

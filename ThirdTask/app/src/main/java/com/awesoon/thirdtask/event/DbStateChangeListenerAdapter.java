@@ -11,16 +11,6 @@ public abstract class DbStateChangeListenerAdapter implements DbStateChangeListe
   }
 
   @Override
-  public void onSysItemSynced(SysItem sysItem) {
-
-  }
-
-  @Override
-  public void onSysItemNotSynced(SysItem sysItem) {
-
-  }
-
-  @Override
   public void onSysItemUpdated(SysItem sysItem) {
 
   }

@@ -1,8 +1,8 @@
 package com.awesoon.core.async;
 
-public abstract class AsyncTaskConsumer<T> extends AbstractAsyncTaskAction<T, Object> {
+public abstract class AsyncTaskConsumer<T> extends AbstractAsyncTaskAction<T, Void> {
   @Override
-  public Object apply(T data) {
+  public Void apply(T data) {
     doApply(data);
     return null;
   }

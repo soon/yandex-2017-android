@@ -24,6 +24,7 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import com.awesoon.core.async.AsyncTaskAction;
 import com.awesoon.core.async.AsyncTaskBuilder;
 import com.awesoon.core.async.AsyncTaskConsumer;
 import com.awesoon.core.async.AsyncTaskProducer;
@@ -33,6 +34,7 @@ import com.awesoon.thirdtask.adapter.text.TextWatcherAdapter;
 import com.awesoon.thirdtask.db.DbHelper;
 import com.awesoon.thirdtask.domain.SysItem;
 import com.awesoon.thirdtask.service.SyncService;
+import com.awesoon.thirdtask.service.UserService;
 import com.awesoon.thirdtask.service.container.SyncOptions;
 import com.awesoon.thirdtask.util.ActivityUtils;
 import com.awesoon.thirdtask.util.Assert;
@@ -77,6 +79,9 @@ public class ElementEditorActivity extends AppCompatActivity {
 
   @Inject
   SyncService syncService;
+
+  @Inject
+  UserService userService;
 
   /**
    * Creates intent instance for starting this activity.
@@ -445,18 +450,25 @@ public class ElementEditorActivity extends AppCompatActivity {
    * Saves current sys item to the DB.
    */
   private void saveSysItem() {
+    SysItem originalSysItem = null;
     if (sysItem == null) {
       sysItem = new SysItem();
+    } else {
+      originalSysItem = new SysItem(sysItem);
+      originalSysItem.setSynced(true);
     }
 
     sysItem.setTitle(getNormalizedTitle());
     sysItem.setBody(getNormalizedBody());
     sysItem.setColor(elementColorView.getColor());
     sysItem.setImageUrl(imageUrlEditText.getText().toString().trim());
+    sysItem.setUserId(userService.getCurrentUserId());
+    sysItem.setSynced(false);
 
     NotesApplication app = (NotesApplication) getApplication();
     final DbHelper dbHelper = app.getDbHelper();
 
+    final SysItem finalOriginalSysItem = originalSysItem;
     AsyncTaskBuilder.firstly(new AsyncTaskProducer<SysItem>() {
       @Override
       public SysItem doApply() {
@@ -465,12 +477,14 @@ public class ElementEditorActivity extends AppCompatActivity {
     }).then(new AsyncTaskConsumer<SysItem>() {
       @Override
       protected void doApply(SysItem note) {
-        syncService.syncWithRemote(note.getId(),
-            new SyncOptions().setOverwriteOptions(SyncOptions.Overwrite.OVERWRITE_REMOTE));
+        dbHelper.createUnderlyingSysItemIfAbsent(finalOriginalSysItem);
+      }
+    }).then(new AsyncTaskAction() {
+      @Override
+      public void doApply() {
+        syncService.syncAllNotes(new SyncOptions());
       }
     }).build().execute();
-
-    new SaveSysItemTask(dbHelper).execute(sysItem);
   }
 
   /**

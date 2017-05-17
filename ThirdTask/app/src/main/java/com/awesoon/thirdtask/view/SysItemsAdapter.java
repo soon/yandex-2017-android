@@ -93,17 +93,17 @@ public class SysItemsAdapter extends RecyclerView.Adapter<SysItemsAdapter.ViewHo
           handleElementRemoving(sysItem, holder.getAdapterPosition());
         }
       });
-      holder.itemView.setOnClickListener(new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
-          if (onItemClickListener != null) {
-            int position = holder.getAdapterPosition();
-            SysItem item = getItem(position);
-            onItemClickListener.apply(item);
-          }
-        }
-      });
     }
+    holder.itemView.setOnClickListener(new View.OnClickListener() {
+      @Override
+      public void onClick(View v) {
+        if (onItemClickListener != null) {
+          int position = holder.getAdapterPosition();
+          SysItem item = getItem(position);
+          onItemClickListener.apply(item);
+        }
+      }
+    });
   }
 
   public SysItem getItem(int position) {
@@ -180,23 +180,25 @@ public class SysItemsAdapter extends RecyclerView.Adapter<SysItemsAdapter.ViewHo
       filteredData.remove(position);
       originalData.remove(position);
     }
-    notifyDataSetChanged();
+    notifyItemRemoved(position);
   }
 
   public void clear() {
+    int size = filteredData.size();
     synchronized (dataLock) {
       filteredData.clear();
       originalData.clear();
     }
-    notifyDataSetChanged();
+    notifyItemRangeRemoved(0, size);
   }
 
   public void addAll(List<SysItem> items) {
+    int insertPosition = filteredData.size();
     synchronized (dataLock) {
       filteredData.addAll(items);
       originalData.addAll(items);
     }
-    notifyDataSetChanged();
+    notifyItemRangeInserted(insertPosition, items.size());
   }
 
   public void addOnItemClickListener(Consumer<SysItem> consumer) {

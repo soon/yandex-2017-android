@@ -118,24 +118,28 @@ public class ElementEditorActivity extends AppCompatActivity {
       public void afterTextChanged(Editable s) {
         String path = s.toString();
         if (StringUtils.isBlank(path)) {
-          path = null;
+          imageProgressLoader.setVisibility(View.GONE);
+          Picasso.with(ElementEditorActivity.this)
+              .load((String) null)
+              .placeholder(R.drawable.default_bg)
+              .into(imageView, null);
+        } else {
+          imageProgressLoader.setVisibility(View.VISIBLE);
+          Picasso.with(ElementEditorActivity.this)
+              .load(path)
+              .placeholder(R.drawable.default_bg)
+              .into(imageView, new Callback() {
+                @Override
+                public void onSuccess() {
+                  imageProgressLoader.setVisibility(View.GONE);
+                }
+
+                @Override
+                public void onError() {
+                  imageProgressLoader.setVisibility(View.GONE);
+                }
+              });
         }
-
-        imageProgressLoader.setVisibility(View.VISIBLE);
-        Picasso.with(ElementEditorActivity.this)
-            .load(path)
-            .placeholder(R.drawable.default_bg)
-            .into(imageView, new Callback() {
-              @Override
-              public void onSuccess() {
-                imageProgressLoader.setVisibility(View.GONE);
-              }
-
-              @Override
-              public void onError() {
-                imageProgressLoader.setVisibility(View.GONE);
-              }
-            });
       }
     });
 

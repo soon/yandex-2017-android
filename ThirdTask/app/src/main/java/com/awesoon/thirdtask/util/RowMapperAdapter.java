@@ -18,6 +18,14 @@ public abstract class RowMapperAdapter<T> implements RowMapper<T> {
     return cursor.getString(cursor.getColumnIndexOrThrow(columnName));
   }
 
+  public String tryGetString(Cursor cursor, String columnName) {
+    int columnIndex = cursor.getColumnIndex(columnName);
+    if (columnIndex < 0) {
+      return null;
+    }
+    return cursor.getString(columnIndex);
+  }
+
   public DateTime getDateTime(Cursor cursor, String columnName) {
     return getDateTime(cursor, columnName, DateTimeZone.getDefault());
   }

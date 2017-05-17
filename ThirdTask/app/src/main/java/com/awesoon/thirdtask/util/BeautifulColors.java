@@ -1,7 +1,5 @@
 package com.awesoon.thirdtask.util;
 
-import java.util.Random;
-
 public final class BeautifulColors {
   public static final int[] BEAUTIFUL_COLORS = new int[]{
       0xFFF44336,
@@ -19,10 +17,26 @@ public final class BeautifulColors {
       0xFFFFEB3B,
       0xFFFFC107,
       0xFFFF9800,
-      0xFFFF5722
+      0xFFFF5722,
+      0xFFFF3000,
+      0xFFFF9000,
+      0xFFEFDF00,
+      0xFFB0FF00,
+      0xFF50FF00,
+      0xFF10FF20,
+      0xFF00FF70,
+      0xFF00FFCF,
+      0xFF00CFFF,
+      0xFF0070FF,
+      0xFF1020FF,
+      0xFF5000FF,
+      0xFFB000FF,
+      0xFFEF00DF,
+      0xFFFF0090,
+      0xFFFF002C
   };
 
-  private static final Random rnd = new Random();
+  private static final FastRandom rnd = new FastRandom();
 
   private BeautifulColors() {
   }

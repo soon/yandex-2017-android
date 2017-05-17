@@ -5,23 +5,25 @@ import com.awesoon.thirdtask.domain.SysItem;
 import java.util.List;
 
 public class FilteredItemsContainer {
-  private List<SysItem> originalItems;
+  private int originalItemsCount;
   private List<SysItem> filteredItems;
+  private int allFilteredItemsSize;
 
   public FilteredItemsContainer() {
   }
 
-  public FilteredItemsContainer(List<SysItem> originalItems, List<SysItem> filteredItems) {
-    this.originalItems = originalItems;
+  public FilteredItemsContainer(int originalItemsCount, List<SysItem> filteredItems, int allFilteredItemsSize) {
+    this.originalItemsCount = originalItemsCount;
     this.filteredItems = filteredItems;
+    this.allFilteredItemsSize = allFilteredItemsSize;
   }
 
-  public List<SysItem> getOriginalItems() {
-    return originalItems;
+  public int getOriginalItemsCount() {
+    return originalItemsCount;
   }
 
-  public FilteredItemsContainer setOriginalItems(List<SysItem> originalItems) {
-    this.originalItems = originalItems;
+  public FilteredItemsContainer setOriginalItemsCount(int originalItemsCount) {
+    this.originalItemsCount = originalItemsCount;
     return this;
   }
 
@@ -32,10 +34,6 @@ public class FilteredItemsContainer {
   public FilteredItemsContainer setFilteredItems(List<SysItem> filteredItems) {
     this.filteredItems = filteredItems;
     return this;
-  }
-
-  public int getOriginalItemsSize() {
-    return originalItems == null ? 0 : originalItems.size();
   }
 
   public int getFilteredItemsSize() {

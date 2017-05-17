@@ -20,6 +20,8 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.awesoon.thirdtask.NotesApplication;
@@ -32,6 +34,8 @@ import com.awesoon.thirdtask.util.Assert;
 import com.awesoon.thirdtask.util.BeautifulColors;
 import com.awesoon.thirdtask.util.StringUtils;
 import com.awesoon.thirdtask.view.ElementColorView;
+import com.squareup.picasso.Callback;
+import com.squareup.picasso.Picasso;
 
 import net.danlew.android.joda.DateUtils;
 
@@ -49,14 +53,18 @@ public class ElementEditorActivity extends AppCompatActivity {
   public static final String STATE_CURRENT_COLOR = makeExtraIdent("STATE_CURRENT_COLOR");
   public static final String STATE_CURRENT_TITLE = makeExtraIdent("STATE_CURRENT_TITLE");
   public static final String STATE_CURRENT_BODY = makeExtraIdent("STATE_CURRENT_BODY");
+  public static final String STATE_CURRENT_IMAGE_URL = makeExtraIdent("STATE_CURRENT_IMAGE_URL");
 
   private SysItem sysItem;
   private EditText titleEditText;
   private EditText bodyEditText;
+  private EditText imageUrlEditText;
   private TextView createdTimeTextView;
   private TextView lastUpdatedTimeTextView;
   private TextView lastViewedTimeTextView;
   private ElementColorView elementColorView;
+  private ImageView imageView;
+  private ProgressBar imageProgressLoader;
 
   /**
    * Creates intent instance for starting this activity.
@@ -82,9 +90,12 @@ public class ElementEditorActivity extends AppCompatActivity {
     titleEditText = ActivityUtils.findViewById(this, R.id.edit_title, "R.id.edit_title");
     bodyEditText = ActivityUtils.findViewById(this, R.id.edit_body, "R.id.edit_body");
     elementColorView = ActivityUtils.findViewById(this, R.id.edit_color, "R.id.edit_color");
+    imageUrlEditText = ActivityUtils.findViewById(this, R.id.edit_image_url, "R.id.edit_image_url");
     createdTimeTextView = ActivityUtils.findViewById(this, R.id.created_time, "R.id.created_time");
     lastUpdatedTimeTextView = ActivityUtils.findViewById(this, R.id.last_updated_time, "R.id.last_updated_time");
     lastViewedTimeTextView = ActivityUtils.findViewById(this, R.id.last_viewed_time, "R.id.last_viewed_time");
+    imageView = ActivityUtils.findViewById(this, R.id.image_view, "R.id.image_view");
+    imageProgressLoader = ActivityUtils.findViewById(this, R.id.image_progress_loader, "R.id.image_progress_loader");
 
     initToolbar();
 
@@ -102,6 +113,36 @@ public class ElementEditorActivity extends AppCompatActivity {
       }
     });
 
+    imageUrlEditText.addTextChangedListener(new TextWatcherAdapter() {
+      @Override
+      public void afterTextChanged(Editable s) {
+        String path = s.toString();
+        if (StringUtils.isBlank(path)) {
+          imageProgressLoader.setVisibility(View.GONE);
+          Picasso.with(ElementEditorActivity.this)
+              .load((String) null)
+              .placeholder(R.drawable.default_bg)
+              .into(imageView, null);
+        } else {
+          imageProgressLoader.setVisibility(View.VISIBLE);
+          Picasso.with(ElementEditorActivity.this)
+              .load(path)
+              .placeholder(R.drawable.default_bg)
+              .into(imageView, new Callback() {
+                @Override
+                public void onSuccess() {
+                  imageProgressLoader.setVisibility(View.GONE);
+                }
+
+                @Override
+                public void onError() {
+                  imageProgressLoader.setVisibility(View.GONE);
+                }
+              });
+        }
+      }
+    });
+
     initializeEditorContent(savedInstanceState);
   }
 
@@ -111,6 +152,7 @@ public class ElementEditorActivity extends AppCompatActivity {
 
     outState.putString(STATE_CURRENT_TITLE, titleEditText.getText().toString());
     outState.putString(STATE_CURRENT_BODY, bodyEditText.getText().toString());
+    outState.putString(STATE_CURRENT_IMAGE_URL, imageUrlEditText.getText().toString());
 
     if (elementColorView.getColor() != null) {
       outState.putInt(STATE_CURRENT_COLOR, elementColorView.getColor());
@@ -314,6 +356,7 @@ public class ElementEditorActivity extends AppCompatActivity {
       setActionBarTitle(getString(R.string.element_editor_default_title));
       setDefaultColor();
       hideDateTimeFields();
+      setDefaultImageUrl();
     } else {
       setActionBarTitle(sysItem.getTitle());
       setTitleEditText(sysItem.getTitle());
@@ -323,7 +366,12 @@ public class ElementEditorActivity extends AppCompatActivity {
       setDateTime(createdTimeTextView, R.string.created_time_info, sysItem.getCreatedTime());
       setDateTime(lastUpdatedTimeTextView, R.string.last_edited_time_info, sysItem.getLastEditedTime());
       setDateTime(lastViewedTimeTextView, R.string.last_viewed_time_info, sysItem.getLastViewedTime());
+      imageUrlEditText.setText(sysItem.getImageUrl());
     }
+  }
+
+  private void setDefaultImageUrl() {
+    imageUrlEditText.setText(null);
   }
 
   /**
@@ -385,6 +433,7 @@ public class ElementEditorActivity extends AppCompatActivity {
     sysItem.setTitle(getNormalizedTitle());
     sysItem.setBody(getNormalizedBody());
     sysItem.setColor(elementColorView.getColor());
+    sysItem.setImageUrl(imageUrlEditText.getText().toString().trim());
 
     NotesApplication app = (NotesApplication) getApplication();
     DbHelper dbHelper = app.getDbHelper();
@@ -460,6 +509,10 @@ public class ElementEditorActivity extends AppCompatActivity {
       }
       if (savedInstanceState.containsKey(STATE_CURRENT_COLOR)) {
         setColorEditColor(savedInstanceState.getInt(STATE_CURRENT_COLOR));
+        updateFields = false;
+      }
+      if (savedInstanceState.containsKey(STATE_CURRENT_IMAGE_URL)) {
+        imageUrlEditText.setText(savedInstanceState.getString(STATE_CURRENT_IMAGE_URL));
         updateFields = false;
       }
     }
@@ -542,12 +595,9 @@ public class ElementEditorActivity extends AppCompatActivity {
 
     @Override
     protected void onPostExecute(final SysItem sysItem) {
-      activity.runOnUiThread(new Runnable() {
-        @Override
-        public void run() {
-          activity.setSysItem(sysItem, updateFields);
-        }
-      });
+      if (activity != null) {
+        activity.setSysItem(sysItem, updateFields);
+      }
     }
   }
 }

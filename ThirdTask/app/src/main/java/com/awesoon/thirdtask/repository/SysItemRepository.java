@@ -12,12 +12,15 @@ import android.util.Log;
 
 import com.awesoon.thirdtask.db.DbHelper;
 import com.awesoon.thirdtask.domain.SysItem;
+import com.awesoon.thirdtask.domain.SysItemData;
 import com.awesoon.thirdtask.repository.filter.DatePeriodFilter;
 import com.awesoon.thirdtask.repository.filter.SortFilter;
 import com.awesoon.thirdtask.repository.filter.SysItemFilter;
 import com.awesoon.thirdtask.util.Assert;
+import com.awesoon.thirdtask.util.BeautifulColors;
 import com.awesoon.thirdtask.util.Consumer;
 import com.awesoon.thirdtask.util.DateTimeUtils;
+import com.awesoon.thirdtask.util.FastRandom;
 import com.awesoon.thirdtask.util.StringUtils;
 
 import org.joda.time.DateTime;
@@ -56,7 +59,7 @@ public final class SysItemRepository {
       Collections.sort(filteredItems, comparator);
     }
 
-    return new FilteredItemsContainer(allItems, filteredItems);
+    return new FilteredItemsContainer(allItems.size(), filteredItems, filteredItems.size());
   }
 
   /**
@@ -228,6 +231,45 @@ public final class SysItemRepository {
     }
 
     return null;
+  }
+
+  public static List<SysItem> generateNotes(DbHelper dbHelper, int itemsCount, Consumer<Integer> onNoteGenerated,
+                                            Consumer<Integer> onNoteSaved) {
+    Assert.notNull(dbHelper, "dbHelper must not be null");
+    Assert.isTrue(itemsCount > 0, "itemsCount must be greater then zero");
+
+    FastRandom rnd = new FastRandom();
+    String[] titleAndBodies = SysItemData.DATA.split("[.\n]", -1);
+
+    List<SysItem> items = new ArrayList<>(itemsCount);
+    for (int i = 0; i < itemsCount; i++) {
+      DateTime createdTime = createRandomDateTime(rnd, null, 2015);
+      DateTime lastEditedTime = createRandomDateTime(rnd, createdTime, 2016);
+      DateTime lastViewedTime = createRandomDateTime(rnd, lastEditedTime, 2017);
+
+      int titleIndex = rnd.nextInt(titleAndBodies.length - 1);
+      SysItem sysItem = new SysItem()
+          .setTitle(titleAndBodies[titleIndex].trim())
+          .setBody(titleAndBodies[titleIndex + 1].trim())
+          .setCreatedTime(createdTime)
+          .setLastEditedTime(lastEditedTime)
+          .setLastViewedTime(lastViewedTime)
+          .setColor(BeautifulColors.getBeautifulColor());
+      items.add(sysItem);
+      if (onNoteGenerated != null) {
+        onNoteGenerated.apply(i);
+      }
+    }
+
+    List<SysItem> sysItems = dbHelper.addSysItems(items, onNoteSaved);
+    return sysItems;
+  }
+
+  private static DateTime createRandomDateTime(FastRandom rnd, @Nullable DateTime startDateTime, int maxYear) {
+    int year = startDateTime == null ? rnd.nextInt(2000, maxYear) : rnd.nextInt(startDateTime.getYear() + 1, maxYear);
+    int month = rnd.nextInt(12) + 1;
+    int dayOfMonth = rnd.nextInt(28) + 1;
+    return new DateTime(year, month, dayOfMonth, 0, 0, 0);
   }
 
   @Nullable

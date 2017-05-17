@@ -3,17 +3,30 @@
   xmlns:android="http://schemas.android.com/apk/res/android"
   xmlns:app="http://schemas.android.com/apk/res-auto"
   xmlns:tools="http://schemas.android.com/tools"
+  android:id="@+id/activity_main"
   android:layout_width="match_parent"
   android:layout_height="match_parent"
   app:layout_behavior="@string/appbar_scrolling_view_behavior"
   tools:context="com.awesoon.thirdtask.activity.MainActivity"
   tools:showIn="@layout/activity_main">
 
-  <ListView
+  <android.support.v7.widget.RecyclerView
     android:id="@+id/elements_list"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content">
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:scrollbars="vertical">
 
-  </ListView>
+  </android.support.v7.widget.RecyclerView>
 
+  <ProgressBar
+    android:id="@+id/elements_list_progress_bar"
+    style="?android:attr/progressBarStyleLarge"
+    android:layout_width="40dp"
+    android:layout_height="40dp"
+    android:layout_alignParentBottom="true"
+    android:progressDrawable="@drawable/circular_progress_bar"
+    app:layout_constraintBottom_toBottomOf="@+id/activity_main"
+    app:layout_constraintLeft_toLeftOf="@+id/activity_main"
+    app:layout_constraintRight_toRightOf="@+id/activity_main"
+    app:layout_constraintTop_toTopOf="@+id/activity_main"/>
 </android.support.constraint.ConstraintLayout>

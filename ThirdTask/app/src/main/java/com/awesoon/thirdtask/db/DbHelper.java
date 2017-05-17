@@ -6,20 +6,32 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.os.AsyncTask;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
+import com.awesoon.core.async.AsyncTaskBuilder;
+import com.awesoon.core.async.AsyncTaskProducer;
+import com.awesoon.core.sql.FilteredPage;
+import com.awesoon.core.sql.Page;
+import com.awesoon.core.sql.Pageable;
 import com.awesoon.thirdtask.domain.FavoriteColor;
 import com.awesoon.thirdtask.domain.SysItem;
+import com.awesoon.thirdtask.repository.filter.DatePeriodFilter;
+import com.awesoon.thirdtask.repository.filter.SortFilter;
+import com.awesoon.thirdtask.repository.filter.SysItemFilter;
 import com.awesoon.thirdtask.util.Action;
 import com.awesoon.thirdtask.util.Assert;
+import com.awesoon.thirdtask.util.CollectionUtils;
 import com.awesoon.thirdtask.util.Consumer;
 import com.awesoon.thirdtask.util.ContentValuesBuilder;
 import com.awesoon.thirdtask.util.RowMapperAdapter;
 import com.awesoon.thirdtask.util.SqlUtils;
+import com.awesoon.thirdtask.util.StringUtils;
 
 import org.joda.time.DateTime;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static com.awesoon.thirdtask.util.SqlUtils.dateTimeField;
@@ -33,8 +45,10 @@ public class DbHelper extends SQLiteOpenHelper {
   public static final int DATABASE_INITIAL_VERSION = 0;
   public static final int DATABASE_VERSION_1 = 1;
   public static final int DATABASE_VERSION_2 = 2;
+  public static final int DATABASE_VERSION_3 = 3;
+  public static final int DATABASE_VERSION_4 = 4;
 
-  public static final int DATABASE_VERSION = DATABASE_VERSION_2;
+  public static final int DATABASE_VERSION = DATABASE_VERSION_4;
   public static final String DATABASE_NAME = "ThirdTask.db";
 
   public DbHelper(Context context) {
@@ -48,6 +62,9 @@ public class DbHelper extends SQLiteOpenHelper {
 
   private void doCreateDb(SQLiteDatabase db) {
     db.execSQL(SysItem.SQL_CREATE_TABLE);
+    for (String index : SysItem.INDICES) {
+      db.execSQL(index);
+    }
     db.execSQL(FavoriteColor.SQL_CREATE_TABLE);
   }
 
@@ -79,7 +96,14 @@ public class DbHelper extends SQLiteOpenHelper {
         }
       case DATABASE_VERSION_2:
         doUpgrade2To3(db);
-        break;
+        if (newVersion == DATABASE_VERSION_3) {
+          break;
+        }
+      case DATABASE_VERSION_3:
+        doUpgrade3To4(db);
+        if (newVersion == DATABASE_VERSION_4) {
+          break;
+        }
       default:
         throw new IllegalArgumentException(
             "Unknown old DB version " + oldVersion + ", max DB version is " + DATABASE_VERSION);
@@ -123,7 +147,48 @@ public class DbHelper extends SQLiteOpenHelper {
   }
 
   private void doUpgrade2To3(SQLiteDatabase db) {
+    List<String> newFields = SqlUtils.makeAlterTableBuilder(SysItem.SysItemEntry.TABLE_NAME)
+        .addColumn(intField(SysItem.SysItemEntry.COLUMN_CREATED_TIME_TS))
+        .addColumn(intField(SysItem.SysItemEntry.COLUMN_LAST_EDITED_TIME_TS))
+        .addColumn(intField(SysItem.SysItemEntry.COLUMN_LAST_VIEWED_TIME_TS))
+        .build();
+    for (String sql : newFields) {
+      db.execSQL(sql);
+    }
 
+    List<SysItem> sysItems = findAllSysItems();
+    for (SysItem item : sysItems) {
+      ContentValues values = new ContentValuesBuilder()
+          .put(SysItem.SysItemEntry.COLUMN_CREATED_TIME_TS, item.getCreatedTime().getMillis())
+          .put(SysItem.SysItemEntry.COLUMN_LAST_EDITED_TIME_TS, item.getLastEditedTime().getMillis())
+          .put(SysItem.SysItemEntry.COLUMN_LAST_VIEWED_TIME_TS, item.getLastViewedTime().getMillis())
+          .build();
+      int updatedRows = db.update(SysItem.SysItemEntry.TABLE_NAME, values,
+          SysItem.SysItemEntry.COLUMN_NAME_ID + " = ?", new String[]{String.valueOf(item.getId())});
+      validateUpdatedObjectThrowing(updatedRows, item);
+    }
+
+    List<String> indices = SqlUtils.makeCreateIndicesSql(SysItem.SysItemEntry.TABLE_NAME,
+        SysItem.SysItemEntry.COLUMN_NAME_TITLE,
+        SysItem.SysItemEntry.COLUMN_NAME_BODY,
+        SysItem.SysItemEntry.COLUMN_NAME_COLOR,
+        SysItem.SysItemEntry.COLUMN_CREATED_TIME_TS,
+        SysItem.SysItemEntry.COLUMN_LAST_EDITED_TIME_TS,
+        SysItem.SysItemEntry.COLUMN_LAST_VIEWED_TIME_TS
+    );
+
+    for (String index : indices) {
+      db.execSQL(index);
+    }
+  }
+
+  private void doUpgrade3To4(SQLiteDatabase db) {
+    List<String> newFields = SqlUtils.makeAlterTableBuilder(SysItem.SysItemEntry.TABLE_NAME)
+        .addColumn(textField(SysItem.SysItemEntry.COLUMN_IMAGE_URL))
+        .build();
+    for (String sql : newFields) {
+      db.execSQL(sql);
+    }
   }
 
   /**
@@ -241,22 +306,50 @@ public class DbHelper extends SQLiteOpenHelper {
    * @return Added items.
    */
   public List<SysItem> addSysItems(List<SysItem> items) {
+    return addSysItems(items, (Consumer<Integer>) null);
+  }
+
+  /**
+   * Adds sys items to the db.
+   *
+   * @param items An items to add.
+   * @return Added items.
+   */
+  public List<SysItem> addSysItems(List<SysItem> items, @Nullable Consumer<Integer> onNoteSaved) {
+    Assert.notNull(items, "items must not be null");
+
+    SavingOptions savingOptions = SavingOptions.getDefault()
+        .setOverwriteCreatedTime(false)
+        .setOverwriteLastEditedTime(false)
+        .setOverwriteLastViewedTime(false)
+        .setOnNoteSaved(onNoteSaved);
+    return addSysItems(items, savingOptions);
+  }
+
+  /**
+   * Adds sys items to the db.
+   *
+   * @param items An items to add.
+   * @return Added items.
+   */
+  public List<SysItem> addSysItems(List<SysItem> items, SavingOptions savingOptions) {
     Assert.notNull(items, "items must not be null");
     SQLiteDatabase db = getWritableDatabase();
 
-    SavingOptions savingOptions = SavingOptions.getDefault()
+    savingOptions
         .setDb(db)
         .setNotifyItemInserted(false)
-        .setNotifyItemUpdated(false)
-        .setOverwriteCreatedTime(false)
-        .setOverwriteLastEditedTime(false)
-        .setOverwriteLastViewedTime(false);
+        .setNotifyItemUpdated(false);
 
     try {
       db.beginTransaction();
-      for (SysItem item : items) {
+      for (int i = 0; i < items.size(); i++) {
+        SysItem item = items.get(i);
         item.setId(null);
         saveSysItemInternal(item, savingOptions);
+        if (savingOptions.getOnNotesSaved() != null) {
+          savingOptions.getOnNotesSaved().apply(i);
+        }
       }
       db.setTransactionSuccessful();
       GlobalDbState.notifySysItemsAdded(items);
@@ -316,8 +409,12 @@ public class DbHelper extends SQLiteOpenHelper {
         .put(SysItem.SysItemEntry.COLUMN_NAME_BODY, item.getBody())
         .put(SysItem.SysItemEntry.COLUMN_NAME_COLOR, item.getColor())
         .put(SysItem.SysItemEntry.COLUMN_CREATED_TIME, item.getCreatedTime())
+        .put(SysItem.SysItemEntry.COLUMN_CREATED_TIME_TS, item.getCreatedTime().getMillis())
         .put(SysItem.SysItemEntry.COLUMN_LAST_EDITED_TIME, item.getLastEditedTime())
+        .put(SysItem.SysItemEntry.COLUMN_LAST_EDITED_TIME_TS, item.getLastEditedTime().getMillis())
         .put(SysItem.SysItemEntry.COLUMN_LAST_VIEWED_TIME, item.getLastViewedTime())
+        .put(SysItem.SysItemEntry.COLUMN_LAST_VIEWED_TIME_TS, item.getLastViewedTime().getMillis())
+        .put(SysItem.SysItemEntry.COLUMN_IMAGE_URL, item.getImageUrl())
         .build();
 
     if (item.getId() == null) {
@@ -351,24 +448,10 @@ public class DbHelper extends SQLiteOpenHelper {
     }
   }
 
-  /**
-   * Finds all sys item async.
-   *
-   * @param successConsumer A success consumer. Called when all items are retrieved from the db.
-   */
-  public void findAllSysItemsAsync(final Consumer<List<SysItem>> successConsumer) {
-    new AsyncTask<Void, Void, List<SysItem>>() {
-
-      @Override
-      protected List<SysItem> doInBackground(Void... params) {
-        return findAllSysItems();
-      }
-
-      @Override
-      protected void onPostExecute(List<SysItem> sysItems) {
-        successConsumer.apply(sysItems);
-      }
-    }.execute();
+  public int countAllItems() {
+    SQLiteDatabase db = getReadableDatabase();
+    String sql = String.format("SELECT * FROM %s a", SysItem.SysItemEntry.TABLE_NAME);
+    return SqlUtils.queryCountAll(db, sql);
   }
 
   /**
@@ -383,6 +466,168 @@ public class DbHelper extends SQLiteOpenHelper {
         SysItem.SysItemEntry.COLUMN_NAME_TITLE);
 
     return SqlUtils.queryForList(db, sql, SysItemMapper.INSTANCE);
+  }
+
+  public void findSysItemsAsync(final Pageable pageable, @Nullable final String searchText,
+                                @Nullable final SysItemFilter filter, final boolean countAllFilteredItems,
+                                Consumer<Page<SysItem>> successConsumer) {
+    AsyncTaskBuilder
+        .firstly(new AsyncTaskProducer<Page<SysItem>>() {
+          @Override
+          public Page<SysItem> doApply() {
+            return findSysItems(pageable, searchText, filter, countAllFilteredItems);
+          }
+        }, successConsumer)
+        .build().execute();
+  }
+
+  /**
+   * Retrieves page of sys items.
+   *
+   * @return A page of sys items.
+   */
+  public FilteredPage<SysItem> findSysItems(Pageable pageable, @Nullable String searchText,
+                                            @Nullable SysItemFilter filter, boolean countAllFilteredItems) {
+    Assert.notNull(pageable, "pageable must not be null");
+
+    String originalSql = "SELECT * FROM " + SysItem.SysItemEntry.TABLE_NAME + " a";
+
+    List<Object> args = new ArrayList<>();
+
+    String filteredSql = createFilteredSql(searchText, filter, originalSql, args);
+
+    SQLiteDatabase db = getReadableDatabase();
+    Page<SysItem> queriedData = SqlUtils.queryForPage(
+        db, filteredSql, pageable, SysItemMapper.INSTANCE, countAllFilteredItems, args);
+
+    int totalSourceElements = SqlUtils.queryCountAll(db, originalSql);
+
+    return new FilteredPage<SysItem>()
+        .setData(queriedData.getData())
+        .setTotalPages(queriedData.getTotalPages())
+        .setSize(queriedData.getSize())
+        .setNumber(queriedData.getNumber())
+        .setTotalElements(countAllFilteredItems ? queriedData.getTotalElements() : totalSourceElements)
+        .setTotalSourceElements(totalSourceElements);
+  }
+
+  @NonNull
+  private String createFilteredSql(@Nullable String searchText, @Nullable SysItemFilter filter,
+                                   String originalSql, List<Object> args) {
+    if (filter == null && StringUtils.isBlank(searchText)) {
+      return originalSql;
+    }
+
+    StringBuilder whereSb = new StringBuilder();
+    if (!CollectionUtils.isEmpty(filter.getColors())) {
+      whereSb.append(" a.").append(SysItem.SysItemEntry.COLUMN_NAME_COLOR)
+          .append(" IN (").append(SqlUtils.createInPlaceholders(filter.getColors().size())).append(")");
+      args.addAll(filter.getColors());
+    }
+
+    appendConditionToWherePart(whereSb,
+        SysItem.SysItemEntry.COLUMN_CREATED_TIME_TS, filter.getCreatedTimeFilter(), args);
+    appendConditionToWherePart(whereSb,
+        SysItem.SysItemEntry.COLUMN_LAST_EDITED_TIME_TS, filter.getLastEditedTimeFilter(), args);
+    appendConditionToWherePart(whereSb,
+        SysItem.SysItemEntry.COLUMN_LAST_VIEWED_TIME_TS, filter.getLastViewedTimeFilter(), args);
+
+    if (!StringUtils.isBlank(searchText)) {
+      String likeSearchString = createEscapedLikeString(searchText);
+      if (whereSb.length() > 0) {
+        whereSb.append(" AND");
+      }
+      whereSb.append(" (a.").append(SysItem.SysItemEntry.COLUMN_NAME_TITLE).append(" LIKE ? ESCAPE '\\'")
+          .append(" OR a.").append(SysItem.SysItemEntry.COLUMN_NAME_BODY).append(" LIKE ? ESCAPE '\\'")
+          .append(")");
+
+      args.add(likeSearchString);
+      args.add(likeSearchString);
+    }
+
+    StringBuilder sqlSb = new StringBuilder(originalSql);
+    if (whereSb.length() > 0) {
+      sqlSb.append(" WHERE").append(whereSb);
+    }
+
+    StringBuilder orderBySb = new StringBuilder();
+    List<SortFilter> sorts = filter.getSorts();
+    if (sorts != null) {
+      for (SortFilter sort : sorts) {
+        appendSortFilterToOrderByPart(orderBySb, sort);
+      }
+    }
+
+    sqlSb.append(" ORDER BY");
+    if (orderBySb.length() > 0) {
+      sqlSb.append(orderBySb);
+    } else {
+      sqlSb.append(" a.").append(SysItem.SysItemEntry.COLUMN_NAME_TITLE);
+    }
+
+    return sqlSb.toString();
+  }
+
+  private String createEscapedLikeString(String searchText) {
+    return "%" + searchText.trim()
+        .replace("\\", "\\\\")
+        .replace("%", "\\%")
+        .replace("_", "\\_") + "%";
+  }
+
+  private void appendSortFilterToOrderByPart(StringBuilder orderBySb, SortFilter sort) {
+    if (sort == null || sort.getFilteredColumn() == null) {
+      return;
+    }
+
+    if (orderBySb.length() > 0) {
+      orderBySb.append(",");
+    }
+
+    orderBySb.append(" a.");
+    switch (sort.getFilteredColumn()) {
+      case TITLE:
+        orderBySb.append(SysItem.SysItemEntry.COLUMN_NAME_TITLE);
+        break;
+      case BODY:
+        orderBySb.append(SysItem.SysItemEntry.COLUMN_NAME_BODY);
+        break;
+      case CREATED:
+        orderBySb.append(SysItem.SysItemEntry.COLUMN_CREATED_TIME_TS);
+        break;
+      case EDITED:
+        orderBySb.append(SysItem.SysItemEntry.COLUMN_LAST_EDITED_TIME_TS);
+        break;
+      case VIEWED:
+        orderBySb.append(SysItem.SysItemEntry.COLUMN_LAST_VIEWED_TIME_TS);
+        break;
+    }
+
+    orderBySb.append(sort.isAsc() ? " ASC" : " DESC");
+  }
+
+  private void appendConditionToWherePart(StringBuilder whereSb, String columnName, DatePeriodFilter filter,
+                                          List<Object> args) {
+    if (filter.isEmpty()) {
+      return;
+    }
+
+    appendTimeConditionToWherePart(whereSb, columnName, filter.getFrom(), args);
+    appendTimeConditionToWherePart(whereSb, columnName, filter.getTo(), args);
+  }
+
+  private void appendTimeConditionToWherePart(StringBuilder whereSb, String columnName, DateTime from,
+                                              List<Object> args) {
+    if (from == null) {
+      return;
+    }
+
+    if (whereSb.length() > 0) {
+      whereSb.append(" AND");
+    }
+    whereSb.append(" a.").append(columnName)
+        .append(" >= ?");
+    args.add(from.getMillis());
   }
 
   /**
@@ -466,9 +711,9 @@ public class DbHelper extends SQLiteOpenHelper {
   /**
    * Removes all sys items from the db.
    */
-  public void removeAllSysItems() {
+  public int removeAllSysItems() {
     SQLiteDatabase db = getWritableDatabase();
-    db.delete(SysItem.SysItemEntry.TABLE_NAME, null, null);
+    return db.delete(SysItem.SysItemEntry.TABLE_NAME, null, null);
   }
 
   /**
@@ -512,17 +757,19 @@ public class DbHelper extends SQLiteOpenHelper {
       sysItem.setCreatedTime(getDateTime(cursor, SysItem.SysItemEntry.COLUMN_CREATED_TIME));
       sysItem.setLastEditedTime(getDateTime(cursor, SysItem.SysItemEntry.COLUMN_LAST_EDITED_TIME));
       sysItem.setLastViewedTime(getDateTime(cursor, SysItem.SysItemEntry.COLUMN_LAST_VIEWED_TIME));
+      sysItem.setImageUrl(tryGetString(cursor, SysItem.SysItemEntry.COLUMN_IMAGE_URL));
       return sysItem;
     }
   }
 
-  private static class SavingOptions {
+  public static class SavingOptions {
     private SQLiteDatabase db;
     private boolean notifyItemInserted;
     private boolean notifyItemUpdated;
     private boolean overwriteCreatedTime;
     private boolean overwriteLastEditedTime;
     private boolean overwriteLastViewedTime;
+    private Consumer<Integer> onNotesSaved;
 
     public static SavingOptions getDefault() {
       return new SavingOptions()
@@ -584,6 +831,15 @@ public class DbHelper extends SQLiteOpenHelper {
 
     public SavingOptions setOverwriteLastViewedTime(boolean overwriteLastViewedTime) {
       this.overwriteLastViewedTime = overwriteLastViewedTime;
+      return this;
+    }
+
+    public Consumer<Integer> getOnNotesSaved() {
+      return onNotesSaved;
+    }
+
+    public SavingOptions setOnNoteSaved(Consumer<Integer> onNotesSaved) {
+      this.onNotesSaved = onNotesSaved;
       return this;
     }
   }

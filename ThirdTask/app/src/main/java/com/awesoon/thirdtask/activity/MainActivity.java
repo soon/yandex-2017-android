@@ -91,6 +91,8 @@ public class MainActivity extends AppCompatActivity {
 
   public static final int MAX_PERCENTAGE = 100;
 
+  public static final int GENERATED_NOTES_PACK_SIZE = 10;
+
   public static final String STATE_DEFAULT_ITEM_COLOR = makeExtraIdent("STATE_DEFAULT_ITEM_COLOR");
   public static final String STATE_FILTER_QUERY_TEXT = makeExtraIdent("STATE_FILTER_QUERY_TEXT");
 
@@ -230,7 +232,7 @@ public class MainActivity extends AppCompatActivity {
     NotesApplication app = (NotesApplication) getApplication();
     DbHelper dbHelper = app.getDbHelper();
     new SysItemsGenerator(notificationManager, builder, this, dbHelper,
-        getString(R.string.notes_generation_progress), getString(R.string.notes_saving_progress), 100_000).execute();
+        getString(R.string.notes_generation_progress), getString(R.string.notes_saving_progress), GENERATED_NOTES_PACK_SIZE).execute();
   }
 
   private void showRemoveFiltersDialog() {
@@ -1049,10 +1051,14 @@ public class MainActivity extends AppCompatActivity {
   }
 
   public void syncAllNotes() {
+    syncAllNotes(new SyncOptions());
+  }
+
+  public void syncAllNotes(final SyncOptions options) {
     AsyncTaskBuilder.firstly(new AsyncTaskProducer<SyncService.SyncResult>() {
       @Override
       public SyncService.SyncResult doApply() {
-        return syncService.syncAllNotes(new SyncOptions());
+        return syncService.syncAllNotes(options);
       }
     }, new Consumer<SyncService.SyncResult>() {
       @Override
@@ -1067,8 +1073,79 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(MainActivity.this, getString(R.string.notes_synced), Toast.LENGTH_SHORT).show();
           }
         }
+
+        if (syncResult.hasConflicts()) {
+          resolveSyncConflicts(syncResult);
+        }
       }
     }).build().execute();
+  }
+
+  private void resolveSyncConflicts(SyncService.SyncResult syncResult) {
+    if (!syncResult.hasConflicts()) {
+      return;
+    }
+
+    List<SyncService.LocalRemotePair> removeConflicts = syncResult.getRemoveConflicts();
+    if (!removeConflicts.isEmpty()) {
+      SyncService.LocalRemotePair removeConflict = removeConflicts.get(0);
+      resolveRemoveConflict(removeConflict);
+    }
+
+    List<SyncService.LocalRemotePair> editConflicts = syncResult.getEditConflicts();
+    if (!editConflicts.isEmpty()) {
+      SyncService.LocalRemotePair editConflict = editConflicts.get(0);
+      resolveEditConflict(editConflict);
+    }
+  }
+
+  private void resolveEditConflict(SyncService.LocalRemotePair editConflict) {
+    final SysItem local = editConflict.getLocal();
+
+    new AlertDialog.Builder(this)
+        .setTitle("Конфликт при синхронизации")
+        .setSingleChoiceItems(new String[]{
+            "Принять локальные изменения",
+            "Принять изменения с сервера",
+        }, 0, new DialogInterface.OnClickListener() {
+          @Override
+          public void onClick(DialogInterface dialogInterface, int which) {
+            SyncOptions syncOptions = new SyncOptions();
+            if (which == 0) {
+              syncOptions.acceptLocalChanges(local.getId());
+            } else {
+              syncOptions.acceptRemoteChanges(local.getId());
+            }
+            syncAllNotes(syncOptions);
+          }
+        })
+        .setNegativeButton(R.string.cancel, null)
+        .show();
+  }
+
+  private void resolveRemoveConflict(SyncService.LocalRemotePair removeConflict) {
+    final SysItem local = removeConflict.getLocal();
+
+    new AlertDialog.Builder(this)
+        .setTitle("Конфликт при синхронизации")
+        .setMessage("Заметка " + local.getTitle() + " была удалена на устройстве и изменена на сервере")
+        .setSingleChoiceItems(new String[]{
+            "Удалить заметку на сервере",
+            "Вернуть заметку на устройстве",
+        }, 0, new DialogInterface.OnClickListener() {
+          @Override
+          public void onClick(DialogInterface dialogInterface, int which) {
+            SyncOptions syncOptions = new SyncOptions();
+            if (which == 0) {
+              syncOptions.removeRemote(local.getId());
+            } else {
+              syncOptions.revertRemoved(local.getId());
+            }
+            syncAllNotes(syncOptions);
+          }
+        })
+        .setNegativeButton(R.string.cancel, null)
+        .show();
   }
 
   /**

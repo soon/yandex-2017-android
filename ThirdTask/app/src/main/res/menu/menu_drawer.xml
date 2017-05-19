@@ -39,7 +39,7 @@
       android:checked="true"
       android:id="@+id/generate_notes"
       android:icon="@drawable/ic_add_black_24dp"
-      android:title="@string/create_100_000_notes"/>
+      android:title="@string/create_10_notes"/>
     <item
       android:checked="true"
       android:id="@+id/remove_all_notes"

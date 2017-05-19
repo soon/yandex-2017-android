@@ -4,7 +4,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class SyncOptions {
-  private Overwrite overwriteOptions;
   private Long userId;
   // all ids are local
   private Set<Long> revertRemovedIds = new HashSet<>();
@@ -20,15 +19,6 @@ public class SyncOptions {
 
   public SyncOptions setUserId(Long userId) {
     this.userId = userId;
-    return this;
-  }
-
-  public Overwrite getOverwriteOptions() {
-    return overwriteOptions;
-  }
-
-  public SyncOptions setOverwriteOptions(Overwrite overwriteOptions) {
-    this.overwriteOptions = overwriteOptions;
     return this;
   }
 
@@ -56,8 +46,19 @@ public class SyncOptions {
     return acceptRemoteChangesIds;
   }
 
-  public enum Overwrite {
-    OVERWRITE_LOCAL,
-    OVERWRITE_REMOTE,
+  public void acceptLocalChanges(Long id) {
+    acceptLocalChangesIds.add(id);
+  }
+
+  public void acceptRemoteChanges(Long id) {
+    acceptRemoteChangesIds.add(id);
+  }
+
+  public void removeRemote(Long id) {
+    removeRemoteIds.add(id);
+  }
+
+  public void revertRemoved(Long id) {
+    revertRemovedIds.add(id);
   }
 }

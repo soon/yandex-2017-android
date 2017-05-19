@@ -518,6 +518,10 @@ public class SyncService {
       return this;
     }
 
+    public List<LocalRemotePair> getEditConflicts() {
+      return editConflicts;
+    }
+
     public SyncResult addEditConflict(SysItem local, NotesBackendUserNote remote) {
       editConflicts.add(new LocalRemotePair(local, remote));
       return this;

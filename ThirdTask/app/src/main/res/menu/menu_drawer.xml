@@ -46,4 +46,23 @@
       android:icon="@drawable/ic_remove_circle_black_24dp"
       android:title="@string/remove_all_notes"/>
   </group>
+  <group
+    android:id="@+id/users_group"
+    android:checkableBehavior="single">
+    <item
+      android:checked="true"
+      android:id="@+id/drawer_add_user"
+      android:icon="@drawable/ic_add_black_24dp"
+      android:title="@string/add_user"/>
+    <item
+      android:checked="true"
+      android:id="@+id/drawer_select_user"
+      android:icon="@drawable/ic_tune_black_24dp"
+      android:title="@string/select_user"/>
+    <item
+      android:checked="true"
+      android:id="@+id/drawer_remove_current_user"
+      android:icon="@drawable/ic_remove_circle_black_24dp"
+      android:title="@string/remove_current_user"/>
+  </group>
 </menu>

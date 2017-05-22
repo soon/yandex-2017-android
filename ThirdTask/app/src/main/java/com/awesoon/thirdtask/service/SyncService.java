@@ -58,7 +58,7 @@ public class SyncService {
         .setCreated(sysItem.getCreatedTime().toString())
         .setEdited(sysItem.getLastEditedTime().toString())
         .setViewed(sysItem.getLastViewedTime().toString())
-        .setExtra("Здесь могла быть ваша реклама");
+        .setExtra("Сервер помнит");
   }
 
 
@@ -77,7 +77,7 @@ public class SyncService {
 
     SyncResult syncResult = new SyncResult();
 
-    List<SysItem> unsyncedSysItems = dbHelper.findUnsyncedSysItems();
+    List<SysItem> unsyncedSysItems = dbHelper.findUnsyncedSysItems(userId);
 
     final List<SysItem> newItems = CollectionUtils.filter(unsyncedSysItems, new Predicate<SysItem>() {
       @Override
@@ -119,8 +119,6 @@ public class SyncService {
       return syncResult;
     }
 
-    // Несмотря на то, что обновление локальных изменений происходит в разрезе всех пользователей,
-    // изменения с сервера подтягиваются только для текущего пользователя
     // К данному моменту все несохраненные изменения должны быть отправлены на сервер
     // Так что смело принимаем все изменения с сервера
     List<NotesBackendUserNote> allRemoteNotes = findAllUserNotes(userId);

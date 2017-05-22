@@ -26,9 +26,33 @@ public class NumberUtils {
   }
 
   @Nullable
+  public static Long parseLong(@Nullable Object o) {
+    if (o == null) {
+      return null;
+    }
+    if (o instanceof Long) {
+      return (Long) o;
+    }
+    if (o instanceof String) {
+      return Long.parseLong((String) o);
+    }
+
+    throw new RuntimeException("Unable to parse long from " + o);
+  }
+
+  @Nullable
   public static BigDecimal tryParseBigDecimal(@Nullable Object o) {
     try {
       return parseBigDecimal(o);
+    } catch (Exception e) {
+      return null;
+    }
+  }
+
+  @Nullable
+  public static Long tryParseLong(@Nullable Object o) {
+    try {
+      return parseLong(o);
     } catch (Exception e) {
       return null;
     }

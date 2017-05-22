@@ -32,7 +32,7 @@ import com.awesoon.thirdtask.util.StringUtils;
 import org.joda.time.DateTime;
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.List;
 
 import static com.awesoon.thirdtask.util.SqlUtils.dateTimeField;
@@ -792,18 +792,20 @@ public class DbHelper extends SQLiteOpenHelper {
   }
 
   /**
-   * Finds all unsynchronized sys items.
+   * Finds all unsynchronized sys items for the given user.
    *
    * @return A list of unsynchronized SysItems.
    */
   @NonNull
-  public List<SysItem> findUnsyncedSysItems() {
+  public List<SysItem> findUnsyncedSysItems(Long userUd) {
     SQLiteDatabase db = getReadableDatabase();
-    String sql = String.format("SELECT * FROM %s a WHERE a.%s = ?",
+    String sql = String.format("SELECT * FROM %s a WHERE a.%s = ? AND a.%s = ?",
         SysItem.SysItemEntry.TABLE_NAME,
+        SysItem.SysItemEntry.COLUMN_USER_ID,
         SysItem.SysItemEntry.COLUMN_SYNCED);
 
-    List<SysItem> sysItems = SqlUtils.queryForList(db, sql, SysItemMapper.INSTANCE, Collections.singletonList(false));
+    List<SysItem> sysItems = SqlUtils.queryForList(db, sql, SysItemMapper.INSTANCE,
+        Arrays.asList(userUd, false));
     return sysItems;
   }
 

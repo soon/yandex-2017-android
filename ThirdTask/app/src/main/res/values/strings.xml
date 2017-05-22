@@ -203,4 +203,14 @@
 
   <string name="notes_synced">Заметки синхронизированы</string>
   <string name="notes_not_synced">Заметки не синхронизированы</string>
+
+  <string name="no_name_user">Нет имени</string>
+  <string name="enter_user_name">Введите имя пользователя</string>
+  <string name="user_has_been_removed">Пользователь %s успешно удален!</string>
+  <string name="user_has_been_added">Пользователь %s успешно добавлен!</string>
+  <string name="you_are_the_last_one">Вы последний пользователь!</string>
+
+  <string name="add_user">Добавить пользователя</string>
+  <string name="select_user">Выбрать пользователя</string>
+  <string name="remove_current_user">Удалить текущего пользователя</string>
 </resources>

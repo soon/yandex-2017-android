@@ -71,7 +71,7 @@ public class CollectionUtils {
     return result;
   }
 
-  public static <T, U> List<U> mapNotNull(List<T> data, Function<T, U> transformer) {
+  public static <T, U> List<U> mapNotNull(Collection<T> data, Function<T, U> transformer) {
     if (data == null) {
       return new ArrayList<>();
     }

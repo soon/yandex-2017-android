@@ -27,6 +27,7 @@ import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
@@ -50,6 +51,7 @@ import com.awesoon.thirdtask.repository.filter.SysItemFilter;
 import com.awesoon.thirdtask.service.SyncService;
 import com.awesoon.thirdtask.service.UserService;
 import com.awesoon.thirdtask.service.container.SyncOptions;
+import com.awesoon.thirdtask.service.container.SysUser;
 import com.awesoon.thirdtask.task.NotesToJsonExporterThread;
 import com.awesoon.thirdtask.util.Action;
 import com.awesoon.thirdtask.util.ActivityUtils;
@@ -153,6 +155,15 @@ public class MainActivity extends AppCompatActivity {
           case R.id.remove_all_notes:
             removeAllNotes();
             return true;
+          case R.id.drawer_add_user:
+            addUser();
+            return true;
+          case R.id.drawer_select_user:
+            showSelectUserDialog();
+            return true;
+          case R.id.drawer_remove_current_user:
+            removeCurrentUser();
+            return true;
         }
 
         return false;
@@ -189,6 +200,90 @@ public class MainActivity extends AppCompatActivity {
 
     refreshData(dbHelper);
     syncAllNotes();
+  }
+
+  private void removeCurrentUser() {
+    SysUser removedUser = userService.removeCurrentUser();
+    if (removedUser != null) {
+      Toast.makeText(this, getString(R.string.user_has_been_removed, removedUser.getName()), Toast.LENGTH_SHORT).show();
+      refreshData();
+      syncAllNotes();
+    } else {
+      Toast.makeText(this, R.string.you_are_the_last_one, Toast.LENGTH_SHORT).show();
+    }
+  }
+
+  private void showSelectUserDialog() {
+    final List<SysUser> allUsers = userService.getAllUsers();
+    long currentUserId = userService.getCurrentUserId();
+
+    int selectedIndex = CollectionUtils.indexOf(allUsers, currentUserId, new BiPredicate<SysUser, Long>() {
+      @Override
+      public boolean apply(SysUser sysUser, Long uuid) {
+        return sysUser != null && Objects.equals(sysUser.getId(), uuid);
+      }
+    });
+    if (selectedIndex == -1) {
+      selectedIndex = 0;
+    }
+
+    String[] items = CollectionUtils.mapToArray(allUsers, String.class, new Function<SysUser, String>() {
+      @Override
+      public String apply(SysUser sysUser) {
+        return sysUser == null || sysUser.getName() == null ? getString(R.string.no_name_user) : sysUser.getName();
+      }
+    });
+
+    new AlertDialog.Builder(this)
+        .setSingleChoiceItems(items, selectedIndex, new DialogInterface.OnClickListener() {
+          @Override
+          public void onClick(DialogInterface dialog, int which) {
+            SysUser newUser = allUsers.get(which);
+            userService.setCurrentUserId(newUser.getId());
+            refreshData();
+            syncAllNotes();
+          }
+        })
+        .setPositiveButton(R.string.ok, null)
+        .show();
+  }
+
+  private void addUser() {
+    final EditText userNameEditor = new EditText(this);
+
+    final AlertDialog dialog = new AlertDialog.Builder(this)
+        .setTitle(R.string.enter_user_name)
+        .setView(userNameEditor)
+        .setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
+          @Override
+          public void onClick(DialogInterface dialogInterface, int i) {
+            // do nothing here, will set custom onClickListener
+          }
+        })
+        .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
+          @Override
+          public void onClick(DialogInterface dialogInterface, int i) {
+            // do nothing here, will set custom onClickListener
+          }
+        })
+        .create();
+
+    dialog.show();
+
+    dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener() {
+      @Override
+      public void onClick(View view) {
+        String userName = userNameEditor.getText().toString().trim();
+        if (!StringUtils.isBlank(userName)) {
+          SysUser newUser = userService.createAndSelectUser(userName);
+          Toast.makeText(MainActivity.this,
+              getString(R.string.user_has_been_added, newUser.getName()), Toast.LENGTH_SHORT).show();
+          dialog.dismiss();
+          refreshData();
+          syncAllNotes();
+        }
+      }
+    });
   }
 
   private void removeAllNotes() {

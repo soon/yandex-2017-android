@@ -213,4 +213,15 @@
   <string name="add_user">Добавить пользователя</string>
   <string name="select_user">Выбрать пользователя</string>
   <string name="remove_current_user">Удалить текущего пользователя</string>
+
+  <string name="conflicts_while_syncing_notes">Конфликт при синхронизации заметки %s</string>
+  <string name="conflicts_while_syncing">Конфликт при синхронизации</string>
+  <string name="accept_local_changes">Принять локальные изменения</string>
+  <string name="accept_remote_changes">Принять изменения с сервера</string>
+
+  <string name="note_was_removed_locally_and_changed_remotely">
+    Заметка "%s" была удалена на устройстве и изменена на сервере
+  </string>
+  <string name="remove_remote_note">Удалить заметку на сервере</string>
+  <string name="revert_removed_note">Вернуть заметку на устройстве</string>
 </resources>

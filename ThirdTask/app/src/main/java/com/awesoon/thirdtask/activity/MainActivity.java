@@ -1198,10 +1198,10 @@ public class MainActivity extends AppCompatActivity {
     final SysItem local = editConflict.getLocal();
 
     new AlertDialog.Builder(this)
-        .setTitle("Конфликт при синхронизации")
+        .setTitle(getString(R.string.conflicts_while_syncing_notes, local.getTitle()))
         .setSingleChoiceItems(new String[]{
-            "Принять локальные изменения",
-            "Принять изменения с сервера",
+            getString(R.string.accept_local_changes),
+            getString(R.string.accept_remote_changes)
         }, 0, new DialogInterface.OnClickListener() {
           @Override
           public void onClick(DialogInterface dialogInterface, int which) {
@@ -1211,6 +1211,7 @@ public class MainActivity extends AppCompatActivity {
             } else {
               syncOptions.acceptRemoteChanges(local.getId());
             }
+            dialogInterface.dismiss();
             syncAllNotes(syncOptions);
           }
         })
@@ -1222,11 +1223,10 @@ public class MainActivity extends AppCompatActivity {
     final SysItem local = removeConflict.getLocal();
 
     new AlertDialog.Builder(this)
-        .setTitle("Конфликт при синхронизации")
-        .setMessage("Заметка " + local.getTitle() + " была удалена на устройстве и изменена на сервере")
+        .setTitle(getString(R.string.note_was_removed_locally_and_changed_remotely, local.getTitle()))
         .setSingleChoiceItems(new String[]{
-            "Удалить заметку на сервере",
-            "Вернуть заметку на устройстве",
+            getString(R.string.remove_remote_note),
+            getString(R.string.revert_removed_note)
         }, 0, new DialogInterface.OnClickListener() {
           @Override
           public void onClick(DialogInterface dialogInterface, int which) {
@@ -1236,6 +1236,7 @@ public class MainActivity extends AppCompatActivity {
             } else {
               syncOptions.revertRemoved(local.getId());
             }
+            dialogInterface.dismiss();
             syncAllNotes(syncOptions);
           }
         })

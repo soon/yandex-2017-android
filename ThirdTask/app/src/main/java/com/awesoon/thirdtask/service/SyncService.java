@@ -272,6 +272,7 @@ public class SyncService {
           } else {
             // Пользователь не определился с выбором
             syncResult.addEditConflict(updatedItem, remoteNote);
+            doUpdate = false;
           }
         }
 

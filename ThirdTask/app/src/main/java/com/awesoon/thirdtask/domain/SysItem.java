@@ -16,6 +16,7 @@ import org.joda.time.DateTime;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 
 import static com.awesoon.thirdtask.util.SqlUtils.dateTimeField;
 import static com.awesoon.thirdtask.util.SqlUtils.intField;
@@ -23,15 +24,40 @@ import static com.awesoon.thirdtask.util.SqlUtils.pkIntAutoincrement;
 import static com.awesoon.thirdtask.util.SqlUtils.textField;
 
 public class SysItem implements Parcelable {
+  public static final long STATUS_REMOVED = 0;
+  public static final long STATUS_ACTIVE = 1;
+  public static final long STATUS_HIDDEN = 2;
+
   public static final String SQL_CREATE_TABLE = SqlUtils.makeCreateTableSql(SysItemEntry.TABLE_NAME,
       pkIntAutoincrement(SysItemEntry.COLUMN_NAME_ID),
       textField(SysItemEntry.COLUMN_NAME_TITLE).setNull(false),
       textField(SysItemEntry.COLUMN_NAME_BODY).setNull(false),
       intField(SysItemEntry.COLUMN_NAME_COLOR).setNull(false),
       dateTimeField(SysItemEntry.COLUMN_CREATED_TIME).setNull(false),
+      intField(SysItemEntry.COLUMN_CREATED_TIME_TS).setNull(false),
       dateTimeField(SysItemEntry.COLUMN_LAST_EDITED_TIME).setNull(false),
-      dateTimeField(SysItemEntry.COLUMN_LAST_VIEWED_TIME).setNull(false)
+      intField(SysItemEntry.COLUMN_LAST_EDITED_TIME_TS).setNull(false),
+      dateTimeField(SysItemEntry.COLUMN_LAST_VIEWED_TIME).setNull(false),
+      intField(SysItemEntry.COLUMN_LAST_VIEWED_TIME_TS).setNull(false),
+      textField(SysItemEntry.COLUMN_IMAGE_URL).setNull(true),
+      intField(SysItemEntry.COLUMN_REMOTE_ID).setNull(true),
+      intField(SysItemEntry.COLUMN_SYNCED).setNull(true),
+      intField(SysItemEntry.COLUMN_USER_ID).setNull(true),
+      intField(SysItemEntry.COLUMN_STATUS).setNull(false)
   );
+
+  public static final String[] INDICES = new String[]{
+      SqlUtils.makeCreateIndexSql(SysItemEntry.TABLE_NAME, SysItemEntry.COLUMN_NAME_TITLE),
+      SqlUtils.makeCreateIndexSql(SysItemEntry.TABLE_NAME, SysItemEntry.COLUMN_NAME_BODY),
+      SqlUtils.makeCreateIndexSql(SysItemEntry.TABLE_NAME, SysItemEntry.COLUMN_NAME_COLOR),
+      SqlUtils.makeCreateIndexSql(SysItemEntry.TABLE_NAME, SysItemEntry.COLUMN_CREATED_TIME_TS),
+      SqlUtils.makeCreateIndexSql(SysItemEntry.TABLE_NAME, SysItemEntry.COLUMN_LAST_EDITED_TIME_TS),
+      SqlUtils.makeCreateIndexSql(SysItemEntry.TABLE_NAME, SysItemEntry.COLUMN_LAST_VIEWED_TIME_TS),
+      SqlUtils.makeCreateIndexSql(SysItemEntry.TABLE_NAME, SysItemEntry.COLUMN_REMOTE_ID),
+      SqlUtils.makeCreateIndexSql(SysItemEntry.TABLE_NAME, SysItemEntry.COLUMN_SYNCED),
+      SqlUtils.makeCreateIndexSql(SysItemEntry.TABLE_NAME, SysItemEntry.COLUMN_USER_ID),
+      SqlUtils.makeCreateIndexSql(SysItemEntry.TABLE_NAME, SysItemEntry.COLUMN_STATUS),
+  };
 
   public static final String SQL_DROP_TABLE = SqlUtils.makeDropTableIfExistsSql(SysItemEntry.TABLE_NAME);
 
@@ -47,8 +73,39 @@ public class SysItem implements Parcelable {
   private DateTime lastEditedTime;
   @Json(name = "viewed")
   private DateTime lastViewedTime;
+  @Json(name = "imageUrl")
+  private String imageUrl;
+
+  private Long remoteId;
+  private boolean synced;
+  private Long userId;
+  private Long status;
 
   public SysItem() {
+  }
+
+  public SysItem(String title, String body, int color, DateTime createdTime, DateTime lastEditedTime,
+                 DateTime lastViewedTime) {
+    this.title = title;
+    this.body = body;
+    this.color = color;
+    this.createdTime = createdTime;
+    this.lastEditedTime = lastEditedTime;
+    this.lastViewedTime = lastViewedTime;
+  }
+
+  public SysItem(SysItem sysItem) {
+    setId(sysItem.id);
+    setTitle(sysItem.title);
+    setBody(sysItem.body);
+    setColor(sysItem.color);
+    setCreatedTime(sysItem.createdTime);
+    setLastEditedTime(sysItem.lastViewedTime);
+    setImageUrl(sysItem.imageUrl);
+    setRemoteId(sysItem.remoteId);
+    setSynced(sysItem.synced);
+    setUserId(sysItem.userId);
+    setStatus(sysItem.status);
   }
 
   private SysItem(Parcel in) {
@@ -181,6 +238,63 @@ public class SysItem implements Parcelable {
     return this;
   }
 
+  public String getImageUrl() {
+    return imageUrl;
+  }
+
+  public SysItem setImageUrl(String imageUrl) {
+    this.imageUrl = imageUrl;
+    return this;
+  }
+
+  public Long getRemoteId() {
+    return remoteId;
+  }
+
+  public SysItem setRemoteId(Long remoteId) {
+    this.remoteId = remoteId;
+    return this;
+  }
+
+  public boolean isSynced() {
+    return synced;
+  }
+
+  public SysItem setSynced(boolean synced) {
+    this.synced = synced;
+    return this;
+  }
+
+  public Long getUserId() {
+    return userId;
+  }
+
+  public SysItem setUserId(Long userId) {
+    this.userId = userId;
+    return this;
+  }
+
+  public Long getStatus() {
+    return status;
+  }
+
+  public SysItem setStatus(Long status) {
+    this.status = status;
+    return this;
+  }
+
+  public boolean isRemoved() {
+    return Objects.equals(STATUS_REMOVED, getStatus());
+  }
+
+  public boolean isActive() {
+    return Objects.equals(STATUS_ACTIVE, getStatus());
+  }
+
+  public boolean isHidden() {
+    return Objects.equals(STATUS_HIDDEN, getStatus());
+  }
+
   @Override
   public String toString() {
     return "SysItem{" +
@@ -221,7 +335,15 @@ public class SysItem implements Parcelable {
     public static final String COLUMN_NAME_BODY = "body";
     public static final String COLUMN_NAME_COLOR = "color";
     public static final String COLUMN_CREATED_TIME = "created_time";
+    public static final String COLUMN_CREATED_TIME_TS = "created_time_ts";
     public static final String COLUMN_LAST_EDITED_TIME = "last_edited_time";
+    public static final String COLUMN_LAST_EDITED_TIME_TS = "last_edited_time_ts";
     public static final String COLUMN_LAST_VIEWED_TIME = "last_viewed_time";
+    public static final String COLUMN_LAST_VIEWED_TIME_TS = "last_viewed_time_ts";
+    public static final String COLUMN_IMAGE_URL = "image_url";
+    public static final String COLUMN_REMOTE_ID = "remote_id";
+    public static final String COLUMN_SYNCED = "synced";
+    public static final String COLUMN_USER_ID = "user_id";
+    public static final String COLUMN_STATUS = "status";
   }
 }

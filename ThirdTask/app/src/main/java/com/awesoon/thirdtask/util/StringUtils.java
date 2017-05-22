@@ -36,4 +36,8 @@ public final class StringUtils {
 
     return original.trim().startsWith(pattern.trim());
   }
+
+  public static boolean areSameTrimmed(String s1, String s2) {
+    return trim(s1).equals(trim(s2));
+  }
 }

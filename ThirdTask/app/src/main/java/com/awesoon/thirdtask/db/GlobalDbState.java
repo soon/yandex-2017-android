@@ -84,7 +84,7 @@ public class GlobalDbState {
    *
    * @param sysItemId Deleted Sys item id.
    */
-  public static void notifySysItemDeleted(final long sysItemId) {
+  public static void notifySysItemDeleted(final Long sysItemId) {
     runForEachListener(new Consumer<DbStateChangeListener>() {
       @Override
       public void accept(DbStateChangeListener listener) {

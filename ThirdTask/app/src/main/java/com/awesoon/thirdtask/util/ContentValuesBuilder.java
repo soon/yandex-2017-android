@@ -21,11 +21,24 @@ public class ContentValuesBuilder {
     return this;
   }
 
+  public ContentValuesBuilder put(String key, Long value) {
+    values.put(key, value);
+    return this;
+  }
+
   public ContentValuesBuilder put(String key, DateTime value) {
     if (value == null) {
       return put(key, (String) null);
     } else {
       return put(key, value.toString());
+    }
+  }
+
+  public ContentValuesBuilder put(String key, Boolean value) {
+    if (value == null) {
+      return put(key, (Long) null);
+    } else {
+      return put(key, value ? 1 : 0);
     }
   }
 

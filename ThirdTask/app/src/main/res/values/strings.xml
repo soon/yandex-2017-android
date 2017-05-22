@@ -8,6 +8,7 @@
   <string name="title_edit_text_hint">Название</string>
   <string name="title_edit_text_error">Введите название</string>
   <string name="body_edit_text_hint">Описание</string>
+  <string name="image_url_edit_text_hint">Url картинки</string>
   <string name="body_edit_text_error">Введите описание</string>
   <string name="body_edit_color_error">Выберите цвет</string>
   <string name="save_element">Сохранить</string>
@@ -54,6 +55,8 @@
     <item quantity="other">Экспортировано %d заметок</item>
   </plurals>
 
+  <string name="notes_have_been_saved_message_short_number">Экспортировано %s заметок</string>
+
   <string name="all_notes_will_be_deleted">Все текущие заметки будут удалены</string>
   <plurals name="are_you_sure_you_want_to_delete_n_notes">
     <item quantity="one">Вы действительно хотите удалить %d заметку?</item>
@@ -70,6 +73,8 @@
     <item quantity="other">Импортировано %d заметок</item>
   </plurals>
 
+  <string name="notes_have_been_imported_message_short_number">Импортировано %s заметок</string>
+
   <string name="unable_to_find_notes_to_import_title">Не найдено заметок для импорта</string>
   <string name="unable_to_find_notes_to_import_message">
     Импортирование заметок отменено
@@ -78,6 +83,10 @@
   <string name="error_occurred_while_importing_notes_title">Ошибка при импорте заметок</string>
   <string name="error_occurred_while_importing_notes_message">
     Произошла ошибка в процессе импорта заметок
+  </string>
+
+  <string name="error_occurred_while_exporting_notes_message">
+    Произошла ошибка в процессе экспорта заметок
   </string>
 
   <string name="created_time_info">Заметка создана %1$s</string>
@@ -129,6 +138,8 @@
     <item quantity="other">Фильтрами скрыто %d заметок</item>
   </plurals>
 
+  <string name="some_notes_are_hidden_short_number">Фильтрами скрыто %s заметок</string>
+
   <string name="empty_filter_name">Пустой</string>
   <string name="no_filter_name">Нет фильтра</string>
 
@@ -157,6 +168,8 @@
 
   <string name="you_do_not_have_filters">У вас нет фильтров</string>
   <string name="do_you_want_to_add_one_filter">Хотите добавить новый фильтр?</string>
+  <string name="create_10_notes">10 заметок</string>
+  <string name="remove_all_notes">Удалить все заметки</string>
 
   <plurals name="found_n_notes">
     <item quantity="zero">Найдено %d заметок</item>
@@ -164,4 +177,51 @@
     <item quantity="few">Найдено %d заметки</item>
     <item quantity="other">Найдено %d заметок</item>
   </plurals>
+
+  <string name="n_notes_title">Заметки (%s)</string>
+
+  <plurals name="removed_n_notes">
+    <item quantity="one">Удалена %d заметка</item>
+    <item quantity="few">Удалены %d заметки</item>
+    <item quantity="other">Удалено %d заметок</item>
+  </plurals>
+
+  <string name="started_notes_generation">Запущена генерация заметок</string>
+  <string name="notes_generation_title">Генерация заметок</string>
+  <string name="notes_generation_text">Запущена генерация заметок</string>
+  <string name="notes_generation_progress">Генерация заметок</string>
+  <string name="notes_saving_progress">Сохранение заметок</string>
+  <string name="generated_n_notes">Сгенерировано %s заметок</string>
+  <string name="notes_generation_failed">Не удалось сгенерировать заметки</string>
+
+  <string name="notes_importing_reading_file">Загрузка из файла</string>
+  <string name="notes_exporting_title">Экспорт заметок</string>
+  <string name="notes_importing_title">Импорт заметок</string>
+
+  <string name="notes_exporting_loading_from_db">Подготовка к экспорту</string>
+  <string name="notes_exporting_storing_to_file">Сохранение заметок</string>
+
+  <string name="notes_synced">Заметки синхронизированы</string>
+  <string name="notes_not_synced">Заметки не синхронизированы</string>
+
+  <string name="no_name_user">Нет имени</string>
+  <string name="enter_user_name">Введите имя пользователя</string>
+  <string name="user_has_been_removed">Пользователь %s успешно удален!</string>
+  <string name="user_has_been_added">Пользователь %s успешно добавлен!</string>
+  <string name="you_are_the_last_one">Вы последний пользователь!</string>
+
+  <string name="add_user">Добавить пользователя</string>
+  <string name="select_user">Выбрать пользователя</string>
+  <string name="remove_current_user">Удалить текущего пользователя</string>
+
+  <string name="conflicts_while_syncing_notes">Конфликт при синхронизации заметки %s</string>
+  <string name="conflicts_while_syncing">Конфликт при синхронизации</string>
+  <string name="accept_local_changes">Принять локальные изменения</string>
+  <string name="accept_remote_changes">Принять изменения с сервера</string>
+
+  <string name="note_was_removed_locally_and_changed_remotely">
+    Заметка "%s" была удалена на устройстве и изменена на сервере
+  </string>
+  <string name="remove_remote_note">Удалить заметку на сервере</string>
+  <string name="revert_removed_note">Вернуть заметку на устройстве</string>
 </resources>
